@@ -108,6 +108,54 @@ class DndAppStateTest {
     }
 
     @Test
+    fun deletingTheLastCharacterCleansOwnedStateAndPersistsAnEmptyRoster() {
+        val source = assertNotNull(DndAppState(FakeStore()).selectedCharacter)
+        val payload = Json.encodeToString(PersistedAppState(characters = listOf(source.toDocument())))
+        val store = FakeStore(payload)
+        val state = DndAppState(store)
+        state.openCharacter(source.id)
+        state.selectPortrait(PortraitPickTarget.Character(source.id), byteArrayOf(4, 3, 2, 1))
+        val portraitName = assertNotNull(state.selectedCharacter?.portraitFileName)
+        state.addCondition("Prone")
+        state.openTurn()
+
+        assertTrue(state.hasSavedTurnDraft(source.id))
+        assertTrue(state.deleteCharacter(source.id))
+
+        assertTrue(state.characters.isEmpty())
+        assertTrue(state.conditions.none { it.characterId == source.id })
+        assertFalse(state.hasSavedTurnDraft(source.id))
+        assertNull(state.selectedCharacterId)
+        assertEquals(AppScreen.Characters, state.screen)
+        assertTrue(portraitName in store.deletedPortraits)
+
+        val restored = DndAppState(store)
+        assertTrue(restored.characters.isEmpty())
+        assertNull(restored.selectedCharacterId)
+    }
+
+    @Test
+    fun deletingAnUnknownCharacterDoesNothing() {
+        val state = DndAppState(FakeStore())
+        val before = state.characters.toList()
+
+        assertFalse(state.deleteCharacter("missing-character"))
+        assertEquals(before, state.characters)
+    }
+
+    @Test
+    fun editorCanTargetACharacterFromTheOverview() {
+        val state = DndAppState(FakeStore())
+        val target = state.characters.first { it.id != state.selectedCharacterId }
+
+        state.beginEdit(characterId = target.id)
+
+        assertTrue(state.editorOpen)
+        assertEquals(target.id, state.selectedCharacterId)
+        assertEquals(target.id, state.editorDraft?.original?.id)
+    }
+
+    @Test
     fun levelUpCanBeOpenedFromSearchAndHitDieOverrideSurvivesRestart() {
         val store = FakeStore()
         val state = DndAppState(store)

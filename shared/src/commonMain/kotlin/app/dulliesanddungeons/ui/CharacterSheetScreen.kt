@@ -151,6 +151,7 @@ internal fun CharacterSheetScreen(
     var pendingQuickCastSpell by remember(character.id) { mutableStateOf<SpellUi?>(null) }
     var sorceryRecoveryOpen by remember(character.id) { mutableStateOf(false) }
     var longRestDialogOpen by remember(character.id) { mutableStateOf(false) }
+    var characterDeletionRequested by remember(character.id) { mutableStateOf(false) }
     val expandedSections = remember(character.id) { mutableStateMapOf<String, Boolean>() }
     fun sectionExpanded(key: String): Boolean = expandedSections[key] ?: (key != "rests")
     fun toggleSection(key: String) { expandedSections[key] = !sectionExpanded(key) }
@@ -162,7 +163,13 @@ internal fun CharacterSheetScreen(
                 .paperTexture()
                 .then(if (activeWeapon != null) Modifier.blur(8.dp) else Modifier),
         ) {
-            SheetTopBar(state, character, onProfileClick = { profileViewerOpen = true })
+            SheetTopBar(
+                state = state,
+                character = character,
+                onProfileClick = { profileViewerOpen = true },
+                onEdit = state::beginEdit,
+                onDelete = { characterDeletionRequested = true },
+            )
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
@@ -417,6 +424,18 @@ internal fun CharacterSheetScreen(
                 )
             }
         }
+    }
+
+    if (characterDeletionRequested) {
+        DeleteCharacterConfirmationDialog(
+            state = state,
+            character = character,
+            onDismiss = { characterDeletionRequested = false },
+            onConfirm = {
+                state.deleteCharacter(character.id)
+                characterDeletionRequested = false
+            },
+        )
     }
 
     if (languagesEditorOpen) {
@@ -751,7 +770,13 @@ private fun CustomFeatureEditorDialog(state: DndAppState, feature: FeatureUi?, o
 }
 
 @Composable
-private fun SheetTopBar(state: DndAppState, character: CharacterUi, onProfileClick: () -> Unit) {
+private fun SheetTopBar(
+    state: DndAppState,
+    character: CharacterUi,
+    onProfileClick: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
     var menuOpen by remember { mutableStateOf(false) }
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 6.dp),
@@ -781,6 +806,11 @@ private fun SheetTopBar(state: DndAppState, character: CharacterUi, onProfileCli
             }
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                 DropdownMenuItem(
+                    text = { Text(state.t("Edit character", "Charakter bearbeiten")) },
+                    leadingIcon = { Icon(Icons.Rounded.Edit, contentDescription = null) },
+                    onClick = { menuOpen = false; onEdit() },
+                )
+                DropdownMenuItem(
                     text = { Text(state.t("Local content", "Lokale Inhalte")) },
                     leadingIcon = { Icon(Icons.Rounded.Backpack, contentDescription = null) },
                     onClick = { menuOpen = false; state.privateContentOpen = true },
@@ -798,6 +828,23 @@ private fun SheetTopBar(state: DndAppState, character: CharacterUi, onProfileCli
                             ),
                         )
                     },
+                )
+                HorizontalDivider()
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            state.t("Delete character", "Charakter löschen"),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Rounded.Delete,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                        )
+                    },
+                    onClick = { menuOpen = false; onDelete() },
                 )
             }
         }
@@ -895,9 +942,6 @@ private fun HeroSummaryCard(
                             contentDescription = state.t("Conditions (${state.selectedConditions.size})", "Zustände (${state.selectedConditions.size})"),
                             tint = if (state.selectedConditions.isNotEmpty()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
                         )
-                    }
-                    IconButton(onClick = { state.beginEdit() }, modifier = Modifier.size(42.dp)) {
-                        Icon(Icons.Rounded.Edit, contentDescription = state.t("Edit character", "Charakter bearbeiten"))
                     }
                     if (character.level < 20) {
                         IconButton(onClick = state::beginLevelUp, modifier = Modifier.size(42.dp)) {

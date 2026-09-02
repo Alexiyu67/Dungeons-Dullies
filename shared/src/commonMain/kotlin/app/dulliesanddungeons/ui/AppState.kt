@@ -843,7 +843,7 @@ class DndAppState(
         private set
     var screen by mutableStateOf(AppScreen.Characters)
     val characters = mutableStateListOf<CharacterUi>().apply {
-        addAll(restored?.characters?.map { it.toCharacterUi() }?.takeIf { it.isNotEmpty() } ?: seedCharacters())
+        addAll(restored?.characters?.map { it.toCharacterUi() } ?: seedCharacters())
     }
     var selectedCharacterId by mutableStateOf<String?>(null)
     val conditions = mutableStateListOf<ConditionUi>().apply {
@@ -1182,12 +1182,55 @@ class DndAppState(
         return true
     }
 
+    fun deleteCharacter(characterId: String): Boolean {
+        val index = characters.indexOfFirst { it.id == characterId }
+        if (index < 0) return false
+        val character = characters[index]
+
+        conditions.removeAll { it.characterId == characterId }
+        savedTurnDrafts.remove(characterId)
+        if (turnSession?.characterId == characterId) {
+            turnSession = null
+            turnOpen = false
+            sessionSaveOpen = false
+        }
+        if (editorDraft?.original?.id == characterId) cancelEdit()
+        if (levelUpDraft?.characterId == characterId) cancelLevelUp()
+        if (recentlyLevelledCharacterId == characterId) recentlyLevelledCharacterId = null
+
+        characters.removeAt(index)
+        if (selectedCharacterId == characterId) {
+            selectedCharacterId = characters.firstOrNull()?.id
+            closeSheetAttack()
+            conditionsOpen = false
+            hpAdjustOpen = false
+            quickRollEditorOpen = false
+            equipmentAddOpen = false
+            turnOpen = false
+            sessionHistoryOpen = false
+            sessionSaveOpen = false
+            conversionOpen = false
+            revivalConfirmationOpen = false
+            preselectedTurnSection = null
+            if (screen == AppScreen.CharacterSheet) screen = AppScreen.Characters
+        }
+
+        persist()
+        deletePortraitFileIfUnused(character.portraitFileName)
+        return true
+    }
+
     private fun deletePortraitFileIfUnused(fileName: String?, exceptFileName: String? = null) {
         val candidate = fileName?.takeUnless { it == exceptFileName } ?: return
         if (characters.none { it.portraitFileName == candidate }) storage.deletePortrait(candidate)
     }
 
-    fun beginEdit(focusAbility: String? = null, section: EditorSection? = null) {
+    fun beginEdit(
+        focusAbility: String? = null,
+        section: EditorSection? = null,
+        characterId: String? = null,
+    ) {
+        val character = characters.firstOrNull { it.id == (characterId ?: selectedCharacterId) } ?: return
         if (turnSession != null) {
             showInfo(
                 t("Active turn", "Aktiver Zug"),
@@ -1195,7 +1238,7 @@ class DndAppState(
             )
             return
         }
-        val character = selectedCharacter ?: return
+        selectedCharacterId = character.id
         editorDraft = CharacterEditorDraft(character, portraitBytes(character)).also { draft ->
             draft.section = section ?: if (focusAbility != null) EditorSection.Abilities else EditorSection.Hub
         }
