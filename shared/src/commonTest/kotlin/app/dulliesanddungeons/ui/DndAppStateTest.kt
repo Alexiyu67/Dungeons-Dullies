@@ -213,6 +213,175 @@ class DndAppStateTest {
     }
 
     @Test
+    fun fifth2014CreationAppliesEachAuditedBaseAncestryBonus() {
+        val state = DndAppState(FakeStore())
+        state.beginCreate()
+        state.creation.ruleset = Ruleset.Fifth2014
+        state.creation.statMethod = StatMethod.Manual
+        state.creation.manualAbilities.keys.forEach { state.creation.manualAbilities[it] = 10 }
+        val expected = mapOf(
+            "Human" to mapOf("STR" to 1, "DEX" to 1, "CON" to 1, "INT" to 1, "WIS" to 1, "CHA" to 1),
+            "Dwarf" to mapOf("CON" to 2),
+            "Elf" to mapOf("DEX" to 2),
+            "Halfling" to mapOf("DEX" to 2),
+            "Dragonborn" to mapOf("STR" to 2, "CHA" to 1),
+            "Gnome" to mapOf("INT" to 2),
+            "Tiefling" to mapOf("INT" to 1, "CHA" to 2),
+        )
+
+        expected.forEach { (ancestry, bonuses) ->
+            state.creation.ancestry = ancestry
+            val actual = state.creationAbilityBreakdowns().mapNotNull { breakdown ->
+                breakdown.ancestrySource?.amount?.let { breakdown.ability to it }
+            }.toMap()
+
+            assertEquals(bonuses, actual, ancestry)
+        }
+    }
+
+    @Test
+    fun ancestryAndDerivedModifierStaySeparateAndFeedTheSavedCharacterOnce() {
+        val state = DndAppState(FakeStore())
+        state.beginCreate()
+        state.creation.name = "Bryn"
+        state.creation.ruleset = Ruleset.Fifth2014
+        state.creation.ancestry = "Dwarf"
+        state.creation.className = "Fighter"
+        state.creation.statMethod = StatMethod.Manual
+        state.creation.manualAbilities.putAll(
+            mapOf("STR" to 14, "DEX" to 12, "CON" to 14, "INT" to 10, "WIS" to 10, "CHA" to 8),
+        )
+
+        val constitution = state.creationAbilityBreakdowns().single { it.ability == "CON" }
+        assertEquals(14, constitution.baseScore)
+        assertEquals(2, constitution.ancestrySource?.amount)
+        assertEquals("Dwarf", constitution.ancestrySource?.label)
+        assertEquals(16, constitution.finalScore)
+        assertEquals(3, constitution.modifier)
+        assertTrue(state.creationAbilityInfo("CON").body.contains("Dwarf"))
+        assertTrue(state.creationModifierInfo("CON").body.contains("final Constitution score"))
+        assertTrue(assertNotNull(state.creationAncestryInfo("CON")).body.contains("Base 14 + 2 = final 16"))
+
+        val preview = state.creationPreview()
+        assertEquals(16, preview.abilities["CON"])
+        state.finishCreate()
+        val character = assertNotNull(state.selectedCharacter)
+        assertEquals(16, character.abilities["CON"])
+        assertEquals(13, character.maxHp)
+    }
+
+    @Test
+    fun ancestryBonusIsAppliedAfterEveryScoreEntryMethod() {
+        val state = DndAppState(FakeStore())
+        state.beginCreate()
+        state.creation.ruleset = Ruleset.Fifth2014
+        state.creation.ancestry = "Dwarf"
+        state.creation.className = "Fighter"
+
+        state.creation.statMethod = StatMethod.Rolled
+        state.creation.rolledScores += listOf(15, 14, 13, 12, 10, 8)
+        assertEquals(16, state.creationAbilityBreakdowns().single { it.ability == "CON" }.finalScore)
+
+        state.creation.statMethod = StatMethod.StandardArray
+        assertEquals(16, state.creationAbilityBreakdowns().single { it.ability == "CON" }.finalScore)
+
+        state.creation.statMethod = StatMethod.PointBuy
+        assertEquals(17, state.creationAbilityBreakdowns().single { it.ability == "CON" }.finalScore)
+
+        state.creation.statMethod = StatMethod.Manual
+        state.creation.manualAbilities["CON"] = 14
+        assertEquals(16, state.creationAbilityBreakdowns().single { it.ability == "CON" }.finalScore)
+    }
+
+    @Test
+    fun abilityRecommendationsRespectTheCreationToggle() {
+        val state = DndAppState(FakeStore())
+        state.beginCreate()
+        state.creation.className = "Wizard"
+
+        state.creation.useRecommendations = true
+        assertTrue(state.creationAbilityInfo("INT").body.contains("Recommended for Wizard"))
+
+        state.creation.useRecommendations = false
+        assertFalse(state.creationAbilityInfo("INT").body.contains("Recommended for Wizard"))
+    }
+
+    @Test
+    fun ancestryScoresAboveTwentyRemainAllowedWithAnAdvisory() {
+        val state = DndAppState(FakeStore())
+        state.beginCreate()
+        state.creation.ruleset = Ruleset.Fifth2014
+        state.creation.ancestry = "Dwarf"
+        state.creation.statMethod = StatMethod.Manual
+        state.creation.manualAbilities["CON"] = 20
+
+        assertEquals(22, state.creationAbilityBreakdowns().single { it.ability == "CON" }.finalScore)
+        assertTrue(assertNotNull(state.creationAbilityLimitAdvisory()).contains("CON 22"))
+    }
+
+    @Test
+    fun legacyBonusesDoNotLeakIntoOtherRulesetsAndMissingDataIsAdvisory() {
+        val state = DndAppState(FakeStore())
+        state.beginCreate()
+        state.creation.statMethod = StatMethod.Manual
+        state.creation.ancestry = "Dwarf"
+        state.creation.manualAbilities["CON"] = 14
+
+        state.creation.ruleset = Ruleset.Fifth2024
+        assertEquals(14, state.creationAbilityBreakdowns().single { it.ability == "CON" }.finalScore)
+        assertNull(state.creationAncestryBonusAdvisory())
+
+        state.creation.ruleset = Ruleset.Pf2eRemaster
+        assertEquals(14, state.creationAbilityBreakdowns().single { it.ability == "CON" }.finalScore)
+        assertNull(state.creationAncestryBonusAdvisory())
+
+        state.creation.ruleset = Ruleset.Fifth2014
+        state.creation.ancestry = "Aarakocra"
+        assertEquals(14, state.creationAbilityBreakdowns().single { it.ability == "CON" }.finalScore)
+        assertTrue(assertNotNull(state.creationAncestryBonusAdvisory()).contains("SRD 5.1"))
+    }
+
+    @Test
+    fun privateAncestryBonusesRequireTheDocumentedValidatedFormula() {
+        val state = DndAppState(FakeStore())
+        state.addPrivateEntry(PrivateEntryUi("moonfolk", "ancestry", "Moonfolk", formula = "ability WIS=+2 CHA=+1 ruleset=2014", sourceNote = "My table pack"))
+        state.beginCreate()
+        state.creation.ruleset = Ruleset.Fifth2014
+        state.creation.ancestry = "Moonfolk"
+        state.creation.statMethod = StatMethod.Manual
+
+        val wisdom = state.creationAbilityBreakdowns().single { it.ability == "WIS" }
+        assertEquals(12, wisdom.finalScore)
+        assertEquals("My table pack", wisdom.ancestrySource?.detail)
+        assertNull(state.creationAncestryBonusAdvisory())
+
+        val invalid = DndAppState(FakeStore())
+        invalid.addPrivateEntry(PrivateEntryUi("broken", "ancestry", "Broken", formula = "ability WIS=2 WIS=+2 ruleset=2014"))
+        invalid.beginCreate()
+        invalid.creation.ruleset = Ruleset.Fifth2014
+        invalid.creation.ancestry = "Broken"
+        assertTrue(assertNotNull(invalid.creationAncestryBonusAdvisory()).contains("invalid"))
+        assertTrue(invalid.creationAbilityBreakdowns().none { it.ancestrySource != null })
+    }
+
+    @Test
+    fun creationLevelAndClassChangesDiscardStaleHitDice() {
+        val state = DndAppState(FakeStore())
+        state.beginCreate()
+        state.setCreationLevel(4)
+        state.rollCreationHitPoints()
+        assertEquals(3, state.creation.rolledHpGains.size)
+
+        state.setCreationLevel(2)
+        assertTrue(state.creation.rolledHpGains.isEmpty())
+        state.rollCreationHitPoints()
+        assertEquals(1, state.creation.rolledHpGains.size)
+
+        state.selectCreationClass("Wizard")
+        assertTrue(state.creation.rolledHpGains.isEmpty())
+    }
+
+    @Test
     fun pf2eCreationUsesAncestryAndClassHpLevelProficiencyAndExpertFighterWeapons() {
         val state = DndAppState(FakeStore())
         state.beginCreate()

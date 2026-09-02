@@ -16,6 +16,11 @@ classes, subclasses, species, backgrounds, feats, spells, items, weapons,
 conditions, actions, and resources. Formulas remain optional; entries without a
 complete reviewed formula are informational and excluded from Suggested Turn.
 
+An approved ancestry or species entry can provide positive creation-time ability
+bonuses with a formula such as `ability STR=+2 CON=+1`. Each ability may appear
+once, values must be between `+1` and `+10`, and an optional `ruleset=2014`,
+`ruleset=2024`, or `ruleset=pf2e` marker limits where the formula applies.
+
 The Android phone flow is the primary importer; no desktop importer is required.
 The app can select a local PDF, UTF-8 text/Markdown, JSON, or `.dndpack` through
 the system document picker. Selection grants access only to that file; the app
