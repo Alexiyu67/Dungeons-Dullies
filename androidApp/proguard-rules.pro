@@ -1,2 +1,3 @@
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
+-dontwarn com.gemalto.jp2.JP2Decoder

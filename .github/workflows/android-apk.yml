@@ -261,7 +261,7 @@ jobs:
         run: |
           set -euo pipefail
           chmod +x gradlew
-          ./gradlew :androidApp:verifyReleaseTag :androidApp:assembleRelease --stacktrace
+          ./gradlew :androidApp:verifyReleaseTag :androidApp:assembleRelease --no-configuration-cache --stacktrace
 
       - name: Verify and stage release APK
         id: release_apk
