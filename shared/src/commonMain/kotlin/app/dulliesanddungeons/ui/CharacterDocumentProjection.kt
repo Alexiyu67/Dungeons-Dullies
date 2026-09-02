@@ -126,6 +126,8 @@ internal fun CharacterUi.toDocument(characterConditions: List<ConditionUi> = emp
         sourceCharacterId = sourceCharacterId,
         locale = LocaleId.EN,
         portraitFileName = portraitFileName,
+        portraitSourceFileName = portraitSourceFileName,
+        portraitCrop = portraitCrop,
         customEntities = customEntities,
         rules = rulePayload,
     )
@@ -316,6 +318,8 @@ internal fun CharacterDocument.toCharacterUi(): CharacterUi {
         proficiency = proficiency,
         portraitSeed = sheet.portraitSeed,
         portraitFileName = build.portraitFileName,
+        portraitSourceFileName = build.portraitSourceFileName,
+        portraitCrop = build.portraitCrop,
         abilities = abilitiesUi,
         skills = combat.skills.mapValues { it.value.value(build.abilities, proficiency, 0) },
         saves = combat.savingThrows.map { (ability, formula) -> ability.displayName to formula.value(build.abilities, proficiency, 0) }.toMap(),

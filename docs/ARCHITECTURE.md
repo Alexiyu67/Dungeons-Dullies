@@ -8,7 +8,7 @@ androidApp         Android entry point, photo picker, private-file storage adapt
 shared             Compose UI, serializable domain models, dice and turn reducers
 content/           declarative, licensed source data and schemas
 SharedPreferences  current versioned character/settings snapshot
-files/portraits    normalized private character portraits
+files/portraits    normalized private portrait sources and rendered crops
 ```
 
 The current Android vertical slice deliberately uses a versioned JSON snapshot rather than a
@@ -44,7 +44,9 @@ the audited compendium grows. No search query leaves the device in either design
 ## Persistence and recovery
 
 - Characters, language, feature counters, and conditions are stored after each committed edit.
-- Portraits are resized to at most 512 px and copied into app-private files.
+- Portrait sources are orientation-corrected, resized to at most 2048 px, and
+  kept in app-private files for later re-cropping. Display crops are stored
+  separately at 512 px.
 - The domain layer already defines pinned pack references and append-only activity records.
 - Transactional history, active-turn process restoration, SQLite FTS, and manual archive
   import/export remain the next persistence milestone rather than being silently simulated.

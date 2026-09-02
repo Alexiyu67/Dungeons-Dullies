@@ -1,6 +1,7 @@
 package app.dulliesanddungeons.ui
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,6 +42,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -112,6 +114,8 @@ fun DulliesAndDungeonsApp(
     state: DndAppState = remember { DndAppState() },
     onPickPortrait: (PortraitPickTarget) -> Unit = {},
     onImportPrivateContent: () -> Unit = {},
+    onEditPortrait: (PortraitPickTarget) -> Unit = {},
+    portraitEditor: @Composable () -> Unit = {},
 ) {
     DulliesTheme {
         Scaffold(
@@ -122,8 +126,8 @@ fun DulliesAndDungeonsApp(
                 Box(Modifier.fillMaxSize().then(if (state.dicePresentation != null) Modifier.blur(8.dp) else Modifier)) {
                     when (state.screen) {
                         AppScreen.Characters -> CharacterListScreen(state)
-                        AppScreen.CreateCharacter -> CharacterCreationScreen(state, onPickPortrait)
-                        AppScreen.CharacterSheet -> CharacterSheetScreen(state, onPickPortrait)
+                        AppScreen.CreateCharacter -> CharacterCreationScreen(state, onPickPortrait, onEditPortrait)
+                        AppScreen.CharacterSheet -> CharacterSheetScreen(state, onPickPortrait, onEditPortrait)
                     }
                 }
                 if (state.dicePresentation != null) {
@@ -150,7 +154,7 @@ fun DulliesAndDungeonsApp(
         if (state.sessionHistoryOpen) SessionHistoryDialog(state)
         if (state.sessionSaveOpen) SaveSessionDialog(state)
         if (state.conversionOpen) ConversionDialog(state)
-        if (state.editorOpen) CharacterEditorDialog(state, onPickPortrait)
+        if (state.editorOpen) CharacterEditorDialog(state, onPickPortrait, onEditPortrait)
         if (state.levelUpOpen) LevelUpDialog(state)
 
         if (state.revivalConfirmationOpen) {
@@ -186,6 +190,7 @@ fun DulliesAndDungeonsApp(
                 },
             )
         }
+        portraitEditor()
     }
 }
 
@@ -244,20 +249,31 @@ internal fun CharacterPortrait(
     seed: Int,
     modifier: Modifier = Modifier,
     portraitData: ByteArray? = null,
+    onClick: (() -> Unit)? = null,
+    clickLabel: String? = null,
 ) {
     val palette = listOf(Color(0xFF4D5F54), Color(0xFF795548), Color(0xFF4C5F7C), Color(0xFF76546D))
     val initials = name.trim().split(" ").take(2).mapNotNull { it.firstOrNull()?.uppercase() }.joinToString("").ifEmpty { "?" }
     val portrait = remember(portraitData) {
         runCatching { portraitData?.decodeToImageBitmap() }.getOrNull()
     }
+    val interactionModifier = if (onClick == null) {
+        Modifier.semantics { role = Role.Image }
+    } else {
+        Modifier
+            .clickable(role = Role.Button, onClick = onClick)
+            .semantics {
+                clickLabel?.let { contentDescription = it }
+            }
+    }
     Box(
-        modifier = modifier.clip(CircleShape).semantics { role = Role.Image },
+        modifier = modifier.clip(CircleShape).then(interactionModifier),
         contentAlignment = Alignment.Center,
     ) {
         if (portrait != null) {
             Image(
                 bitmap = portrait,
-                contentDescription = name,
+                contentDescription = if (onClick == null) name else null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
             )

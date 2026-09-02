@@ -11,6 +11,14 @@ fun App(
     state: DndAppState = remember { DndAppState() },
     onPickPortrait: (PortraitPickTarget) -> Unit = {},
     onImportPrivateContent: () -> Unit = {},
+    onEditPortrait: (PortraitPickTarget) -> Unit = {},
+    portraitEditor: @Composable () -> Unit = {},
 ) {
-    DulliesAndDungeonsApp(state, onPickPortrait, onImportPrivateContent)
+    DulliesAndDungeonsApp(
+        state = state,
+        onPickPortrait = onPickPortrait,
+        onEditPortrait = onEditPortrait,
+        onImportPrivateContent = onImportPrivateContent,
+        portraitEditor = portraitEditor,
+    )
 }

@@ -15,6 +15,8 @@ interface LocalStateStore {
     fun readState(): String?
     fun writeState(value: String)
     fun writePortrait(characterId: String, bytes: ByteArray): String? = null
+    fun writePortraitSource(characterId: String, bytes: ByteArray): String? =
+        writePortrait("$characterId-source", bytes)
     fun readPortrait(fileName: String): ByteArray? = null
     fun deletePortrait(fileName: String): Boolean = false
 
