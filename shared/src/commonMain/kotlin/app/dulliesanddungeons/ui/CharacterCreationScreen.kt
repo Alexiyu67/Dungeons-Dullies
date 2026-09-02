@@ -43,6 +43,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
@@ -224,13 +226,11 @@ private fun IdentityStep(state: DndAppState, onPickPortrait: (PortraitPickTarget
             maxLines = 6,
             shape = RoundedCornerShape(16.dp),
         )
-        OutlinedTextField(
+        AlignmentWheel(
+            state = state,
             value = draft.alignment,
-            onValueChange = { draft.alignment = it.take(60) },
+            onValueChange = { draft.alignment = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text(state.t("Alignment", "Gesinnung")) },
-            singleLine = true,
-            shape = RoundedCornerShape(16.dp),
         )
     }
 }
@@ -249,7 +249,7 @@ private fun BuildStep(state: DndAppState) {
                 Text(state.t("Based on playstyle and complexity", "Basierend auf Spielstil und Komplexität"), style = MaterialTheme.typography.bodySmall)
             }
         }
-        Text(state.t("Ancestry / species", "Abstammung / Spezies"), style = MaterialTheme.typography.titleMedium)
+        SelectionHeading(state.t("Ancestry / species", "Abstammung / Spezies"), draft.ancestry)
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(ancestries) { ancestry ->
                 FilterChip(selected = draft.ancestry == ancestry, onClick = { draft.ancestry = ancestry }, label = { Text(ancestry) })
@@ -261,7 +261,7 @@ private fun BuildStep(state: DndAppState) {
                 state.t("Fighter is sturdy and direct, while still offering tactical choices as you level.", "Kämpfer:innen sind robust und direkt, bieten beim Aufstieg aber trotzdem taktische Möglichkeiten."),
             )
         }
-        Text(state.t("Class", "Klasse"), style = MaterialTheme.typography.titleMedium)
+        SelectionHeading(state.t("Class", "Klasse"), draft.className)
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(classes) { className ->
                 FilterChip(selected = draft.className == className, onClick = { draft.className = className }, label = { Text(className) })
@@ -274,6 +274,27 @@ private fun BuildStep(state: DndAppState) {
             Spacer(Modifier.width(6.dp))
             Text(state.t("About available content", "Über verfügbare Inhalte"))
         }
+    }
+}
+
+@Composable
+private fun SelectionHeading(label: String, selection: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
+        Text(
+            selection,
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.SemiBold,
+            textAlign = TextAlign.End,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -527,7 +548,12 @@ private fun ReviewStep(state: DndAppState) {
                 }
                 if (draft.characterDescription.isNotBlank()) ReviewProfileField(state.t("Character", "Charakter"), draft.characterDescription)
                 if (draft.motive.isNotBlank()) ReviewProfileField(state.t("Motive", "Motiv"), draft.motive)
-                if (draft.alignment.isNotBlank()) ReviewProfileField(state.t("Alignment", "Gesinnung"), draft.alignment)
+                if (draft.alignment.isNotBlank()) {
+                    ReviewProfileField(
+                        state.t("Alignment", "Gesinnung"),
+                        alignmentDisplayName(draft.alignment, state.language),
+                    )
+                }
                 ReviewRow(state.t("Ability method", "Attributsmethode"), draft.statMethod.name)
                 ReviewRow(state.t("Ruleset", "Regelwerk"), draft.ruleset.longLabel)
                 ReviewRow(state.t("Required choices", "Erforderliche Wahlen"), state.t("Complete", "Vollständig"), good = true)

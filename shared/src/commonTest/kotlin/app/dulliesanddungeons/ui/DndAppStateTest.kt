@@ -75,6 +75,31 @@ class DndAppStateTest {
     }
 
     @Test
+    fun standardAlignmentCanBeChangedAndClearedAfterCreation() {
+        val store = FakeStore()
+        val state = DndAppState(store)
+        state.beginCreate()
+        state.creation.name = "Mira"
+        state.creation.alignment = "Chaotic Good"
+        state.finishCreate()
+
+        val restored = DndAppState(store)
+        val character = restored.characters.single { it.name == "Mira" }
+        assertEquals("Chaotic Good", character.profile.alignment)
+
+        restored.openCharacter(character.id)
+        restored.beginEdit(section = EditorSection.Identity)
+        restored.editorDraft?.alignment = "Lawful Evil"
+        assertTrue(restored.saveEdit())
+        assertEquals("Lawful Evil", DndAppState(store).characters.single { it.name == "Mira" }.profile.alignment)
+
+        restored.beginEdit(section = EditorSection.Identity)
+        restored.editorDraft?.alignment = ""
+        assertTrue(restored.saveEdit())
+        assertEquals("", DndAppState(store).characters.single { it.name == "Mira" }.profile.alignment)
+    }
+
+    @Test
     fun legacySingleNoteIsProjectedWithoutDataLoss() {
         val initial = assertNotNull(DndAppState(FakeStore()).selectedCharacter)
         val legacyDocument = initial.toDocument().copy(

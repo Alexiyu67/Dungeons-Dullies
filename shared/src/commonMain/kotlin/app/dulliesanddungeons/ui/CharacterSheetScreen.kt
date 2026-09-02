@@ -584,7 +584,10 @@ private fun CharacterProfileDialog(
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 ProfileField(state.t("Character", "Charakter"), character.profile.characterDescription)
                 ProfileField(state.t("Motive", "Motiv"), character.profile.motive)
-                ProfileField(state.t("Alignment", "Gesinnung"), character.profile.alignment)
+                ProfileField(
+                    state.t("Alignment", "Gesinnung"),
+                    alignmentDisplayName(character.profile.alignment, state.language),
+                )
             }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(state.t("Close", "Schließen")) } },

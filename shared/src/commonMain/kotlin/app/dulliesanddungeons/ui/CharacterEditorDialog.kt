@@ -222,12 +222,11 @@ private fun IdentityEditor(state: DndAppState, draft: CharacterEditorDraft, onPi
             minLines = 3,
             maxLines = 6,
         )
-        OutlinedTextField(
+        AlignmentWheel(
+            state = state,
             value = draft.alignment,
-            onValueChange = { draft.alignment = it.take(60) },
+            onValueChange = { draft.alignment = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text(state.t("Alignment", "Gesinnung")) },
-            singleLine = true,
         )
     }
 }
@@ -468,7 +467,11 @@ private fun ReviewEditor(state: DndAppState, draft: CharacterEditorDraft) {
         ReviewChange(state.t("Name", "Name"), original.name, draft.name)
         ReviewChange(state.t("Character", "Charakter"), original.profile.characterDescription, draft.characterDescription)
         ReviewChange(state.t("Motive", "Motiv"), original.profile.motive, draft.motive)
-        ReviewChange(state.t("Alignment", "Gesinnung"), original.profile.alignment, draft.alignment)
+        ReviewChange(
+            state.t("Alignment", "Gesinnung"),
+            alignmentDisplayName(original.profile.alignment, state.language),
+            alignmentDisplayName(draft.alignment, state.language),
+        )
         ReviewChange(state.t("Build", "Build"), original.buildLabel, "${draft.ancestry} ${draft.className} ${draft.level}")
         ReviewChange(state.t("Subclass", "Unterklasse"), original.subclass, draft.subclass)
         ReviewChange(state.t("Ruleset", "Regelwerk"), original.ruleset.shortLabel, draft.ruleset.shortLabel)
