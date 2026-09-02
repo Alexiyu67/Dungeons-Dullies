@@ -61,6 +61,14 @@ function validatePack(packDir) {
         requireValue(Array.isArray(entry.spell.classes) && entry.spell.classes.length > 0,
           `${entryPath}: ${entry.id} has no spell class membership`);
       }
+      if (entry.kind === "subclass") {
+        requireValue(/^subclass\.[a-z0-9][a-z0-9.-]+$/.test(entry.subclass?.stableId ?? ""),
+          `${entryPath}: ${entry.id} has an invalid stable subclass ID`);
+        requireValue(typeof entry.subclass?.parentClassId === "string" && entry.subclass.parentClassId.length > 0,
+          `${entryPath}: ${entry.id} has no parent class`);
+        requireValue(Number.isInteger(entry.subclass?.selectionLevel) && entry.subclass.selectionLevel >= 1 && entry.subclass.selectionLevel <= 20,
+          `${entryPath}: ${entry.id} has an invalid subclass selection level`);
+      }
     }
     localeIds.set(locale, new Set(ids));
     localeSpells.set(locale, new Map((file.entries ?? [])

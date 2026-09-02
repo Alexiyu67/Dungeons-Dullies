@@ -878,11 +878,11 @@ private fun OtherTurnSection(
                     .forEach { feature -> TurnFeatureCard(state, session, feature) }
             }
         }
-        featureGroups[FeatureFamily.General].orEmpty().filter { it.remaining != null }.takeIf { it.isNotEmpty() }?.let { generalFeatures ->
+        featureGroups[FeatureFamily.General].orEmpty().filter(FeatureUi::isActivatable).takeIf { it.isNotEmpty() }?.let { generalFeatures ->
             Text(featureFamilyLabel(state, FeatureFamily.General), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
             generalFeatures.forEach { feature -> TurnFeatureCard(state, session, feature) }
         }
-        if (character.features.none { it.remaining != null || featureFamily(it) != FeatureFamily.General }) {
+        if (character.features.none { it.isActivatable() || featureFamily(it) != FeatureFamily.General }) {
             Text(state.t("No usable class features are available this turn.", "In diesem Zug sind keine nutzbaren Klassenmerkmale verfügbar."), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         HorizontalDivider(Modifier.padding(vertical = 3.dp))
@@ -920,10 +920,10 @@ private fun TurnFeatureCard(state: DndAppState, session: TurnSession, feature: F
                 }
                 if (feature.toCostTokens().isNotEmpty()) CostChipRow(state, feature.toCostTokens(), available = session.canPay(feature.actionCost) && (feature.remaining ?: 1) > 0)
             }
-            if (feature.remaining != null) {
+            if (feature.isActivatable()) {
                 FilledTonalButton(
                     onClick = { if (state.useFeature(feature.id, session)) session.markSuggestionComplete("feature") },
-                    enabled = feature.remaining >= feature.resourceCost,
+                    enabled = (feature.remaining == null || feature.remaining >= feature.resourceCost) && session.canPay(feature.actionCost),
                     contentPadding = PaddingValues(horizontal = 11.dp),
                 ) { Text(feedback?.message ?: state.t("Use", "Nutzen")) }
             }

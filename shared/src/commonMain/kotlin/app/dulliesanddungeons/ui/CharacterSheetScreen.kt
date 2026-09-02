@@ -1714,16 +1714,16 @@ private fun FeatureCard(state: DndAppState, feature: FeatureUi, onEdit: () -> Un
                     CostChipRow(state, feature.toCostTokens(), available = (feature.remaining ?: 1) > 0)
                 }
             }
-            if (feature.remaining != null) {
+            if (feature.isActivatable()) {
                 FilledTonalButton(
                     onClick = { state.useFeature(feature.id, null) },
-                    enabled = feature.remaining >= feature.resourceCost,
+                    enabled = feature.remaining == null || feature.remaining >= feature.resourceCost,
                     contentPadding = PaddingValues(horizontal = 11.dp, vertical = 4.dp),
                 ) {
                     Crossfade(targetState = feedback, label = "feature-feedback-${feature.id}") { activeFeedback ->
                         Text(
                             activeFeedback?.message
-                                ?: if (feature.remaining >= feature.resourceCost) state.t("Use", "Nutzen") else state.t("Used", "Leer"),
+                                ?: if (feature.remaining == null || feature.remaining >= feature.resourceCost) state.t("Use", "Nutzen") else state.t("Used", "Leer"),
                         )
                     }
                 }

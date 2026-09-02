@@ -40,6 +40,7 @@ internal data class GuidedLevelOptionUi(
     val id: String,
     val name: String,
     val summary: String,
+    val subclassId: String? = null,
     val subclassName: String? = null,
     val feature: FeatureUi? = null,
     val spell: SpellUi? = null,

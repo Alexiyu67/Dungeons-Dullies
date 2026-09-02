@@ -13,12 +13,15 @@ import app.dulliesanddungeons.domain.RollRequest
 import app.dulliesanddungeons.domain.RuleDefinition
 import app.dulliesanddungeons.domain.RulePredicate
 import app.dulliesanddungeons.domain.RulesetId
+import app.dulliesanddungeons.domain.SubclassDefinition
 
 interface RulesCatalog {
     fun classById(ruleset: RulesetId, id: String): ClassDefinition?
+    fun subclassById(ruleset: RulesetId, id: String): SubclassDefinition?
     fun ancestryById(ruleset: RulesetId, id: String): AncestryDefinition?
     fun ruleById(ruleset: RulesetId, id: String): RuleDefinition?
     fun classes(ruleset: RulesetId): List<ClassDefinition>
+    fun subclasses(ruleset: RulesetId, classId: String? = null): List<SubclassDefinition>
     fun ancestries(ruleset: RulesetId): List<AncestryDefinition>
     fun rules(ruleset: RulesetId): List<RuleDefinition>
 }
@@ -27,21 +30,28 @@ class InMemoryRulesCatalog(
     classDefinitions: Iterable<ClassDefinition>,
     ancestryDefinitions: Iterable<AncestryDefinition>,
     ruleDefinitions: Iterable<RuleDefinition>,
+    subclassDefinitions: Iterable<SubclassDefinition> = emptyList(),
 ) : RulesCatalog {
     private val classesByKey = classDefinitions.associateBy { it.ruleset to it.id }
     private val ancestriesByKey = ancestryDefinitions.associateBy { it.ruleset to it.id }
     private val rulesByKey = ruleDefinitions.associateBy { it.ruleset to it.id }
+    private val subclassesByKey = subclassDefinitions.associateBy { it.ruleset to it.id }
 
     init {
         require(classesByKey.size == classDefinitions.count()) { "Duplicate class IDs in a ruleset" }
         require(ancestriesByKey.size == ancestryDefinitions.count()) { "Duplicate ancestry IDs in a ruleset" }
         require(rulesByKey.size == ruleDefinitions.count()) { "Duplicate rule IDs in a ruleset" }
+        require(subclassesByKey.size == subclassDefinitions.count()) { "Duplicate subclass IDs in a ruleset" }
     }
 
     override fun classById(ruleset: RulesetId, id: String) = classesByKey[ruleset to id]
+    override fun subclassById(ruleset: RulesetId, id: String) = subclassesByKey[ruleset to id]
     override fun ancestryById(ruleset: RulesetId, id: String) = ancestriesByKey[ruleset to id]
     override fun ruleById(ruleset: RulesetId, id: String) = rulesByKey[ruleset to id]
     override fun classes(ruleset: RulesetId) = classesByKey.values.filter { it.ruleset == ruleset }.sortedBy { it.name }
+    override fun subclasses(ruleset: RulesetId, classId: String?) = subclassesByKey.values
+        .filter { it.ruleset == ruleset && (classId == null || it.classId == classId) }
+        .sortedBy { it.name }
     override fun ancestries(ruleset: RulesetId) =
         ancestriesByKey.values.filter { it.ruleset == ruleset }.sortedBy { it.name }
     override fun rules(ruleset: RulesetId) = rulesByKey.values.filter { it.ruleset == ruleset }.sortedBy { it.name }

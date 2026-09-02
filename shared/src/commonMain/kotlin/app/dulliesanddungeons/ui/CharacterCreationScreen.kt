@@ -126,7 +126,8 @@ internal fun CharacterCreationScreen(
                     onClick = {
                         if (draft.step < LAST_CREATION_STEP) draft.step++ else state.finishCreate()
                     },
-                    enabled = draft.step != 1 || draft.name.isNotBlank(),
+                    enabled = (draft.step != 1 || draft.name.isNotBlank()) &&
+                        (draft.step != LAST_CREATION_STEP || state.creationSubclassSelectionValid()),
                     modifier = Modifier.weight(1f).height(52.dp),
                     shape = RoundedCornerShape(16.dp),
                 ) {
@@ -161,6 +162,9 @@ private fun RulesetStep(state: DndAppState) {
                     draft.ruleset = ruleset
                     draft.ancestry = "Human"
                     draft.className = "Fighter"
+                    draft.subclassId = null
+                    draft.subclassName = ""
+                    draft.subclassAdvisory = null
                     draft.statMethod = if (ruleset == Ruleset.Pf2eRemaster) StatMethod.StandardArray else StatMethod.Rolled
                     draft.hpMethod = HpMethod.Fixed
                     draft.rolledScores.clear()
@@ -263,6 +267,7 @@ private fun IdentityStep(
 @Composable
 private fun BuildStep(state: DndAppState) {
     val draft = state.creation
+    var subclassPickerOpen by remember(draft.ruleset, draft.className) { mutableStateOf(false) }
     val ancestries = state.creationAncestryOptions().sortedForPicker(state.language, { it })
     val classes = state.creationClassOptions().sortedForPicker(state.language, { it })
     Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
@@ -292,8 +297,46 @@ private fun BuildStep(state: DndAppState) {
                 FilterChip(selected = draft.className == className, onClick = { state.selectCreationClass(className) }, label = { Text(className) })
             }
         }
+        if (draft.ruleset != Ruleset.Pf2eRemaster) {
+            SelectionHeading(
+                state.t("Subclass", "Unterklasse"),
+                draft.subclassName.ifBlank { state.t("Choose", "W\u00e4hlen") },
+            )
+            OutlinedCard(
+                onClick = { subclassPickerOpen = true },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+            ) {
+                Row(
+                    Modifier.fillMaxWidth().padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text(
+                            draft.subclassName.ifBlank { state.t("Choose a subclass", "Unterklasse w\u00e4hlen") },
+                            style = MaterialTheme.typography.titleSmall,
+                        )
+                        val supporting = state.creationSubclassAdvisory()
+                            ?: if (state.creationSubclassRequired()) state.t("Required at this level", "Auf dieser Stufe erforderlich")
+                            else state.t("Optional until its normal selection level", "Bis zur regul\u00e4ren Wahlstufe optional")
+                        Text(supporting, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Icon(Icons.Rounded.ChevronRight, contentDescription = null)
+                }
+            }
+            if (subclassPickerOpen) {
+                SubclassPickerDialog(state = state, onDismiss = { subclassPickerOpen = false })
+            }
+        }
         TextButton(onClick = {
-            state.showInfo(state.t("Missing an option?", "Fehlt eine Option?"), state.t("The built-in open rules are shown here. Legally supplied private content packs can add more ancestries, classes, feats and spells without changing the app.", "Hier werden die integrierten offenen Regeln angezeigt. Rechtmäßig bereitgestellte private Inhaltspakete können weitere Abstammungen, Klassen, Talente und Zauber ergänzen."))
+            state.showInfo(
+                state.t("Missing an option?", "Fehlt eine Option?"),
+                state.t(
+                    "The built-in open rules are shown here. Approved private content and the custom subclass builder can add more options.",
+                    "Hier werden die integrierten offenen Regeln angezeigt. Freigegebene private Inhalte und der Unterklassen-Editor k\u00f6nnen weitere Optionen hinzuf\u00fcgen.",
+                ),
+            )
         }) {
             Icon(Icons.Rounded.Info, contentDescription = null)
             Spacer(Modifier.width(6.dp))
@@ -714,7 +757,19 @@ private fun ReviewStep(state: DndAppState, onEditPortrait: (PortraitPickTarget) 
                     },
                 )
                 ReviewRow(state.t("Ruleset", "Regelwerk"), draft.ruleset.longLabel)
-                ReviewRow(state.t("Required choices", "Erforderliche Wahlen"), state.t("Complete", "Vollständig"), good = true)
+                if (draft.ruleset != Ruleset.Pf2eRemaster) {
+                    ReviewRow(
+                        state.t("Subclass", "Unterklasse"),
+                        draft.subclassName.ifBlank { state.t("Not selected yet", "Noch offen") },
+                        good = !state.creationSubclassRequired() || draft.subclassName.isNotBlank(),
+                    )
+                }
+                ReviewRow(
+                    state.t("Required choices", "Erforderliche Wahlen"),
+                    if (state.creationSubclassSelectionValid()) state.t("Complete", "Vollst\u00e4ndig")
+                    else state.t("Choose subclass", "Unterklasse w\u00e4hlen"),
+                    good = state.creationSubclassSelectionValid(),
+                )
             }
         }
         ExplanationCard(state.t("The table stays in charge", "Der Spieltisch entscheidet"), state.t("The app calculates what it can and asks you or the DM whenever a ruling is needed.", "Die App berechnet, was sie kann, und fragt dich oder die Spielleitung, sobald eine Entscheidung nötig ist."))

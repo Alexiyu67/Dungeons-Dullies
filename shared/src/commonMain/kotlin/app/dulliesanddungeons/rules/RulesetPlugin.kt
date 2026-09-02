@@ -27,6 +27,7 @@ fun RulePredicate.matches(build: CharacterBuild, state: CharacterState? = null):
     RulePredicate.Always -> true
     is RulePredicate.MinimumLevel -> build.level >= level
     is RulePredicate.HasClass -> build.classes.any { it.classId == classId && it.levels >= minimumLevels }
+    is RulePredicate.HasSubclass -> build.classes.any { it.subclassId == subclassId && it.levels >= minimumClassLevels }
     is RulePredicate.HasFeature -> featureId in build.featureIds || featureId in build.featIds
     is RulePredicate.HasFeat -> featId in build.featIds
     is RulePredicate.AbilityAtLeast -> build.abilities.getOrDefault(ability, 0) >= score
