@@ -23,6 +23,7 @@ import androidx.compose.material.icons.rounded.BatteryAlert
 import androidx.compose.material.icons.rounded.Block
 import androidx.compose.material.icons.rounded.Casino
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.ElectricBolt
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.HearingDisabled
@@ -70,6 +71,42 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+
+@Composable
+internal fun DeleteCharacterConfirmationDialog(
+    state: DndAppState,
+    character: CharacterUi,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                Icons.Rounded.Delete,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error,
+            )
+        },
+        title = { Text(state.t("Delete ${character.name}?", "${character.name} löschen?")) },
+        text = {
+            Text(
+                state.t(
+                    "This permanently deletes the character, including notes, sessions, and turn progress. This cannot be undone.",
+                    "Dadurch wird der Charakter einschließlich Notizen, Sitzungen und Zugfortschritt dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden.",
+                )
+            )
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(state.t("Cancel", "Abbrechen")) }
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(state.t("Delete", "Löschen"), color = MaterialTheme.colorScheme.error)
+            }
+        },
+    )
+}
 
 @Composable
 internal fun SearchDialog(state: DndAppState) {
