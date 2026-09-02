@@ -36,6 +36,24 @@ class SequenceDiceSource(values: Iterable<Int>) : DiceSource {
     }
 }
 
+internal data class DicePoolGroupRoll(
+    val sides: Int,
+    val values: List<Int>,
+) {
+    val subtotal: Int get() = values.sum()
+}
+
+internal data class DicePoolRoll(
+    val groups: List<DicePoolGroupRoll>,
+) {
+    val diceCount: Int get() = groups.sumOf { it.values.size }
+    val total: Int get() = groups.sumOf(DicePoolGroupRoll::subtotal)
+    val notation: String
+        get() = groups.joinToString(" + ") { group ->
+            if (group.values.size == 1) "d${group.sides}" else "${group.values.size}d${group.sides}"
+        }
+}
+
 class DiceRoller(private val source: DiceSource) {
     fun roll(request: RollRequest): DiceRoll {
         val expression = request.expression
@@ -69,6 +87,24 @@ class DiceRoller(private val source: DiceSource) {
 
     fun d20(label: String, modifier: Int = 0, mode: RollMode = RollMode.NORMAL): DiceRoll =
         roll(RollRequest(label, DiceExpression(1, 20, modifier), mode))
+
+    internal fun rollPool(countsBySides: Map<Int, Int>, maxDice: Int = 100): DicePoolRoll {
+        require(maxDice > 0) { "maxDice must be positive" }
+        require(countsBySides.values.all { it >= 0 }) { "dice counts cannot be negative" }
+
+        val selected = countsBySides
+            .filterValues { it > 0 }
+            .toSortedMap()
+        val diceCount = selected.values.sum()
+        require(diceCount in 1..maxDice) { "dice pool must contain between 1 and $maxDice dice" }
+
+        return DicePoolRoll(
+            groups = selected.map { (sides, count) ->
+                val rolled = roll(RollRequest("Dice pool", DiceExpression(count, sides)))
+                DicePoolGroupRoll(sides = sides, values = rolled.dice)
+            },
+        )
+    }
 }
 
 private fun List<Int>.keepSelected(count: Int, descending: Boolean): List<Int> {

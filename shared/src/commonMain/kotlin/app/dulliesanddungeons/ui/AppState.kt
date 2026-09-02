@@ -25,6 +25,7 @@ import app.dulliesanddungeons.domain.RollMode
 import app.dulliesanddungeons.domain.RollRequest
 import app.dulliesanddungeons.domain.TurnEvent
 import app.dulliesanddungeons.rules.DiceNotation
+import app.dulliesanddungeons.rules.DicePoolRoll
 import app.dulliesanddungeons.rules.DiceRoller
 import app.dulliesanddungeons.rules.DiceSource
 import app.dulliesanddungeons.rules.DerivedStatRules
@@ -3936,6 +3937,9 @@ class DndAppState(
         lastRollAction = { roll(label, modifier, sides, mode, modifierLabel) }
         return result
     }
+
+    internal fun rollDicePool(countsBySides: Map<Int, Int>): DicePoolRoll =
+        dice.rollPool(countsBySides)
 
     fun rerollDicePresentation() {
         lastRollAction?.invoke()

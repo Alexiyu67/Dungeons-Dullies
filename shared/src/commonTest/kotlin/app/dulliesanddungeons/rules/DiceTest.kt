@@ -37,6 +37,43 @@ class DiceTest {
     }
 
     @Test
+    fun mixedPoolRollsEachSelectedDieAndCalculatesTotal() {
+        val roller = DiceRoller(SequenceDiceSource(listOf(0, 5, 19)))
+
+        val result = roller.rollPool(linkedMapOf(20 to 1, 6 to 2, 4 to 0))
+
+        assertEquals(3, result.diceCount)
+        assertEquals("2d6 + d20", result.notation)
+        assertEquals(listOf(6, 20), result.groups.map { it.sides })
+        assertEquals(listOf(1, 6), result.groups[0].values)
+        assertEquals(7, result.groups[0].subtotal)
+        assertEquals(listOf(20), result.groups[1].values)
+        assertEquals(27, result.total)
+    }
+
+    @Test
+    fun mixedPoolRejectsEmptyNegativeAndOversizedSelections() {
+        val roller = DiceRoller(SequenceDiceSource(emptyList()))
+
+        assertFailsWith<IllegalArgumentException> { roller.rollPool(emptyMap()) }
+        assertFailsWith<IllegalArgumentException> { roller.rollPool(mapOf(6 to -1)) }
+        assertFailsWith<IllegalArgumentException> { roller.rollPool(mapOf(6 to 101)) }
+    }
+
+    @Test
+    fun mixedPoolKeepsEveryValueWithinItsDieRange() {
+        val result = DiceRoller(DeterministicDiceSource(93)).rollPool(
+            mapOf(4 to 8, 6 to 8, 8 to 8, 10 to 8, 12 to 8, 20 to 8),
+        )
+
+        result.groups.forEach { group ->
+            group.values.forEach { value ->
+                kotlin.test.assertTrue(value in 1..group.sides)
+            }
+        }
+    }
+
+    @Test
     fun seededSourceIsRepeatable() {
         val first = DeterministicDiceSource(42)
         val second = DeterministicDiceSource(42)
