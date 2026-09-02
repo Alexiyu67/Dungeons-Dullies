@@ -759,6 +759,72 @@ class DndAppStateTest {
     }
 
     @Test
+    fun temporaryHpAndMaximumReductionAreEditableEffectiveAndPersistent() {
+        val store = FakeStore()
+        val state = DndAppState(store)
+        val baseMaximum = assertNotNull(state.selectedCharacter).maxHp
+
+        state.setTemporaryHitPoints(6)
+        state.setMaximumHitPointReduction(10)
+
+        val adjusted = assertNotNull(state.selectedCharacter)
+        assertEquals(6, adjusted.temporaryHp)
+        assertEquals(10, adjusted.maxHpReduction)
+        assertEquals(baseMaximum - 10, adjusted.effectiveMaxHp)
+        assertEquals(adjusted.effectiveMaxHp, adjusted.hp)
+        assertEquals(0, assertNotNull(state.currentPlaySession).stats().damageTaken)
+        assertEquals(0, assertNotNull(state.currentPlaySession).stats().healingReceived)
+
+        val damaged = assertNotNull(state.applyDamage(8, critical = false))
+        assertEquals(0, damaged.temporaryHp)
+        assertEquals(adjusted.effectiveMaxHp - 2, damaged.hp)
+
+        val restored = assertNotNull(DndAppState(store).selectedCharacter)
+        assertEquals(damaged.hp, restored.hp)
+        assertEquals(10, restored.maxHpReduction)
+    }
+
+    @Test
+    fun reducingMaximumToZeroRequiresRemovingTheReductionBeforeRevival() {
+        val state = DndAppState(FakeStore())
+        val maximum = assertNotNull(state.selectedCharacter).maxHp
+
+        state.setMaximumHitPointReduction(maximum)
+
+        assertEquals(0, state.selectedCharacter!!.effectiveMaxHp)
+        assertEquals(0, state.selectedCharacter!!.hp)
+        assertTrue(state.selectedCharacter!!.isDead)
+        assertEquals("Maximum Hit Points are zero", state.selectedCharacter!!.deathReason)
+
+        state.adjustHitPoints(5, damage = false)
+        assertFalse(state.revivalConfirmationOpen)
+        state.setMaximumHitPointReduction(0)
+        assertEquals(0, state.selectedCharacter!!.hp)
+        assertTrue(state.selectedCharacter!!.isDead)
+
+        state.adjustHitPoints(5, damage = false)
+        assertTrue(state.revivalConfirmationOpen)
+        state.confirmRevival()
+        assertEquals(5, state.selectedCharacter!!.hp)
+        assertFalse(state.selectedCharacter!!.isDead)
+    }
+
+    @Test
+    fun discardingATurnRestoresHealthModifiersFromTheRollbackSnapshot() {
+        val state = DndAppState(FakeStore())
+        state.setTemporaryHitPoints(6)
+        state.setMaximumHitPointReduction(10)
+        state.openTurn()
+
+        state.setTemporaryHitPoints(2)
+        state.setMaximumHitPointReduction(20)
+        state.discardTurn()
+
+        assertEquals(6, state.selectedCharacter!!.temporaryHp)
+        assertEquals(10, state.selectedCharacter!!.maxHpReduction)
+    }
+
+    @Test
     fun shortRestRecoversOnlyShortRestResourcesAndPersists() {
         val store = FakeStore()
         val source = DndAppState(FakeStore()).selectedCharacter!!.copy(
@@ -788,6 +854,7 @@ class DndAppStateTest {
         val source = original.copy(
             hp = 12,
             temporaryHp = 5,
+            maxHpReduction = 10,
             exhaustionLevel = 2,
             features = original.features.map { feature ->
                 if (feature.recovery == Recovery.SHORT_REST || feature.recovery == Recovery.LONG_REST) feature.copy(remaining = 0)
@@ -802,12 +869,58 @@ class DndAppStateTest {
         val rested = state.selectedCharacter!!
         assertEquals(rested.effectiveMaxHp, rested.hp)
         assertEquals(0, rested.temporaryHp)
+        assertEquals(0, rested.maxHpReduction)
         assertEquals(1, rested.exhaustionLevel)
         assertTrue(rested.features.filter { it.recovery == Recovery.SHORT_REST || it.recovery == Recovery.LONG_REST }
             .all { it.remaining == it.maximum })
         val restored = DndAppState(store).selectedCharacter!!
         assertEquals(rested.hp, restored.hp)
         assertEquals(rested.features, restored.features)
+    }
+
+    @Test
+    fun longRestAlsoClearsMaximumReductionFor2014Characters() {
+        val store = FakeStore()
+        val source = assertNotNull(DndAppState(FakeStore()).selectedCharacter).copy(
+            ruleset = Ruleset.Fifth2014,
+            hp = 20,
+            maxHp = 40,
+            temporaryHp = 4,
+            maxHpReduction = 8,
+            hasPlayedSinceLongRest = true,
+        )
+        store.writeState(Json.encodeToString(PersistedAppState(characters = listOf(source.toDocument()))))
+        val state = DndAppState(store)
+
+        assertTrue(state.takeRest(Recovery.LONG_REST))
+
+        val rested = assertNotNull(state.selectedCharacter)
+        assertEquals(40, rested.hp)
+        assertEquals(40, rested.effectiveMaxHp)
+        assertEquals(0, rested.temporaryHp)
+        assertEquals(0, rested.maxHpReduction)
+    }
+
+    @Test
+    fun pf2eHealthModifiersRemainManualAndPersistent() {
+        val store = FakeStore()
+        val source = assertNotNull(DndAppState(FakeStore()).selectedCharacter).copy(
+            ruleset = Ruleset.Pf2eRemaster,
+            hp = 30,
+            maxHp = 30,
+        )
+        store.writeState(Json.encodeToString(PersistedAppState(characters = listOf(source.toDocument()))))
+        val state = DndAppState(store)
+
+        state.setTemporaryHitPoints(5)
+        state.setMaximumHitPointReduction(6)
+
+        assertEquals(24, state.selectedCharacter!!.effectiveMaxHp)
+        assertEquals(24, state.selectedCharacter!!.hp)
+        assertFalse(state.takeRest(Recovery.LONG_REST))
+        val restored = assertNotNull(DndAppState(store).selectedCharacter)
+        assertEquals(5, restored.temporaryHp)
+        assertEquals(6, restored.maxHpReduction)
     }
 
     @Test

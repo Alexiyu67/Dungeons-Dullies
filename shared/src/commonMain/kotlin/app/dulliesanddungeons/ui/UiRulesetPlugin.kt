@@ -101,6 +101,8 @@ internal class UiRulesetPlugin private constructor(override val id: RulesetId) :
         characterId = character.id,
         currentHitPoints = character.hp,
         maximumHitPoints = character.maxHp,
+        temporaryHitPoints = character.temporaryHp,
+        maximumHitPointReduction = character.maxHpReduction,
         resources = character.features.mapNotNull { feature ->
             val current = feature.remaining ?: return@mapNotNull null
             val maximum = feature.maximum ?: return@mapNotNull null

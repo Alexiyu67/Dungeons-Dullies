@@ -637,6 +637,7 @@ data class CharacterRollbackSnapshot(
     val spellSlotMaximumOverrides: Map<Int, Int> = emptyMap(),
     val spellSlotSpentCounts: Map<Int, Int> = emptyMap(),
     val hasPlayedSinceLongRest: Boolean = false,
+    val maximumHitPointReduction: Int = 0,
 )
 
 @Serializable
@@ -646,6 +647,8 @@ data class CharacterState(
     /** Base maximum before temporary effects such as 2014 Exhaustion are applied. */
     val maximumHitPoints: Int,
     val temporaryHitPoints: Int = 0,
+    /** Temporary reduction applied to the base maximum before other ruleset modifiers. */
+    val maximumHitPointReduction: Int = 0,
     val health: RulesetHealthState = FiveEHealthState(),
     val resources: List<ResourcePool> = emptyList(),
     val conditions: List<ActiveCondition> = emptyList(),

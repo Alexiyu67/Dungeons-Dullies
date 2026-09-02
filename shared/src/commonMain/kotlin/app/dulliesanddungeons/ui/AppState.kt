@@ -300,6 +300,7 @@ data class CharacterUi(
     val hp: Int,
     val maxHp: Int,
     val temporaryHp: Int = 0,
+    val maxHpReduction: Int = 0,
     val deathSaveSuccesses: Int = 0,
     val deathSaveFailures: Int = 0,
     val isStable: Boolean = false,
@@ -355,8 +356,11 @@ data class CharacterUi(
     val classLevelLabel: String
         get() = progression.groupingBy { it.className }.eachCount().entries.joinToString(" / ") { "${it.key} ${it.value}" }
             .ifBlank { "$className $level" }
-    val effectiveMaxHp: Int
-        get() = if (ruleset == Ruleset.Fifth2014 && exhaustionLevel >= 4) (maxHp / 2).coerceAtLeast(1) else maxHp
+    fun effectiveMaxHp(maximumReduction: Int): Int {
+        val reducedMaximum = (maxHp - maximumReduction).coerceAtLeast(0)
+        return if (ruleset == Ruleset.Fifth2014 && exhaustionLevel >= 4) reducedMaximum / 2 else reducedMaximum
+    }
+    val effectiveMaxHp: Int get() = effectiveMaxHp(maxHpReduction)
     val effectiveSpeedFeet: Int
         get() = when (ruleset) {
             Ruleset.Fifth2024 -> (speedFeet - exhaustionLevel * 5).coerceAtLeast(0)
@@ -1517,7 +1521,14 @@ class DndAppState(
         val skills = original.skills.mapValues { (name, value) ->
             original.derivation.skills[name]?.resolve(newAbilities, proficiency, draft.ruleset, draft.level, original.proficiencyRanks, original.proficiencyIds) ?: value
         }
-        val missingHp = (original.maxHp - original.hp).coerceAtLeast(0)
+        val missingHp = (original.effectiveMaxHp - original.hp).coerceAtLeast(0)
+        val updatedReduction = original.maxHpReduction.coerceAtMost(draft.maxHp)
+        val updatedEffectiveMaximum = original.copy(
+            ruleset = draft.ruleset,
+            maxHp = draft.maxHp,
+            maxHpReduction = updatedReduction,
+        ).effectiveMaxHp
+        val maximumDeath = draft.ruleset != Ruleset.Pf2eRemaster && updatedEffectiveMaximum == 0
         val base = original.copy(
             name = draft.name.trim(),
             profile = CharacterProfile(
@@ -1529,8 +1540,11 @@ class DndAppState(
             ancestry = draft.ancestry.trim().ifBlank { original.ancestry },
             className = draft.className.trim().ifBlank { original.className },
             subclass = draft.subclass.trim().ifBlank { "—" },
-            hp = (draft.maxHp - missingHp).coerceIn(0, draft.maxHp),
+            hp = (updatedEffectiveMaximum - missingHp).coerceIn(0, updatedEffectiveMaximum),
             maxHp = draft.maxHp,
+            maxHpReduction = updatedReduction,
+            isDead = maximumDeath || original.isDead,
+            deathReason = if (maximumDeath) "Maximum Hit Points are zero" else original.deathReason,
             armorClass = draft.armorClass,
             unarmoredArmorClass = draft.armorClass,
             speedFeet = draft.speedFeet,
@@ -2734,10 +2748,20 @@ class DndAppState(
             if (draft.hitDieSides == canonicalHitDie) remove(draft.className)
             else put(draft.className, draft.hitDieSides)
         }
+        val updatedReduction = character.maxHpReduction.coerceAtMost(newMax)
+        val updatedEffectiveMaximum = character.copy(
+            maxHp = newMax,
+            maxHpReduction = updatedReduction,
+        ).effectiveMaxHp
         val updated = character.copy(
             level = newLevel,
-            hp = if (draft.healByIncrease) (character.hp + gain).coerceAtMost(newMax) else character.hp.coerceAtMost(newMax),
+            hp = if (draft.healByIncrease) {
+                (character.hp + gain).coerceAtMost(updatedEffectiveMaximum)
+            } else {
+                character.hp.coerceAtMost(updatedEffectiveMaximum)
+            },
             maxHp = newMax,
+            maxHpReduction = updatedReduction,
             armorClass = character.armorClass + if (wearingBodyArmor) {
                 armorBonusIncrease + pf2eBodyArmorIncrease
             } else unarmoredIncrease + pf2eUnarmoredIncrease,
@@ -3223,6 +3247,13 @@ class DndAppState(
         if (safeAmount == 0) return
         val current = selectedCharacter ?: return
         if (!damage && current.isDead) {
+            if (current.effectiveMaxHp == 0) {
+                showInfo(
+                    t("Maximum HP is zero", "Maximale TP sind null"),
+                    t("Remove the maximum HP reduction before restoring HP.", "Entferne zuerst die Max.-TP-Senkung."),
+                )
+                return
+            }
             pendingRevivalHp = safeAmount.coerceAtMost(current.effectiveMaxHp).coerceAtLeast(1)
             revivalConfirmationOpen = true
             return
@@ -3250,9 +3281,9 @@ class DndAppState(
             ),
         )
         lastRoll = if (damage) {
-            t("$safeAmount damage · ${updated.hp}/${updated.maxHp} HP", "$safeAmount Schaden · ${updated.hp}/${updated.maxHp} TP")
+            t("$safeAmount damage · ${updated.hp}/${updated.effectiveMaxHp} HP", "$safeAmount Schaden · ${updated.hp}/${updated.effectiveMaxHp} TP")
         } else {
-            t("$safeAmount healed · ${updated.hp}/${updated.maxHp} HP", "$safeAmount geheilt · ${updated.hp}/${updated.maxHp} TP")
+            t("$safeAmount healed · ${updated.hp}/${updated.effectiveMaxHp} HP", "$safeAmount geheilt · ${updated.hp}/${updated.effectiveMaxHp} TP")
         }
     }
 
@@ -3263,6 +3294,44 @@ class DndAppState(
             safeTarget > character.hp -> adjustHitPoints(safeTarget - character.hp, damage = false)
             safeTarget < character.hp -> adjustHitPoints(character.hp - safeTarget, damage = true)
         }
+    }
+
+    fun setTemporaryHitPoints(target: Int) {
+        val character = selectedCharacter ?: return
+        val safeTarget = target.coerceIn(0, 9_999)
+        val delta = safeTarget - character.temporaryHp
+        if (delta == 0) return
+        updateSelectedCharacter { it.copy(temporaryHp = safeTarget) }
+        recordEvent(
+            TurnEvent.ResourceChanged("temporary-hit-points", delta),
+            t("Temporary HP", "Temporäre TP"),
+        )
+        lastRoll = t("Temporary HP set to $safeTarget", "Temporäre TP auf $safeTarget gesetzt")
+    }
+
+    fun setMaximumHitPointReduction(target: Int) {
+        val character = selectedCharacter ?: return
+        val safeTarget = target.coerceIn(0, character.maxHp)
+        val delta = safeTarget - character.maxHpReduction
+        if (delta == 0) return
+        val updated = updateSelectedCharacter { current ->
+            val effectiveMaximum = current.effectiveMaxHp(safeTarget)
+            val maximumDeath = current.ruleset != Ruleset.Pf2eRemaster && effectiveMaximum == 0
+            current.copy(
+                hp = current.hp.coerceAtMost(effectiveMaximum),
+                maxHpReduction = safeTarget,
+                isDead = maximumDeath || current.isDead,
+                deathReason = if (maximumDeath) "Maximum Hit Points are zero" else current.deathReason,
+            )
+        } ?: return
+        recordEvent(
+            TurnEvent.ResourceChanged("maximum-hit-point-reduction", delta),
+            t("Max HP reduction", "Max.-TP-Senkung"),
+        )
+        lastRoll = t(
+            "Max HP reduction set to $safeTarget · ${updated.hp}/${updated.effectiveMaxHp} HP",
+            "Max.-TP-Senkung auf $safeTarget gesetzt · ${updated.hp}/${updated.effectiveMaxHp} TP",
+        )
     }
 
     fun applyDamage(amount: Int, critical: Boolean): CharacterUi? {
@@ -3463,7 +3532,7 @@ class DndAppState(
     fun confirmRevival() {
         val target = pendingRevivalHp
         val character = selectedCharacter
-        if (character != null && target > 0 && !(character.deathReason == "Exhaustion" && character.exhaustionLevel >= 6)) {
+        if (character != null && target > 0 && character.effectiveMaxHp > 0 && !(character.deathReason == "Exhaustion" && character.exhaustionLevel >= 6)) {
             val updated = updateSelectedCharacter {
                 it.copy(
                     hp = target.coerceAtMost(it.effectiveMaxHp),
@@ -3754,6 +3823,7 @@ class DndAppState(
                 val withReducedExhaustion = withRecoveredFeatures.copy(
                     exhaustionLevel = (withRecoveredFeatures.exhaustionLevel - 1).coerceAtLeast(0),
                     spellSlots = withRecoveredFeatures.resolvedSpellSlots.map { it.copy(remaining = it.maximum) },
+                    maxHpReduction = 0,
                 )
                 withReducedExhaustion.copy(
                     hp = withReducedExhaustion.effectiveMaxHp,
@@ -4455,13 +4525,26 @@ class DndAppState(
         }
         updateSelectedCharacter { current ->
             val exhaustionDeath = safeLevel >= 6
+            val reducedMaximum = (current.maxHp - current.maxHpReduction).coerceAtLeast(0)
+            val effectiveMaximum = if (current.ruleset == Ruleset.Fifth2014 && safeLevel >= 4) {
+                reducedMaximum / 2
+            } else {
+                reducedMaximum
+            }
+            val maximumDeath = current.ruleset != Ruleset.Pf2eRemaster && effectiveMaximum == 0
             current.copy(
                 exhaustionLevel = safeLevel,
-                hp = current.hp.coerceAtMost(
-                    if (current.ruleset == Ruleset.Fifth2014 && safeLevel >= 4) (current.maxHp / 2).coerceAtLeast(1) else current.maxHp,
-                ),
-                isDead = if (exhaustionDeath) true else if (current.deathReason == "Exhaustion") false else current.isDead,
-                deathReason = if (exhaustionDeath) "Exhaustion" else current.deathReason.takeUnless { it == "Exhaustion" },
+                hp = current.hp.coerceAtMost(effectiveMaximum),
+                isDead = when {
+                    exhaustionDeath || maximumDeath -> true
+                    current.deathReason == "Exhaustion" -> false
+                    else -> current.isDead
+                },
+                deathReason = when {
+                    exhaustionDeath -> "Exhaustion"
+                    maximumDeath -> "Maximum Hit Points are zero"
+                    else -> current.deathReason.takeUnless { it == "Exhaustion" }
+                },
             )
         }
         if (previousLevel == 0 && safeLevel > 0) {
@@ -4492,13 +4575,25 @@ class DndAppState(
 
     fun convert(target: Ruleset) {
         val source = selectedCharacter ?: return
+        val convertedMaximum = if (target == Ruleset.Pf2eRemaster) source.level * 10 + 8 else source.maxHp
+        val convertedReduction = source.maxHpReduction.coerceAtMost(convertedMaximum)
+        val convertedHealth = source.copy(
+            ruleset = target,
+            maxHp = convertedMaximum,
+            maxHpReduction = convertedReduction,
+        )
+        val convertedEffectiveMaximum = convertedHealth.effectiveMaxHp
+        val maximumDeath = target != Ruleset.Pf2eRemaster && convertedEffectiveMaximum == 0
         val copy = source.copy(
             id = "conversion-${characters.size + 1}-${Random.nextInt(10_000)}",
             name = "${source.name} · ${target.shortLabel}",
             ruleset = target,
             sourceCharacterId = source.id,
-            hp = if (target == Ruleset.Pf2eRemaster) source.level * 10 + 8 else source.hp,
-            maxHp = if (target == Ruleset.Pf2eRemaster) source.level * 10 + 8 else source.maxHp,
+            hp = if (target == Ruleset.Pf2eRemaster) convertedEffectiveMaximum else source.hp.coerceAtMost(convertedEffectiveMaximum),
+            maxHp = convertedMaximum,
+            maxHpReduction = convertedReduction,
+            isDead = maximumDeath || source.isDead,
+            deathReason = if (maximumDeath) "Maximum Hit Points are zero" else source.deathReason,
             armorClass = if (target == Ruleset.Pf2eRemaster) 10 + source.level + 4 else source.armorClass,
             activePlaySession = null,
             savedPlaySessions = emptyList(),
@@ -4564,7 +4659,7 @@ class DndAppState(
                 add(SearchResultUi("ability-$ability", "$ability $score", t("Ability score · tap to roll", "Attributswert · tippen zum Würfeln"), SearchResultKind.Roll, t("Roll", "Würfeln"), abilityModifier(score)))
             }
             add(SearchResultUi("stat-ac", t("Armor Class", "Rüstungsklasse"), character.armorClass.toString(), SearchResultKind.Navigate, t("Info", "Info")))
-            add(SearchResultUi("stat-hp", t("Hit points", "Trefferpunkte"), "${character.hp}/${character.maxHp}", SearchResultKind.Navigate, t("Info", "Info")))
+            add(SearchResultUi("stat-hp", t("Hit points", "Trefferpunkte"), "${character.hp}/${character.effectiveMaxHp}", SearchResultKind.Navigate, t("Info", "Info")))
             addAll(knowledgeEntries())
             character.notes.forEach { note ->
                 add(SearchResultUi("note-${note.id}", note.title, note.body, SearchResultKind.Note, t("Open", "Öffnen")))

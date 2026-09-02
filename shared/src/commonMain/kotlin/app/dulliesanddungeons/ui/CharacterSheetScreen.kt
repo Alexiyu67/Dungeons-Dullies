@@ -969,7 +969,11 @@ private fun HeroSummaryCard(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SummaryStat(
                     icon = { Icon(Icons.Rounded.Favorite, contentDescription = null, Modifier.size(19.dp), tint = MaterialTheme.colorScheme.primary) },
-                    label = "HP",
+                    label = if (character.maxHpReduction > 0) {
+                        state.t("HP · −${character.maxHpReduction} max", "TP · −${character.maxHpReduction} Max.")
+                    } else {
+                        state.t("HP", "TP")
+                    },
                     value = "${character.hp}/${character.effectiveMaxHp}${if (character.temporaryHp > 0) " +${character.temporaryHp}" else ""}",
                     modifier = Modifier.weight(1f),
                     onClick = { state.hpAdjustOpen = true },

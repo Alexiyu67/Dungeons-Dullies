@@ -60,12 +60,14 @@ object LevelUpRules {
         val issues = validateTransition(current, targetBuild, entry, classes)
         require(issues.isEmpty()) { issues.joinToString { it.code } }
         val gain = entry.hitPoints.totalGain
-        val state = current.state.copy(
-            maximumHitPoints = current.state.maximumHitPoints + gain,
+        val newMaximum = current.state.maximumHitPoints + gain
+        val stateWithNewMaximum = current.state.copy(maximumHitPoints = newMaximum)
+        val effectiveMaximum = stateWithNewMaximum.effectiveMaximumHitPoints(targetBuild.ruleset)
+        val state = stateWithNewMaximum.copy(
             currentHitPoints = if (entry.applyHitPointGainToCurrent) {
-                (current.state.currentHitPoints + gain).coerceAtMost(current.state.maximumHitPoints + gain)
+                (current.state.currentHitPoints + gain).coerceAtMost(effectiveMaximum)
             } else {
-                current.state.currentHitPoints
+                current.state.currentHitPoints.coerceAtMost(effectiveMaximum)
             },
             activeLevelUp = null,
         )
