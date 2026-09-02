@@ -1265,6 +1265,28 @@ class DndAppStateTest {
     }
 
     @Test
+    fun playerWikiExplainsAdvantageAndDisadvantageInBothLanguages() {
+        val state = DndAppState(FakeStore())
+
+        val english = state.search("advantage").single { it.id == "rule-advantage" }
+        assertTrue(english.subtitle.contains("Roll two d20s"))
+        assertTrue(english.subtitle.contains("keeps the higher"))
+        assertTrue(english.subtitle.contains("keeps the lower"))
+        state.handleSearchResult(english)
+        assertEquals(english.title, state.infoTitle)
+        assertTrue(state.infoBody.contains(english.subtitle))
+
+        state.toggleLanguage()
+        val german = state.search("Vorteil").single { it.id == "rule-advantage" }
+        assertTrue(german.subtitle.contains("Würfle zwei W20"))
+        assertTrue(german.subtitle.contains("höheren"))
+        assertTrue(german.subtitle.contains("niedrigeren"))
+        state.handleSearchResult(german)
+        assertEquals(german.title, state.infoTitle)
+        assertTrue(state.infoBody.contains(german.subtitle))
+    }
+
+    @Test
     fun recordedPlayEnablesRestAndLongRestCanConsumeOneRation() {
         val store = FakeStore()
         val state = DndAppState(store)

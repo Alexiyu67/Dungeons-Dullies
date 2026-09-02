@@ -413,8 +413,8 @@ internal fun CharacterSheetScreen(
                     damage = state.sheetDamageRoll,
                     outcome = state.sheetAttackOutcome,
                     canRoll = true,
-                    onRoll = { mode ->
-                        state.rollSheetAttack(mode)
+                    onRoll = {
+                        state.rollSheetAttack(RollMode.NORMAL)
                         state.dicePresentation = null
                     },
                     onOutcome = { outcome ->
@@ -2186,7 +2186,7 @@ internal fun AttackCard(
     damage: DamageRollUi?,
     outcome: AttackOutcome,
     canRoll: Boolean,
-    onRoll: (RollMode) -> Unit,
+    onRoll: () -> Unit,
     onOutcome: (AttackOutcome) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -2274,25 +2274,11 @@ internal fun AttackCard(
             }
 
             Button(
-                onClick = { onRoll(RollMode.NORMAL) },
+                onClick = onRoll,
                 enabled = canRoll,
                 modifier = Modifier.fillMaxWidth().height(46.dp),
                 shape = RoundedCornerShape(13.dp),
             ) { Text(state.t("Roll attack", "Angriff würfeln")) }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(
-                    onClick = { onRoll(RollMode.ADVANTAGE) },
-                    enabled = canRoll,
-                    modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(horizontal = 5.dp),
-                ) { Text(state.t("Advantage", "Vorteil"), maxLines = 1) }
-                OutlinedButton(
-                    onClick = { onRoll(RollMode.DISADVANTAGE) },
-                    enabled = canRoll,
-                    modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(horizontal = 5.dp),
-                ) { Text(state.t("Disadvantage", "Nachteil"), maxLines = 1) }
-            }
 
             if (roll != null) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
