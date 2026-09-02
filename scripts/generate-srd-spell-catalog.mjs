@@ -239,7 +239,9 @@ function parse521ClassList(raw, className, endMarker) {
   if (start < 0 || end < 0) throw new Error(`Could not isolate SRD 5.2.1 ${className} list`);
   const levels = new Map();
   let level = null;
-  const rowPattern = new RegExp(`^(.+?) (${schools.join("|")}) (.+)$`);
+  // Greedy name matching is intentional: spell names such as Minor Illusion
+  // and Programmed Illusion contain a school name before the school column.
+  const rowPattern = new RegExp(`^(.+) (${schools.join("|")}) (.+)$`);
 
   for (const line of lines.slice(start + 1, end)) {
     if (/^Cantrips \(Level 0/.test(line)) {

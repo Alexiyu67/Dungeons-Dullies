@@ -1,6 +1,7 @@
 package app.dulliesanddungeons.ui
 
 import app.dulliesanddungeons.data.LocalStateStore
+import app.dulliesanddungeons.domain.Ability
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -110,6 +111,56 @@ class ItemCatalogAndCreationTest {
 
         assertNotNull(state.creationArmorAdvisory())
         assertTrue(state.creationPreview().armorClass > 0)
+    }
+
+    @Test
+    fun officialCatalogContainsBothEditionWeaponAndMagicItemCoverage() {
+        assertEquals(242, srdMagicItemCatalog.count { it.revision == SrdItemRevision.SRD_5_1 })
+        assertEquals(258, srdMagicItemCatalog.count { it.revision == SrdItemRevision.SRD_5_2_1 })
+        assertEquals(37, standardWeaponCatalog.count { Ruleset.Fifth2014 in it.supportedRulesets })
+        assertEquals(38, standardWeaponCatalog.count { Ruleset.Fifth2024 in it.supportedRulesets })
+        assertTrue(standardEquipmentCatalog.any { it.id == "padded-armor" })
+        assertTrue(standardEquipmentCatalog.any { it.id == "hide-armor" })
+
+        val cloak = builtInKnownItemCatalog().single {
+            it.name == "Cloak of Protection" && it.compatibleWith(Ruleset.Fifth2024)
+        }.equipment
+        assertNotNull(cloak)
+        assertEquals(2, cloak.effects.size)
+        assertTrue(cloak.needsAttunement)
+
+        val maul = builtInKnownItemCatalog().single {
+            it.name == "Maul" && it.compatibleWith(Ruleset.Fifth2024)
+        }.weapon
+        assertNotNull(maul)
+        assertEquals(Ability.CONSTITUTION, maul.savingThrows.single().ability)
+        assertTrue(maul.savingThrows.single().difficultyClass.addProficiency)
+    }
+
+    @Test
+    fun fighter2024StartingGearPackagesCanBeSelectedAndPersisted() {
+        val state = DndAppState(ItemTestStore())
+        state.beginCreate()
+        state.creation.name = "Gear Tester"
+        state.creation.className = "Fighter"
+        state.creation.ruleset = Ruleset.Fifth2024
+        state.creation.statMethod = StatMethod.Manual
+        state.creation.manualAbilities.putAll(mapOf("STR" to 16, "DEX" to 14, "CON" to 14, "INT" to 10, "WIS" to 10, "CHA" to 8))
+
+        val packages = state.creationGearPackages()
+        assertEquals(listOf("fighter-a", "fighter-b", "fighter-gold"), packages.map { it.id })
+        assertEquals(155, packages.single { it.id == "fighter-gold" }.goldPieces)
+        state.selectCreationGearPackage("fighter-b")
+
+        assertEquals(3, state.creation.startingWeapons.size)
+        assertEquals("studded-leather", (state.creation.startingArmorChoice as StartingArmorChoice.Known).itemId.removePrefix("equipment:"))
+        assertEquals(11, state.creation.startingGoldPieces)
+        state.finishCreateWithRequiredProficiencies()
+
+        val created = state.selectedCharacter!!
+        assertTrue(created.weapons.any { it.name == "Longbow" })
+        assertTrue(created.resolvedEquipment.any { it.name == "Studded Leather Armor" && it.worn })
+        assertTrue(created.resolvedEquipment.any { it.name == "Gold Pieces" && it.quantity == 11 })
     }
 }
 

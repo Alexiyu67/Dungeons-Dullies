@@ -215,8 +215,21 @@ internal fun CharacterSheetScreen(
 
                 item { RollShortcuts(state, character, sectionExpanded("quick-rolls")) { toggleSection("quick-rolls") } }
                 item { AbilityScores(state, character, sectionExpanded("abilities")) { toggleSection("abilities") } }
-                item { RollGrid(state, state.t("Saving throws", "Rettungswürfe"), character.saves.map { saveAbbreviation(it.key) to it.value }, sectionExpanded("saving-throws")) { toggleSection("saving-throws") } }
-                item { RollGrid(state, state.t("Skills", "Fertigkeiten"), character.skills.map { state.localizedSkillName(it.key) to it.value }, sectionExpanded("skills")) { toggleSection("skills") } }
+                item {
+                    RollGrid(
+                        state,
+                        state.t("Saving throws", "Rettungswürfe"),
+                        character.saves.map { saveAbbreviation(it.key) to it.value },
+                        sectionExpanded("saving-throws"),
+                        { toggleSection("saving-throws") },
+                    ) { name ->
+                        abilityFromUiName(name)?.let { ability ->
+                            val calculation = CharacterStatEngine.savingThrow(character, ability, state.selectedConditions)
+                            state.showInfo("${ability.displayName()} ${state.t("saving throw", "Rettungswurf")}", calculation.detailsText(state))
+                        }
+                    }
+                }
+                item { RollGrid(state, state.t("Skills", "Fertigkeiten"), character.skills.map { state.localizedSkillName(it.key) to it.value }, sectionExpanded("skills"), onToggle = { toggleSection("skills") }) }
 
                 FeatureFamily.entries.filter { it != FeatureFamily.General }.forEach { family ->
                     val familyFeatures = groupedFeatures[family].orEmpty()
@@ -316,7 +329,15 @@ internal fun CharacterSheetScreen(
                     }
                 }
 
-                item { CollapsibleSectionHeader(state, state.t("Weapons", "Waffen"), sectionExpanded("weapons"), { toggleSection("weapons") }) }
+                item {
+                    CollapsibleSectionHeader(state, state.t("Weapons", "Waffen"), sectionExpanded("weapons"), { toggleSection("weapons") }) {
+                        TextButton(onClick = { state.openItemBrowser() }) {
+                            Icon(Icons.Rounded.Add, contentDescription = null, Modifier.size(18.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text(state.t("Add", "Hinzufügen"))
+                        }
+                    }
+                }
                 if (sectionExpanded("weapons")) {
                     items(character.weapons, key = { it.id }) { weapon -> WeaponRow(state, weapon) }
                 }
@@ -979,7 +1000,10 @@ private fun HeroSummaryCard(
                     label = "AC",
                     value = character.armorClass.toString(),
                     modifier = Modifier.weight(1f),
-                    onClick = { state.showInfo(state.t("Armor Class", "Rüstungsklasse"), character.armorClass.toString()) },
+                    onClick = {
+                        val calculation = CharacterStatEngine.armorClass(character, state.selectedConditions)
+                        state.showInfo(state.t("Armor Class", "Rüstungsklasse"), calculation.detailsText(state))
+                    },
                 )
                 SummaryStat(
                     icon = { Icon(if (character.flySpeedFeet != null) Icons.Rounded.Flight else Icons.Rounded.Bolt, contentDescription = null, Modifier.size(19.dp), tint = MaterialTheme.colorScheme.primary) },
@@ -1656,6 +1680,7 @@ private fun RollGrid(
     entries: List<Pair<String, Int>>,
     expanded: Boolean,
     onToggle: () -> Unit,
+    onInfo: ((String) -> Unit)? = null,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         CollapsibleSectionHeader(state, title, expanded, onToggle)
@@ -1679,6 +1704,11 @@ private fun RollGrid(
                                     Row(Modifier.padding(horizontal = 12.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                                         Text(name, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                                         Text(signed(modifier), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+                                        if (onInfo != null) {
+                                            IconButton(onClick = { onInfo(name) }, modifier = Modifier.size(32.dp)) {
+                                                Icon(Icons.Rounded.Info, contentDescription = state.t("Calculation details", "Berechnungsdetails"), modifier = Modifier.size(17.dp))
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -1800,7 +1830,12 @@ internal fun featureFamilyLabel(state: DndAppState, family: FeatureFamily): Stri
 @Composable
 private fun SpellRow(state: DndAppState, spell: SpellUi, onQuickCast: () -> Unit) {
     val canQuickCast = spell.level == 0 || state.availableSpellSlotLevels(spell).isNotEmpty()
-    Card(onClick = { state.showInfo(spell.name, spell.summary, spell.activationCost.toCostTokens()) }, shape = RoundedCornerShape(16.dp)) {
+    val character = state.selectedCharacter
+    val combatSummary = character?.let { spellCombatSummary(state, it, spell) }.orEmpty()
+    Card(
+        onClick = { state.showInfo(spell.name, spellDetails(state, spell), spell.activationCost.toCostTokens()) },
+        shape = RoundedCornerShape(16.dp),
+    ) {
         Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Rounded.AutoAwesome, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary)
             Spacer(Modifier.width(12.dp))
@@ -1813,6 +1848,9 @@ private fun SpellRow(state: DndAppState, spell: SpellUi, onQuickCast: () -> Unit
                 val source = spell.sourceName.takeIf { it.isNotBlank() }?.let { " · $it" }.orEmpty()
                 Text("$level$source", style = MaterialTheme.typography.labelMedium, color = if (spell.sourceKind == SpellSourceKind.ITEM) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(spell.summary, style = MaterialTheme.typography.bodySmall)
+                if (combatSummary.isNotBlank()) {
+                    Text(combatSummary, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                }
                 if (spell.castPreviews.isNotEmpty()) {
                     val levels = state.availableSpellSlotLevels(spell).ifEmpty { spell.castPreviews.keys.sorted() }
                     Text(
@@ -1830,6 +1868,26 @@ private fun SpellRow(state: DndAppState, spell: SpellUi, onQuickCast: () -> Unit
             ) { Text(state.t("Quick Cast", "Schnell wirken"), maxLines = 1) }
         }
     }
+}
+
+private fun spellCombatSummary(state: DndAppState, character: CharacterUi, spell: SpellUi): String = buildList {
+    if (spell.spellAttack) {
+        val bonus = CharacterStatEngine.spellAttackBonus(character, spell)
+        add(state.t("Spell attack ${signed(bonus)}", "Zauberangriff ${signed(bonus)}"))
+    }
+    spell.savingThrows.forEach { prompt ->
+        val dc = CharacterStatEngine.difficultyClass(character, prompt.difficultyClass, spell)
+        add(state.t("${prompt.ability.shortName()} save DC $dc", "${prompt.ability.shortName()}-Rettung SG $dc"))
+    }
+}.joinToString(" · ")
+
+private fun spellDetails(state: DndAppState, spell: SpellUi): String = buildString {
+    append(spell.summary)
+    state.selectedCharacter?.let { character ->
+        val combat = spellCombatSummary(state, character, spell)
+        if (combat.isNotBlank()) append("\n$combat")
+    }
+    if (spell.sourceName.isNotBlank()) append("\n${state.t("Source", "Quelle")}: ${spell.sourceName}")
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -2026,9 +2084,38 @@ private fun SorcerySlotRecoveryDialog(state: DndAppState, character: CharacterUi
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 private fun WeaponRow(state: DndAppState, weapon: WeaponUi) {
-    Card(onClick = { state.openSheetAttack(weapon.id) }, shape = RoundedCornerShape(16.dp)) {
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            when (value) {
+                SwipeToDismissBoxValue.StartToEnd -> state.editWeapon(weapon)
+                SwipeToDismissBoxValue.EndToStart -> state.removeWeapon(weapon.id)
+                SwipeToDismissBoxValue.Settled -> Unit
+            }
+            value == SwipeToDismissBoxValue.EndToStart
+        },
+    )
+    SwipeToDismissBox(
+        state = dismissState,
+        backgroundContent = { InventorySwipeBackground(state, dismissState.targetValue) },
+    ) {
+    Card(
+        modifier = Modifier.fillMaxWidth()
+            .combinedClickable(
+                onClick = { state.openSheetAttack(weapon.id) },
+                onLongClick = { state.toggleWeaponEquipped(weapon.id) },
+            )
+            .semantics {
+                customActions = listOf(
+                    CustomAccessibilityAction(state.t("Edit weapon", "Waffe bearbeiten")) { state.editWeapon(weapon); true },
+                    CustomAccessibilityAction(state.t("Remove weapon", "Waffe entfernen")) { state.removeWeapon(weapon.id); true },
+                    CustomAccessibilityAction(state.t("Toggle equipped", "Ausrüstung umschalten")) { state.toggleWeaponEquipped(weapon.id); true },
+                )
+            },
+        shape = RoundedCornerShape(16.dp),
+    ) {
         Row(Modifier.fillMaxWidth().padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
             Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = RoundedCornerShape(11.dp)) {
                 Icon(Icons.Rounded.SportsMma, contentDescription = null, modifier = Modifier.padding(9.dp), tint = MaterialTheme.colorScheme.onSecondaryContainer)
@@ -2037,25 +2124,87 @@ private fun WeaponRow(state: DndAppState, weapon: WeaponUi) {
             Column(Modifier.weight(1f)) {
                 Text(weapon.name, style = MaterialTheme.typography.titleSmall)
                 Text("${signed(weapon.attackBonus)} · ${weapon.damage} ${weapon.damageType}", style = MaterialTheme.typography.bodyMedium)
-                val detail = listOf(weapon.range, weapon.mastery, weapon.properties).filter { it.isNotBlank() }.joinToString(" · ")
+                val detail = listOf("${weapon.reachFeet} ft", weapon.range, weapon.mastery, weapon.properties).filter { it.isNotBlank() }.joinToString(" · ")
                 if (detail.isNotBlank()) Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (weapon.equipped) Text(state.t("Equipped", "Ausgerüstet"), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                 if (weapon.needsAttunement) {
                     TextButton(onClick = { state.toggleWeaponAttunement(weapon.id) }, contentPadding = PaddingValues(0.dp)) {
                         Text(if (weapon.attuned) state.t("Attuned", "Eingestimmt") else state.t("Needs attunement", "Einstimmung nötig"), style = MaterialTheme.typography.labelSmall)
                     }
                 }
             }
+            IconButton(onClick = { state.showInfo(weapon.name, weaponDetails(state, weapon)) }) {
+                Icon(Icons.Rounded.Info, contentDescription = state.t("Weapon details", "Waffendetails"))
+            }
             CostChip(state, CostTokenUi(CostTokenKind.Attack))
+        }
+    }
+    }
+}
+
+@Composable
+private fun InventorySwipeBackground(state: DndAppState, target: SwipeToDismissBoxValue) {
+    val editing = target == SwipeToDismissBoxValue.StartToEnd
+    val removing = target == SwipeToDismissBoxValue.EndToStart
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = when {
+            editing -> MaterialTheme.colorScheme.primaryContainer
+            removing -> MaterialTheme.colorScheme.errorContainer
+            else -> Color.Transparent
+        },
+    ) {
+        Row(
+            Modifier.fillMaxSize().padding(horizontal = 20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = if (editing) Arrangement.Start else Arrangement.End,
+        ) {
+            if (editing || removing) {
+                Icon(
+                    if (editing) Icons.Rounded.Edit else Icons.Rounded.Delete,
+                    contentDescription = if (editing) state.t("Edit", "Bearbeiten") else state.t("Remove", "Entfernen"),
+                )
+            }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 private fun EquipmentCard(state: DndAppState, character: CharacterUi) {
     Card(shape = RoundedCornerShape(18.dp)) {
         Column(Modifier.fillMaxWidth()) {
             character.resolvedEquipment.forEachIndexed { index, item ->
-                Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                val dismissState = rememberSwipeToDismissBoxState(
+                    confirmValueChange = { value ->
+                        when (value) {
+                            SwipeToDismissBoxValue.StartToEnd -> state.editEquipment(item)
+                            SwipeToDismissBoxValue.EndToStart -> state.removeEquipment(item.id)
+                            SwipeToDismissBoxValue.Settled -> Unit
+                        }
+                        value == SwipeToDismissBoxValue.EndToStart
+                    },
+                )
+                SwipeToDismissBox(
+                    state = dismissState,
+                    backgroundContent = { InventorySwipeBackground(state, dismissState.targetValue) },
+                ) {
+                Row(
+                    Modifier.fillMaxWidth()
+                        .combinedClickable(
+                            onClick = { state.showInfo(item.name, equipmentDetails(state, character, item)) },
+                            onLongClick = { state.toggleEquipmentEquipped(item.id) },
+                        )
+                        .semantics {
+                            customActions = listOf(
+                                CustomAccessibilityAction(state.t("Edit item", "Gegenstand bearbeiten")) { state.editEquipment(item); true },
+                                CustomAccessibilityAction(state.t("Remove item", "Gegenstand entfernen")) { state.removeEquipment(item.id); true },
+                                CustomAccessibilityAction(state.t("Toggle equipped", "Ausrüstung umschalten")) { state.toggleEquipmentEquipped(item.id); true },
+                            )
+                        }
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     if (item.kind != EquipmentKind.ARMOR || item.worn) {
                         Icon(
                             if (item.kind == EquipmentKind.ARMOR) Icons.Rounded.Shield else Icons.Rounded.Backpack,
@@ -2101,14 +2250,13 @@ private fun EquipmentCard(state: DndAppState, character: CharacterUi) {
                             }
                         }
                         if (item.needsAttunement) {
-                            TextButton(onClick = {
-                                if (item.worn && item.attuned) state.toggleEquipmentWorn(item.id)
-                                state.toggleEquipmentAttunement(item.id)
-                            }, contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)) {
+                            TextButton(onClick = { state.toggleEquipmentAttunement(item.id) }, contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)) {
                                 Text(if (item.attuned) state.t("Attuned", "Eingestimmt") else state.t("Attune", "Einstimmen"), style = MaterialTheme.typography.labelSmall)
                             }
                         }
                     }
+                    Icon(Icons.Rounded.Info, contentDescription = state.t("Item details", "Gegenstandsdetails"), modifier = Modifier.size(20.dp))
+                }
                 }
                 if (index < character.resolvedEquipment.lastIndex) HorizontalDivider(Modifier.padding(horizontal = 14.dp))
             }
@@ -2406,5 +2554,50 @@ private fun speedCostTokens(character: CharacterUi): List<CostTokenUi> = buildLi
         ("fly" in hint || "flight" in hint || "wing" in hint) && feature.actionCost.hasCost
     }.flatMapTo(this) { it.actionCost.toCostTokens() }
 }.distinct()
+
+private fun StatCalculationUi.detailsText(state: DndAppState): String = buildString {
+    append(state.t("Total", "Gesamt"))
+    append(": ")
+    append(total)
+    sources.forEach { source ->
+        append("\n")
+        append(if (source.active) "• " else "○ ")
+        append(source.label)
+        source.amount?.let { append(" ${signed(it)}") }
+        if (source.detail.isNotBlank()) {
+            append(" — ")
+            append(source.detail)
+        }
+    }
+}
+
+private fun weaponDetails(state: DndAppState, weapon: WeaponUi): String = buildString {
+    append(state.t("Reach", "Reichweite"))
+    append(" ${weapon.reachFeet} ft")
+    if (weapon.range.isNotBlank()) append(" · ${weapon.range}")
+    if (weapon.properties.isNotBlank()) append("\n${weapon.properties}")
+    if (weapon.useCase.isNotBlank()) append("\n${weapon.useCase}")
+    state.selectedCharacter?.let { character ->
+        weapon.savingThrows.forEach { prompt ->
+            append("\n${prompt.ability.displayName()} DC ${CharacterStatEngine.difficultyClass(character, prompt.difficultyClass)}")
+        }
+    }
+}
+
+private fun equipmentDetails(state: DndAppState, character: CharacterUi, item: EquipmentUi): String = buildString {
+    if (item.details.isNotBlank()) append(item.details)
+    if (item.useCase.isNotBlank()) {
+        if (isNotEmpty()) append("\n")
+        append(item.useCase)
+    }
+    item.savingThrows.forEach { prompt ->
+        if (isNotEmpty()) append("\n")
+        append("${prompt.ability.displayName()} DC ${CharacterStatEngine.difficultyClass(character, prompt.difficultyClass)}")
+    }
+    item.effects.forEach { effect ->
+        if (isNotEmpty()) append("\n")
+        append("${signed(effect.amount)} ${effect.statistic.name.replace('_', ' ').lowercase()}")
+    }
+}
 
 private fun signed(value: Int): String = if (value >= 0) "+$value" else value.toString()

@@ -338,6 +338,66 @@ data class DerivedStatisticFormula(
 )
 
 @Serializable
+enum class CoreStatistic {
+    ARMOR_CLASS,
+    SAVING_THROW,
+    ATTACK_ROLL,
+    DAMAGE_ROLL,
+    SPELL_ATTACK,
+    SPELL_SAVE_DC,
+    ABILITY_SCORE,
+    SPEED,
+}
+
+@Serializable
+enum class ModifierOperation { ADD, SET, MINIMUM }
+
+@Serializable
+enum class EffectActivation {
+    ALWAYS,
+    CARRIED,
+    EQUIPPED,
+    WORN,
+    HELD,
+    WIELDED,
+    ATTUNED,
+    CARRIED_AND_ATTUNED,
+    EQUIPPED_AND_ATTUNED,
+    WORN_AND_ATTUNED,
+    HELD_AND_ATTUNED,
+    WIELDED_AND_ATTUNED,
+}
+
+/** A structured, persistable modifier. A null ability targets every saving throw. */
+@Serializable
+data class CoreModifier(
+    val statistic: CoreStatistic,
+    val amount: Int,
+    val operation: ModifierOperation = ModifierOperation.ADD,
+    val ability: Ability? = null,
+    val movementMode: MovementMode? = null,
+    val activation: EffectActivation = EffectActivation.ALWAYS,
+    val label: String = "",
+)
+
+@Serializable
+data class DifficultyClass(
+    val fixed: Int? = null,
+    val base: Int = 8,
+    val ability: Ability? = null,
+    val addProficiency: Boolean = false,
+    /** Uses the owning spell's spellcasting ability and current character proficiency. */
+    val useSpellcasting: Boolean = false,
+)
+
+@Serializable
+data class SavingThrowPrompt(
+    val ability: Ability,
+    val difficultyClass: DifficultyClass,
+    val label: String = "",
+)
+
+@Serializable
 sealed interface ArmorClassMethod {
     @Serializable
     @SerialName("automatic")
@@ -369,6 +429,10 @@ data class CombatProfile(
     val initiative: DerivedStatisticFormula = DerivedStatisticFormula(Ability.DEXTERITY),
     val savingThrows: Map<Ability, DerivedStatisticFormula> = emptyMap(),
     val skills: Map<String, DerivedStatisticFormula> = emptyMap(),
+    /** Stable pre-effect values prevent equipment bonuses from being applied again after reload. */
+    val storedBaseArmorClass: Int? = null,
+    val storedBaseSavingThrows: Map<Ability, Int> = emptyMap(),
+    val passiveArmorClassBonus: Int = 0,
 )
 
 @Serializable
@@ -394,6 +458,14 @@ data class WeaponRecord(
     val attunement: AttunementState = AttunementState.NOT_REQUIRED,
     val custom: Boolean = false,
     val source: EntityRef? = null,
+    val definitionId: String = id,
+    val reachFeet: Int = 5,
+    val normalRangeFeet: Int? = null,
+    val longRangeFeet: Int? = null,
+    val equipped: Boolean = false,
+    val effects: List<CoreModifier> = emptyList(),
+    val savingThrows: List<SavingThrowPrompt> = emptyList(),
+    val useCase: String = "",
 )
 
 @Serializable
@@ -413,6 +485,9 @@ data class SpellRecord(
     /** Compact, localized cast-level preview keyed by the slot level used. */
     val castPreviews: Map<Int, String> = emptyMap(),
     val source: EntityRef? = null,
+    val savingThrows: List<SavingThrowPrompt> = emptyList(),
+    val spellAttack: Boolean = false,
+    val spellcastingAbility: Ability? = null,
 )
 
 @Serializable
@@ -430,6 +505,7 @@ data class FeatureRecord(
     val notes: String = "",
     val turnGuideEligible: Boolean = true,
     val source: EntityRef? = null,
+    val effects: List<CoreModifier> = emptyList(),
 )
 
 @Serializable
@@ -513,6 +589,7 @@ data class ActiveCondition(
     val removable: Boolean = true,
     val durationLabel: String? = null,
     val note: String? = null,
+    val effects: List<CoreModifier> = emptyList(),
 )
 
 @Serializable
@@ -549,6 +626,11 @@ data class EquipmentItem(
     val shieldBonus: Int = 0,
     val grantedSpells: List<SpellRecord> = emptyList(),
     val customProperties: Map<String, String> = emptyMap(),
+    /** Location used when the single user-facing Equipped toggle is enabled. */
+    val activeLocation: EquipmentLocation = EquipmentLocation.WORN,
+    val effects: List<CoreModifier> = emptyList(),
+    val savingThrows: List<SavingThrowPrompt> = emptyList(),
+    val useCase: String = "",
 ) {
     val equipped: Boolean get() = location == EquipmentLocation.WORN ||
         location == EquipmentLocation.WIELDED ||

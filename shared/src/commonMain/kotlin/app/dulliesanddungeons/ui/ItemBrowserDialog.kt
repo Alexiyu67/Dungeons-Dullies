@@ -1,5 +1,12 @@
 package app.dulliesanddungeons.ui
 
+import app.dulliesanddungeons.domain.Ability
+import app.dulliesanddungeons.domain.CoreModifier
+import app.dulliesanddungeons.domain.CoreStatistic
+import app.dulliesanddungeons.domain.DifficultyClass
+import app.dulliesanddungeons.domain.EffectActivation
+import app.dulliesanddungeons.domain.SavingThrowPrompt
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,6 +33,7 @@ import androidx.compose.material.icons.rounded.Backpack
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material.icons.rounded.SportsMma
@@ -69,12 +77,25 @@ private enum class BrowserPage { Catalog, CustomEquipment, CustomWeapon }
 @OptIn(ExperimentalMaterial3Api::class)
 internal fun ItemBrowserDialog(state: DndAppState) {
     val target = state.itemBrowserTarget
-    val ruleset = if (target == ItemBrowserTarget.StartingArmor) state.creation.ruleset else state.selectedCharacter?.ruleset ?: return
-    var page by remember(target) { mutableStateOf(BrowserPage.Catalog) }
-    var prefill by remember(target) { mutableStateOf<KnownItemUi?>(null) }
+    val ruleset = if (target != ItemBrowserTarget.Inventory) state.creation.ruleset else state.selectedCharacter?.ruleset ?: return
+    val editingEquipment = state.itemBrowserEditingEquipment
+    val editingWeapon = state.itemBrowserEditingWeapon
+    var page by remember(target, editingEquipment?.id, editingWeapon?.id) {
+        mutableStateOf(
+            when {
+                editingEquipment != null -> BrowserPage.CustomEquipment
+                editingWeapon != null -> BrowserPage.CustomWeapon
+                else -> BrowserPage.Catalog
+            },
+        )
+    }
+    var prefill by remember(target, editingEquipment?.id, editingWeapon?.id) { mutableStateOf<KnownItemUi?>(null) }
     var query by remember(target) { mutableStateOf("") }
     var filterOpen by remember(target) { mutableStateOf(false) }
     var customChoiceOpen by remember(target) { mutableStateOf(false) }
+    var infoItem by remember(target) { mutableStateOf<KnownItemUi?>(null) }
+    var quickWeaponItem by remember(target) { mutableStateOf<KnownItemUi?>(null) }
+    var quickWeaponBonus by remember(target) { mutableStateOf(0) }
     var selectedTypes by remember(target) {
         mutableStateOf(if (target == ItemBrowserTarget.StartingArmor) setOf(KnownItemType.Armor) else emptySet())
     }
@@ -149,6 +170,21 @@ internal fun ItemBrowserDialog(state: DndAppState) {
                                     prefill = item
                                     page = if (item.type == KnownItemType.Weapon) BrowserPage.CustomWeapon else BrowserPage.CustomEquipment
                                 },
+                                onAdd = { item ->
+                                    if (item.type == KnownItemType.Weapon) {
+                                        quickWeaponItem = item
+                                        quickWeaponBonus = item.weapon?.itemBonus ?: 0
+                                    } else if (target == ItemBrowserTarget.StartingArmor) {
+                                        state.selectCreationArmor(item)
+                                    } else if (target == ItemBrowserTarget.StartingGear) {
+                                        if (state.addCreationGear(item)) {
+                                            state.itemBrowserFeedback = state.t("Added ${item.name}", "${item.name} hinzugefügt")
+                                        }
+                                    } else {
+                                        state.addKnownItem(item)
+                                    }
+                                },
+                                onInfo = { infoItem = it },
                             )
                             FloatingActionButton(
                                 onClick = { filterOpen = true },
@@ -162,6 +198,7 @@ internal fun ItemBrowserDialog(state: DndAppState) {
                         state = state,
                         target = target,
                         initial = prefill,
+                        editing = editingEquipment,
                         onAdded = {
                             page = BrowserPage.Catalog
                             prefill = null
@@ -170,6 +207,7 @@ internal fun ItemBrowserDialog(state: DndAppState) {
                     BrowserPage.CustomWeapon -> CustomWeaponPage(
                         state = state,
                         initial = prefill,
+                        editing = editingWeapon,
                         onAdded = {
                             page = BrowserPage.Catalog
                             prefill = null
@@ -230,6 +268,102 @@ internal fun ItemBrowserDialog(state: DndAppState) {
             }
         }
     }
+
+    infoItem?.let { item ->
+        ModalBottomSheet(onDismissRequest = { infoItem = null }) {
+            Column(
+                Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text(item.name, style = MaterialTheme.typography.titleLarge)
+                Text(
+                    "${itemTypeLabel(state, item.type)} · ${rarityLabel(state, item.rarity)}",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (item.details.isNotBlank()) Text(item.details)
+                item.equipment?.useCase?.takeIf(String::isNotBlank)?.let { Text(it) }
+                item.weapon?.let { weapon ->
+                    val reach = if ("reach" in weapon.properties.lowercase()) 10 else 5
+                    Text(state.t("Reach $reach ft · ${weapon.properties}", "Reichweite $reach ft · ${weapon.properties}"))
+                    Text(weapon.useCase.ifBlank { state.weaponUseCase(weapon) })
+                }
+                val savePrompts = item.equipment?.savingThrows ?: item.weapon?.savingThrows.orEmpty()
+                if (savePrompts.isNotEmpty()) {
+                    Text(
+                        savePrompts.joinToString(" · ") { prompt ->
+                            val formula = prompt.difficultyClass
+                            val calculated = when {
+                                formula.fixed != null -> formula.fixed
+                                target == ItemBrowserTarget.StartingGear && formula.ability != null -> {
+                                    val modifier = floor((state.creationAbilityScore(formula.ability.shortName()) - 10) / 2.0).toInt()
+                                    formula.base + modifier + if (formula.addProficiency) state.creationTrainedProficiency() else 0
+                                }
+                                target != ItemBrowserTarget.StartingGear && state.selectedCharacter != null ->
+                                    CharacterStatEngine.difficultyClass(state.selectedCharacter!!, formula)
+                                else -> null
+                            }
+                            val dc = calculated?.let { "DC $it" } ?: state.t("calculated DC", "berechneter SG")
+                            "${prompt.ability.displayName()} $dc"
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+                OutlinedButton(
+                    onClick = {
+                        prefill = item
+                        infoItem = null
+                        page = if (item.type == KnownItemType.Weapon) BrowserPage.CustomWeapon else BrowserPage.CustomEquipment
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text(state.t("Customize a copy", "Kopie anpassen")) }
+                Spacer(Modifier.height(18.dp))
+            }
+        }
+    }
+
+    quickWeaponItem?.let { item ->
+        val template = item.weapon ?: return@let
+        ModalBottomSheet(onDismissRequest = { quickWeaponItem = null }) {
+            Column(
+                Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(item.name, style = MaterialTheme.typography.titleLarge)
+                Text(state.t("Magic bonus", "Magiebonus"), style = MaterialTheme.typography.titleSmall)
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items((0..3).toList()) { bonus ->
+                        FilterChip(
+                            selected = quickWeaponBonus == bonus,
+                            onClick = { quickWeaponBonus = bonus },
+                            label = { Text(if (bonus == 0) "+0" else "+$bonus") },
+                        )
+                    }
+                }
+                Button(
+                    onClick = {
+                        if (target == ItemBrowserTarget.StartingGear) state.addCreationWeapon(template, quickWeaponBonus)
+                        else state.addStandardWeapon(template, quickWeaponBonus)
+                        state.itemBrowserFeedback = state.t(
+                            "Added ${if (quickWeaponBonus > 0) "+$quickWeaponBonus " else ""}${template.name}",
+                            "${if (quickWeaponBonus > 0) "+$quickWeaponBonus " else ""}${template.name} hinzugefügt",
+                        )
+                        quickWeaponItem = null
+                    },
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                ) { Text(state.t("Add weapon", "Waffe hinzufügen")) }
+                TextButton(
+                    onClick = {
+                        prefill = item.copy(weapon = template.copy(itemBonus = quickWeaponBonus))
+                        quickWeaponItem = null
+                        page = BrowserPage.CustomWeapon
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text(state.t("Customize", "Anpassen")) }
+                Spacer(Modifier.height(18.dp))
+            }
+        }
+    }
 }
 
 @Composable
@@ -246,6 +380,8 @@ private fun ItemCatalogPage(
     sort: KnownItemSort,
     ascending: Boolean,
     onIncomplete: (KnownItemUi) -> Unit,
+    onAdd: (KnownItemUi) -> Unit,
+    onInfo: (KnownItemUi) -> Unit,
 ) {
     val catalog = state.knownItemCatalog()
     val visible = filterKnownItems(
@@ -300,6 +436,7 @@ private fun ItemCatalogPage(
                         warning = null,
                         complete = true,
                         onClick = state::selectCreationUnarmored,
+                        onInfo = null,
                     )
                 }
             }
@@ -321,13 +458,8 @@ private fun ItemCatalogPage(
                     details = item.details,
                     warning = warning,
                     complete = item.complete,
-                    onClick = {
-                        when {
-                            !item.complete -> onIncomplete(item)
-                            target == ItemBrowserTarget.StartingArmor -> state.selectCreationArmor(item)
-                            else -> state.addKnownItem(item)
-                        }
-                    },
+                    onClick = { if (!item.complete) onIncomplete(item) else onAdd(item) },
+                    onInfo = { onInfo(item) },
                 )
             }
         }
@@ -343,6 +475,7 @@ private fun ItemResultCard(
     warning: String?,
     complete: Boolean,
     onClick: () -> Unit,
+    onInfo: (() -> Unit)?,
 ) {
     Card(
         onClick = onClick,
@@ -364,6 +497,11 @@ private fun ItemResultCard(
                 if (details.isNotBlank()) Text(details, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 if (warning != null) Text(warning, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 if (!complete) Text(state.t("Complete the missing details before adding.", "Ergänze vor dem Hinzufügen die fehlenden Angaben."), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+            }
+            if (onInfo != null) {
+                IconButton(onClick = onInfo) {
+                    Icon(Icons.Rounded.Info, contentDescription = state.t("Item details", "Gegenstandsdetails"))
+                }
             }
             Icon(if (complete) Icons.Rounded.Add else Icons.Rounded.Edit, contentDescription = null, Modifier.size(20.dp))
         }
@@ -462,17 +600,29 @@ private fun CustomEquipmentPage(
     state: DndAppState,
     target: ItemBrowserTarget,
     initial: KnownItemUi?,
+    editing: EquipmentUi?,
     onAdded: () -> Unit,
 ) {
-    val initialItem = initial?.equipment
-    var name by remember(initial?.id, target) { mutableStateOf(initialItem?.name.orEmpty()) }
-    var details by remember(initial?.id, target) { mutableStateOf(initialItem?.details.orEmpty()) }
-    var quantity by remember(initial?.id, target) { mutableStateOf((initialItem?.quantity ?: 1).toString()) }
-    var kind by remember(initial?.id, target) { mutableStateOf(if (target == ItemBrowserTarget.StartingArmor) EquipmentKind.ARMOR else initialItem?.kind ?: EquipmentKind.GEAR) }
-    var armorClass by remember(initial?.id, target) { mutableStateOf(initialItem?.armorClass?.toString().orEmpty()) }
-    var shieldBonus by remember(initial?.id, target) { mutableStateOf(initialItem?.shieldBonus?.takeIf { it > 0 }?.toString().orEmpty()) }
-    var attunement by remember(initial?.id, target) { mutableStateOf(initialItem?.needsAttunement == true) }
-    val armorValid = kind != EquipmentKind.ARMOR || armorClass.toIntOrNull() in 1..30 || shieldBonus.toIntOrNull() in 1..9
+    val initialItem = editing ?: initial?.equipment
+    var name by remember(initial?.id, editing?.id, target) { mutableStateOf(initialItem?.name.orEmpty()) }
+    var details by remember(initial?.id, editing?.id, target) { mutableStateOf(initialItem?.details.orEmpty()) }
+    var quantity by remember(initial?.id, editing?.id, target) { mutableStateOf((initialItem?.quantity ?: 1).toString()) }
+    var kind by remember(initial?.id, editing?.id, target) { mutableStateOf(if (target == ItemBrowserTarget.StartingArmor) EquipmentKind.ARMOR else initialItem?.kind ?: EquipmentKind.GEAR) }
+    var armorClass by remember(initial?.id, editing?.id, target) { mutableStateOf(initialItem?.armorClass?.toString().orEmpty()) }
+    var shieldBonus by remember(initial?.id, editing?.id, target) { mutableStateOf(initialItem?.shieldBonus?.takeIf { it > 0 }?.toString().orEmpty()) }
+    var attunement by remember(initial?.id, editing?.id, target) { mutableStateOf(initialItem?.needsAttunement == true) }
+    var equipped by remember(initial?.id, editing?.id, target) { mutableStateOf(initialItem?.worn == true) }
+    var acBonus by remember(initial?.id, editing?.id, target) {
+        mutableStateOf(initialItem?.effects?.firstOrNull { it.statistic == CoreStatistic.ARMOR_CLASS }?.amount?.toString().orEmpty())
+    }
+    var saveBonus by remember(initial?.id, editing?.id, target) {
+        mutableStateOf(initialItem?.effects?.firstOrNull { it.statistic == CoreStatistic.SAVING_THROW && it.ability == null }?.amount?.toString().orEmpty())
+    }
+    var detailsOpen by remember(initial?.id, editing?.id, target) { mutableStateOf(false) }
+    var targetSaveAbility by remember(initial?.id, editing?.id, target) { mutableStateOf(initialItem?.savingThrows?.firstOrNull()?.ability) }
+    var targetSaveDc by remember(initial?.id, editing?.id, target) { mutableStateOf(initialItem?.savingThrows?.firstOrNull()?.difficultyClass?.fixed?.toString().orEmpty()) }
+    val armorValid = kind != EquipmentKind.ARMOR || initialItem != null ||
+        armorClass.toIntOrNull() in 1..30 || shieldBonus.toIntOrNull() in 1..9
 
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(11.dp)) {
         if (target != ItemBrowserTarget.StartingArmor) {
@@ -486,6 +636,22 @@ private fun CustomEquipmentPage(
         OutlinedTextField(details, { details = it.take(500) }, label = { Text(state.t("Useful details", "Nützliche Details")) }, modifier = Modifier.fillMaxWidth())
         if (target != ItemBrowserTarget.StartingArmor) {
             OutlinedTextField(quantity, { quantity = it.filter(Char::isDigit).take(3) }, label = { Text(state.t("Quantity", "Menge")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    acBonus,
+                    { acBonus = it.filter { char -> char.isDigit() || char == '-' }.take(2) },
+                    label = { Text(state.t("AC bonus", "RK-Bonus")) },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                )
+                OutlinedTextField(
+                    saveBonus,
+                    { saveBonus = it.filter { char -> char.isDigit() || char == '-' }.take(2) },
+                    label = { Text(state.t("All saves", "Alle Rettungswürfe")) },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
         if (kind == EquipmentKind.ARMOR) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -499,6 +665,33 @@ private fun CustomEquipmentPage(
                 Checkbox(attunement, { attunement = it })
                 Text(state.t("Needs attunement", "Benötigt Einstimmung"))
             }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(equipped, { equipped = it })
+                Text(state.t("Equipped", "Ausgerüstet"))
+            }
+            TextButton(onClick = { detailsOpen = !detailsOpen }) {
+                Text(if (detailsOpen) state.t("Hide details", "Details ausblenden") else state.t("Details", "Details"))
+            }
+            if (detailsOpen) {
+                Text(state.t("Saving throw caused by this item", "Rettungswurf dieses Gegenstands"), style = MaterialTheme.typography.titleSmall)
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                    item {
+                        FilterChip(selected = targetSaveAbility == null, onClick = { targetSaveAbility = null }, label = { Text(state.t("None", "Keiner")) })
+                    }
+                    items(Ability.entries) { option ->
+                        FilterChip(selected = targetSaveAbility == option, onClick = { targetSaveAbility = option }, label = { Text(option.shortName()) })
+                    }
+                }
+                if (targetSaveAbility != null) {
+                    OutlinedTextField(
+                        targetSaveDc,
+                        { targetSaveDc = it.filter(Char::isDigit).take(2) },
+                        label = { Text("DC") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
         }
         Button(
             onClick = {
@@ -509,11 +702,37 @@ private fun CustomEquipmentPage(
                     quantity = quantity.toIntOrNull()?.coerceAtLeast(1) ?: 1,
                     details = details.trim(),
                     needsAttunement = target != ItemBrowserTarget.StartingArmor && attunement,
+                    attuned = initialItem?.attuned == true,
                     armorClass = armorClass.toIntOrNull()?.coerceIn(1, 30),
                     shieldBonus = shieldBonus.toIntOrNull()?.coerceIn(0, 9) ?: 0,
+                    worn = target != ItemBrowserTarget.StartingArmor && equipped,
+                    effects = buildList {
+                        acBonus.toIntOrNull()?.takeIf { it != 0 }?.let { amount ->
+                            add(CoreModifier(CoreStatistic.ARMOR_CLASS, amount, activation = if (attunement) EffectActivation.WORN_AND_ATTUNED else EffectActivation.WORN, label = "Custom AC bonus"))
+                        }
+                        saveBonus.toIntOrNull()?.takeIf { it != 0 }?.let { amount ->
+                            add(CoreModifier(CoreStatistic.SAVING_THROW, amount, activation = if (attunement) EffectActivation.WORN_AND_ATTUNED else EffectActivation.WORN, label = "Custom saving throw bonus"))
+                        }
+                    },
+                    savingThrows = targetSaveAbility?.let { ability ->
+                        targetSaveDc.toIntOrNull()?.let { dc -> listOf(SavingThrowPrompt(ability, DifficultyClass(fixed = dc))) }
+                    }.orEmpty(),
+                    activeLocation = initialItem?.activeLocation ?: app.dulliesanddungeons.domain.EquipmentLocation.WORN,
+                    useCase = initialItem?.useCase.orEmpty(),
                 )
                 if (target == ItemBrowserTarget.StartingArmor) {
                     state.setCustomCreationArmor(item)
+                } else if (target == ItemBrowserTarget.StartingGear) {
+                    if (item.kind == EquipmentKind.ARMOR) {
+                        state.setCustomCreationArmor(item)
+                    } else {
+                        state.addCustomCreationEquipment(item)
+                        state.itemBrowserFeedback = state.t("Added ${item.name}", "${item.name} hinzugefügt")
+                        onAdded()
+                    }
+                } else if (editing != null) {
+                    state.updateEquipment(item.copy(id = editing.id, definitionId = editing.definitionId))
+                    state.closeItemBrowser()
                 } else {
                     state.addEquipment(item)
                     state.itemBrowserFeedback = state.t("Added ${item.name}", "${item.name} hinzugefügt")
@@ -523,31 +742,62 @@ private fun CustomEquipmentPage(
             enabled = name.isNotBlank() && armorValid,
             modifier = Modifier.fillMaxWidth().height(52.dp),
         ) {
-            Text(if (target == ItemBrowserTarget.StartingArmor) state.t("Use this armor", "Diese Rüstung verwenden") else state.t("Add item", "Gegenstand hinzufügen"))
+            Text(
+                when {
+                    target == ItemBrowserTarget.StartingArmor -> state.t("Use this armor", "Diese Rüstung verwenden")
+                    editing != null -> state.t("Save item", "Gegenstand speichern")
+                    else -> state.t("Add item", "Gegenstand hinzufügen")
+                },
+            )
         }
         Spacer(Modifier.height(20.dp))
     }
 }
 
 @Composable
-private fun CustomWeaponPage(state: DndAppState, initial: KnownItemUi?, onAdded: () -> Unit) {
-    val character = state.selectedCharacter ?: return
+private fun CustomWeaponPage(state: DndAppState, initial: KnownItemUi?, editing: WeaponUi?, onAdded: () -> Unit) {
+    val character = state.selectedCharacter
+    if (character == null && state.itemBrowserTarget != ItemBrowserTarget.StartingGear) return
     val template = initial?.weapon
     val entry = initial?.privateEntry
     val importedDamage = template?.damage ?: entry?.formula?.let { Regex("\\b\\d+d\\d+(?:\\s*[+-]\\s*\\d+)?\\b").find(it)?.value }
-    var name by remember(initial?.id) { mutableStateOf(template?.name ?: entry?.name.orEmpty()) }
-    var ability by remember(initial?.id) { mutableStateOf(template?.ability ?: entry?.formulaValue("ability")?.uppercase()?.takeIf { it in setOf("STR", "DEX") } ?: "STR") }
-    var damage by remember(initial?.id) { mutableStateOf(importedDamage ?: "1d8") }
-    var damageType by remember(initial?.id) { mutableStateOf(template?.damageType ?: entry?.formulaValue("damage[ _-]?type").orEmpty()) }
-    var range by remember(initial?.id) { mutableStateOf(template?.range ?: entry?.formulaValue("range").orEmpty()) }
-    var properties by remember(initial?.id) { mutableStateOf(template?.properties ?: entry?.formulaValue("properties").orEmpty()) }
-    var mastery by remember(initial?.id) { mutableStateOf(template?.mastery ?: entry?.formulaValue("mastery").orEmpty()) }
-    var itemBonusText by remember(initial?.id) { mutableStateOf((template?.itemBonus ?: 0).toString()) }
-    var attunement by remember(initial?.id) { mutableStateOf(template?.needsAttunement == true) }
-    val abilityModifier = floor(((character.abilities[ability] ?: 10) - 10) / 2.0).toInt()
+    var name by remember(initial?.id, editing?.id) { mutableStateOf(editing?.name ?: template?.name ?: entry?.name.orEmpty()) }
+    var ability by remember(initial?.id, editing?.id) { mutableStateOf(editing?.ability ?: template?.ability ?: entry?.formulaValue("ability")?.uppercase()?.takeIf { it in setOf("STR", "DEX") } ?: "STR") }
+    var damage by remember(initial?.id, editing?.id) { mutableStateOf(editing?.damage?.substringBefore('·')?.trim() ?: importedDamage ?: "1d8") }
+    var damageType by remember(initial?.id, editing?.id) { mutableStateOf(editing?.damageType ?: template?.damageType ?: entry?.formulaValue("damage[ _-]?type").orEmpty()) }
+    var range by remember(initial?.id, editing?.id) { mutableStateOf(editing?.range ?: template?.range ?: entry?.formulaValue("range").orEmpty()) }
+    var properties by remember(initial?.id, editing?.id) { mutableStateOf(editing?.properties ?: template?.properties ?: entry?.formulaValue("properties").orEmpty()) }
+    var mastery by remember(initial?.id, editing?.id) { mutableStateOf(editing?.mastery ?: template?.mastery ?: entry?.formulaValue("mastery").orEmpty()) }
+    var itemBonusText by remember(initial?.id, editing?.id) { mutableStateOf((editing?.itemBonus ?: template?.itemBonus ?: 0).toString()) }
+    var attunement by remember(initial?.id, editing?.id) { mutableStateOf(editing?.needsAttunement ?: (template?.needsAttunement == true)) }
+    var equipped by remember(initial?.id, editing?.id) { mutableStateOf(editing?.equipped == true) }
+    var reachText by remember(initial?.id, editing?.id) {
+        mutableStateOf((editing?.reachFeet ?: if (template?.properties?.contains("reach", true) == true) 10 else 5).toString())
+    }
+    var detailsOpen by remember(initial?.id, editing?.id) { mutableStateOf(false) }
+    var targetSaveAbility by remember(initial?.id, editing?.id) {
+        mutableStateOf((editing?.savingThrows ?: template?.savingThrows)?.firstOrNull()?.ability)
+    }
+    var targetSaveDc by remember(initial?.id, editing?.id) {
+        mutableStateOf((editing?.savingThrows ?: template?.savingThrows)?.firstOrNull()?.difficultyClass?.fixed?.toString().orEmpty())
+    }
+    val inheritedSavingThrow = (editing?.savingThrows ?: template?.savingThrows)
+        ?.firstOrNull { it.ability == targetSaveAbility }
+    val abilityScore = if (state.itemBrowserTarget == ItemBrowserTarget.StartingGear) {
+        state.creationAbilityScore(ability)
+    } else {
+        character?.abilities?.get(ability) ?: 10
+    }
+    val proficiencyBonus = if (state.itemBrowserTarget == ItemBrowserTarget.StartingGear) {
+        state.creationTrainedProficiency()
+    } else {
+        character?.proficiency ?: 0
+    }
+    val abilityModifier = floor((abilityScore - 10) / 2.0).toInt()
     val itemBonus = itemBonusText.toIntOrNull()?.coerceIn(-5, 5) ?: 0
-    val attackBonus = abilityModifier + character.proficiency + itemBonus
+    val attackBonus = abilityModifier + proficiencyBonus + itemBonus
     val formulaValid = Regex("\\d+d\\d+(?:\\s*[+-]\\s*\\d+)?|\\d+").matches(damage.trim())
+    val saveValid = targetSaveAbility == null || targetSaveDc.toIntOrNull() != null || inheritedSavingThrow != null
     val finalDamage = if (Regex("[+-]\\s*\\d+").containsMatchIn(damage)) damage.trim() else when {
         abilityModifier > 0 -> "${damage.trim()} + $abilityModifier"
         abilityModifier < 0 -> "${damage.trim()} - ${abs(abilityModifier)}"
@@ -562,6 +812,7 @@ private fun CustomWeaponPage(state: DndAppState, initial: KnownItemUi?, onAdded:
         OutlinedTextField(damage, { damage = it.take(24) }, label = { Text(state.t("Damage formula", "Schadensformel")) }, supportingText = { Text(if (formulaValid) finalDamage else state.t("Use a formula such as 1d8", "Nutze eine Formel wie 1d8")) }, isError = !formulaValid, singleLine = true, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(damageType, { damageType = it.take(40) }, label = { Text(state.t("Damage type", "Schadensart")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(range, { range = it.take(40) }, label = { Text(state.t("Range (optional)", "Reichweite (optional)")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(reachText, { reachText = it.filter(Char::isDigit).take(3) }, label = { Text(state.t("Reach (feet)", "Reichweite (Fuß)")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(properties, { properties = it.take(120) }, label = { Text(state.t("Properties", "Eigenschaften")) }, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(mastery, { mastery = it.take(40) }, label = { Text(state.t("Mastery", "Meisterschaft")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(itemBonusText, { itemBonusText = it.filter { character -> character.isDigit() || character == '-' }.take(2) }, label = { Text(state.t("Magic/item bonus", "Magie-/Gegenstandsbonus")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
@@ -572,11 +823,29 @@ private fun CustomWeaponPage(state: DndAppState, initial: KnownItemUi?, onAdded:
             Checkbox(attunement, { attunement = it })
             Text(state.t("Needs attunement", "Benötigt Einstimmung"))
         }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(equipped, { equipped = it })
+            Text(state.t("Equipped", "Ausgerüstet"))
+        }
+        TextButton(onClick = { detailsOpen = !detailsOpen }) {
+            Text(if (detailsOpen) state.t("Hide details", "Details ausblenden") else state.t("Details", "Details"))
+        }
+        if (detailsOpen) {
+            Text(state.t("Saving throw caused by this weapon", "Rettungswurf dieser Waffe"), style = MaterialTheme.typography.titleSmall)
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                item { FilterChip(selected = targetSaveAbility == null, onClick = { targetSaveAbility = null }, label = { Text(state.t("None", "Keiner")) }) }
+                items(Ability.entries) { option ->
+                    FilterChip(selected = targetSaveAbility == option, onClick = { targetSaveAbility = option }, label = { Text(option.shortName()) })
+                }
+            }
+            if (targetSaveAbility != null) {
+                OutlinedTextField(targetSaveDc, { targetSaveDc = it.filter(Char::isDigit).take(2) }, label = { Text("DC") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            }
+        }
         Button(
             onClick = {
-                state.addCustomWeapon(
-                    WeaponUi(
-                        id = template?.id.orEmpty(),
+                val weapon = WeaponUi(
+                        id = editing?.id ?: template?.id.orEmpty(),
                         name = name.trim(),
                         attackBonus = attackBonus,
                         damage = finalDamage,
@@ -587,16 +856,36 @@ private fun CustomWeaponPage(state: DndAppState, initial: KnownItemUi?, onAdded:
                         range = range.trim(),
                         mastery = mastery.trim(),
                         needsAttunement = attunement,
+                        attuned = editing?.attuned == true,
                         custom = true,
                         damageAbility = ability,
-                    ),
-                )
+                        reachFeet = reachText.toIntOrNull()?.coerceIn(0, 1_000) ?: 5,
+                        normalRangeFeet = range.substringBefore('/').filter(Char::isDigit).toIntOrNull(),
+                        longRangeFeet = range.substringAfter('/', "").filter(Char::isDigit).toIntOrNull(),
+                        equipped = equipped,
+                        savingThrows = targetSaveAbility?.let { saveAbility ->
+                            val fixed = targetSaveDc.toIntOrNull()
+                            inheritedSavingThrow?.takeIf { fixed == null }?.let(::listOf)
+                                ?: fixed?.let { listOf(SavingThrowPrompt(saveAbility, DifficultyClass(fixed = it))) }
+                        }.orEmpty(),
+                        effects = editing?.effects.orEmpty(),
+                        useCase = editing?.useCase.orEmpty(),
+                    )
                 state.itemBrowserFeedback = state.t("Added ${name.trim()}", "${name.trim()} hinzugefügt")
-                onAdded()
+                if (state.itemBrowserTarget == ItemBrowserTarget.StartingGear) {
+                    state.addCustomCreationWeapon(weapon)
+                    onAdded()
+                } else if (editing != null) {
+                    state.updateWeapon(weapon.copy(definitionId = editing.definitionId))
+                    state.closeItemBrowser()
+                } else {
+                    state.addCustomWeapon(weapon)
+                    onAdded()
+                }
             },
-            enabled = name.isNotBlank() && damageType.isNotBlank() && formulaValid,
+            enabled = name.isNotBlank() && damageType.isNotBlank() && formulaValid && saveValid,
             modifier = Modifier.fillMaxWidth().height(52.dp),
-        ) { Text(state.t("Add weapon", "Waffe hinzufügen")) }
+        ) { Text(if (editing != null) state.t("Save weapon", "Waffe speichern") else state.t("Add weapon", "Waffe hinzufügen")) }
         Spacer(Modifier.height(20.dp))
     }
 }

@@ -27,6 +27,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -34,6 +38,7 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -118,9 +123,21 @@ fun DulliesAndDungeonsApp(
     portraitEditor: @Composable () -> Unit = {},
 ) {
     DulliesTheme {
+        val snackbarHostState = remember { SnackbarHostState() }
+        LaunchedEffect(state.inventoryFeedback) {
+            val message = state.inventoryFeedback ?: return@LaunchedEffect
+            val result = snackbarHostState.showSnackbar(
+                message = message,
+                actionLabel = if (state.inventoryFeedbackCanUndo) state.t("Undo", "Rückgängig") else null,
+                duration = SnackbarDuration.Long,
+            )
+            if (result == SnackbarResult.ActionPerformed) state.undoInventoryRemoval()
+            else state.clearInventoryFeedback()
+        }
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             containerColor = MaterialTheme.colorScheme.background,
+            snackbarHost = { SnackbarHost(snackbarHostState) },
         ) { padding ->
             Box(Modifier.fillMaxSize().padding(padding)) {
                 Box(Modifier.fillMaxSize().then(if (state.dicePresentation != null) Modifier.blur(8.dp) else Modifier)) {

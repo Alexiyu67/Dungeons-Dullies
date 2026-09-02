@@ -20,12 +20,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.Casino
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.AssistChip
@@ -60,7 +62,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
-private const val LAST_CREATION_STEP = 5
+private const val LAST_CREATION_STEP = 6
 
 @Composable
 internal fun CharacterCreationScreen(
@@ -106,6 +108,7 @@ internal fun CharacterCreationScreen(
                     2 -> BuildStep(state)
                     3 -> LevelAndStatsStep(state)
                     4 -> DetailsStep(state)
+                    5 -> GearStep(state)
                     else -> ReviewStep(state, onEditPortrait)
                 }
             }
@@ -128,6 +131,7 @@ internal fun CharacterCreationScreen(
                     },
                     enabled = (draft.step != 1 || draft.name.isNotBlank()) &&
                         (draft.step != 4 || state.creationProficiencySelectionValid()) &&
+                        (draft.step != 5 || state.creationGearSelectionValid()) &&
                         (draft.step != LAST_CREATION_STEP ||
                             state.creationSubclassSelectionValid() && state.creationProficiencySelectionValid()),
                     modifier = Modifier.weight(1f).height(52.dp),
@@ -611,12 +615,6 @@ private fun DetailsStep(state: DndAppState) {
                 ReviewRow(state.t("Hit points", "Trefferpunkte"), preview.hitPoints.toString())
                 ReviewRow(state.t("Armor Class", "Rüstungsklasse"), preview.armorClass.toString())
                 ReviewRow(state.t("Languages", "Sprachen"), draft.languages.joinToString(", ").ifBlank { state.t("None", "Keine") })
-                EditableReviewRow(
-                    state = state,
-                    label = state.t("Starting armor", "Startrüstung"),
-                    value = preview.startingArmor,
-                    onClick = { state.openItemBrowser(ItemBrowserTarget.StartingArmor) },
-                )
             }
         }
         state.creationArmorAdvisory()?.let { advisory ->
@@ -848,6 +846,66 @@ private fun CreationSkillChoiceCard(
 }
 
 @Composable
+private fun GearStep(state: DndAppState) {
+    val draft = state.creation
+    val packages = state.creationGearPackages()
+    val preview = state.creationPreview()
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        StepIntro(
+            state.t("Choose starting gear", "Startausrüstung wählen"),
+            state.t("Pick a rules package, then adjust it if your table starts differently.", "Wähle ein Regelpaket und passe es bei Bedarf an eure Runde an."),
+        )
+        packages.forEach { option ->
+            OutlinedCard(
+                onClick = { state.selectCreationGearPackage(option.id) },
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.outlinedCardColors(
+                    containerColor = if (draft.selectedStartingGearPackageId == option.id) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+                ),
+            ) {
+                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(option.name, style = MaterialTheme.typography.titleMedium)
+                    Text(option.summary(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+        EditableReviewRow(
+            state = state,
+            label = state.t("Starting armor", "Startrüstung"),
+            value = preview.startingArmor,
+            onClick = { state.openItemBrowser(ItemBrowserTarget.StartingArmor) },
+        )
+        OutlinedButton(onClick = { state.openItemBrowser(ItemBrowserTarget.StartingGear) }, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Rounded.Add, contentDescription = null)
+            Spacer(Modifier.width(6.dp))
+            Text(state.t("Customize gear", "Ausrüstung anpassen"))
+        }
+        if (draft.startingWeapons.isNotEmpty() || draft.startingEquipment.isNotEmpty()) {
+            Text(state.t("Selected items", "Ausgewählte Gegenstände"), style = MaterialTheme.typography.titleSmall)
+            draft.startingWeapons.forEach { weapon ->
+                CreationGearRow(weapon.name, onRemove = { state.removeCreationWeapon(weapon.id) })
+            }
+            draft.startingEquipment.forEach { item ->
+                CreationGearRow(item.name, onRemove = { state.removeCreationEquipment(item.id) })
+            }
+            if (draft.startingGoldPieces > 0) {
+                Text("${draft.startingGoldPieces} GP", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+            }
+        }
+    }
+}
+
+@Composable
+private fun CreationGearRow(name: String, onRemove: () -> Unit) {
+    Surface(shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .55f)) {
+        Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 4.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+            IconButton(onClick = onRemove) { Icon(Icons.Rounded.Close, contentDescription = null) }
+        }
+    }
+}
+
+@Composable
 private fun ReviewStep(state: DndAppState, onEditPortrait: (PortraitPickTarget) -> Unit) {
     val draft = state.creation
     Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
@@ -890,6 +948,12 @@ private fun ReviewStep(state: DndAppState, onEditPortrait: (PortraitPickTarget) 
                     },
                 )
                 ReviewRow(state.t("Ruleset", "Regelwerk"), draft.ruleset.longLabel)
+                ReviewRow(
+                    state.t("Starting gear", "Startausrüstung"),
+                    state.creationGearPackages().firstOrNull { it.id == draft.selectedStartingGearPackageId }?.name
+                        ?: state.t("Customized", "Angepasst"),
+                    good = state.creationGearSelectionValid(),
+                )
                 ReviewRow(
                     state.t("Background", "Hintergrund"),
                     state.selectedCreationBackground()?.name(state.language) ?: state.t("Choose", "Wählen"),

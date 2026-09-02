@@ -374,14 +374,14 @@
       }
     },
     {
-      "id": "srd-5.2.1.spell.minor",
+      "id": "srd-5.2.1.spell.minor-illusion",
       "kind": "spell",
-      "name": "Minor",
+      "name": "Minor Illusion",
       "summary": "Illusion cantrip.",
       "beginnerTip": "Choose an available slot when casting; only listed levels change the compact preview value.",
       "keywords": [
         "illusion",
-        "minor",
+        "minor illusion",
         "sorcerer",
         "wizard"
       ],
@@ -393,11 +393,11 @@
       },
       "source": {
         "work": "SRD 5.2.1",
-        "locator": "Sorcerer/Wizard spell list; Spell Descriptions: Minor",
+        "locator": "Sorcerer/Wizard spell list; Spell Descriptions: Minor Illusion",
         "adaptation": "Original compact catalog summary; the cited SRD revision remains authoritative."
       },
       "spell": {
-        "stableId": "spell.minor",
+        "stableId": "spell.minor-illusion",
         "revision": "2024-srd-5.2.1",
         "level": 0,
         "classes": [
@@ -409,7 +409,7 @@
         "ritual": false,
         "specificMaterial": false,
         "aliases": [
-          "minor"
+          "minor illusion"
         ],
         "castPreviews": []
       }
@@ -7539,14 +7539,14 @@
       }
     },
     {
-      "id": "srd-5.2.1.spell.programmed",
+      "id": "srd-5.2.1.spell.programmed-illusion",
       "kind": "spell",
-      "name": "Programmed",
-      "summary": "Level 6 Illusion spell.",
+      "name": "Programmed Illusion",
+      "summary": "Level 6 Illusion spell; specific material.",
       "beginnerTip": "Choose an available slot when casting; only listed levels change the compact preview value.",
       "keywords": [
         "illusion",
-        "programmed",
+        "programmed illusion",
         "wizard"
       ],
       "automation": {
@@ -7557,11 +7557,11 @@
       },
       "source": {
         "work": "SRD 5.2.1",
-        "locator": "Wizard spell list; Spell Descriptions: Programmed",
+        "locator": "Wizard spell list; Spell Descriptions: Programmed Illusion",
         "adaptation": "Original compact catalog summary; the cited SRD revision remains authoritative."
       },
       "spell": {
-        "stableId": "spell.programmed",
+        "stableId": "spell.programmed-illusion",
         "revision": "2024-srd-5.2.1",
         "level": 6,
         "classes": [
@@ -7570,9 +7570,9 @@
         "school": "illusion",
         "concentration": false,
         "ritual": false,
-        "specificMaterial": false,
+        "specificMaterial": true,
         "aliases": [
-          "programmed"
+          "programmed illusion"
         ],
         "castPreviews": []
       }
