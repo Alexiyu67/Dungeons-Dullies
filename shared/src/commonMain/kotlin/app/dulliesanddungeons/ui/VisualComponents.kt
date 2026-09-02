@@ -26,7 +26,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -192,6 +197,46 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawPolygon(
 }
 
 @Composable
+internal fun InspirationRerollHint(
+    state: DndAppState,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.62f),
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(start = 12.dp, end = 3.dp, top = 4.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Rounded.AutoAwesome,
+                contentDescription = null,
+                modifier = Modifier.size(19.dp),
+                tint = MaterialTheme.colorScheme.tertiary,
+            )
+            Spacer(Modifier.width(9.dp))
+            Text(
+                state.t("Use Inspiration to re-roll", "Mit Inspiration erneut würfeln"),
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.labelLarge,
+            )
+            IconButton(onClick = onClick, modifier = Modifier.size(42.dp)) {
+                Icon(
+                    Icons.Rounded.Refresh,
+                    contentDescription = state.t(
+                        "Use Inspiration and re-roll",
+                        "Inspiration verwenden und erneut würfeln",
+                    ),
+                )
+            }
+        }
+    }
+}
+
+@Composable
 internal fun DicePresentationOverlay(state: DndAppState, modifier: Modifier = Modifier) {
     val presentation = state.dicePresentation
     AnimatedVisibility(
@@ -266,6 +311,12 @@ internal fun DicePresentationOverlay(state: DndAppState, modifier: Modifier = Mo
                         }
                     }
                     if (settled) {
+                        if (state.canUseInspirationForCurrentRoll) {
+                            InspirationRerollHint(
+                                state = state,
+                                onClick = { state.rerollDicePresentationWithInspiration() },
+                            )
+                        }
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
                             OutlinedButton(
                                 onClick = state::rerollDicePresentation,

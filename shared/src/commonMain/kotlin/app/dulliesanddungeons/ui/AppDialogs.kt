@@ -237,7 +237,7 @@ internal fun ConditionsDialog(state: DndAppState) {
         )
     } else {
         listOf(
-            "Blinded", "Charmed", "Deafened", "Exhaustion", "Frightened", "Grappled", "Incapacitated",
+            "Blinded", "Charmed", "Deafened", "Exhaustion", "Frightened", "Grappled", "Incapacitated", "Inspiration",
             "Invisible", "Paralyzed", "Petrified", "Poisoned", "Prone", "Restrained", "Stunned",
             "Unconscious", "Concentrating", "Custom effect",
         )
@@ -260,9 +260,23 @@ internal fun ConditionsDialog(state: DndAppState) {
                 if (state.selectedConditions.isNotEmpty()) {
                     item { Text(state.t("ACTIVE", "AKTIV"), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
                     items(state.selectedConditions, key = { it.id.ifBlank { "condition-${it.name}-${it.source}-${it.characterId}" } }) { condition ->
-                        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f))) {
+                        val inspiration = condition.isInspiration()
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (inspiration) {
+                                    MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.65f)
+                                } else {
+                                    MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
+                                },
+                            ),
+                        ) {
                             Row(Modifier.fillMaxWidth().padding(start = 12.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Icon(conditionIcon(condition.name), contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.error)
+                                Icon(
+                                    conditionIcon(condition.name),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                    tint = if (inspiration) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error,
+                                )
                                 Spacer(Modifier.width(9.dp))
                                 Text(condition.name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
                                 if (condition.removable) TextButton(onClick = { state.removeCondition(condition) }) { Text(state.t("Remove", "Entfernen")) }
@@ -327,6 +341,7 @@ internal fun ConditionsDialog(state: DndAppState) {
 }
 
 private fun conditionIcon(name: String): ImageVector = when {
+    name.equals("Inspiration", true) -> Icons.Rounded.AutoAwesome
     name.startsWith("Blinded", true) -> Icons.Rounded.VisibilityOff
     name.startsWith("Charmed", true) -> Icons.Rounded.Favorite
     name.startsWith("Clumsy", true) -> Icons.Rounded.AirlineSeatFlat
