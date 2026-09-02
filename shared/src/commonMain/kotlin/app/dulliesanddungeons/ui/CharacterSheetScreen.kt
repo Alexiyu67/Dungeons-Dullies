@@ -78,6 +78,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -153,6 +154,7 @@ internal fun CharacterSheetScreen(
     var sorceryRecoveryOpen by remember(character.id) { mutableStateOf(false) }
     var longRestDialogOpen by remember(character.id) { mutableStateOf(false) }
     var characterDeletionRequested by remember(character.id) { mutableStateOf(false) }
+    var diceRollerOpen by remember(character.id) { mutableStateOf(false) }
     val expandedSections = remember(character.id) { mutableStateMapOf<String, Boolean>() }
     fun sectionExpanded(key: String): Boolean = expandedSections[key] ?: (key != "rests")
     fun toggleSection(key: String) { expandedSections[key] = !sectionExpanded(key) }
@@ -174,7 +176,7 @@ internal fun CharacterSheetScreen(
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 36.dp),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 112.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 item { SearchPrompt(state) }
@@ -411,6 +413,24 @@ internal fun CharacterSheetScreen(
         }
 
         AnimatedVisibility(
+            visible = activeWeapon == null && !diceRollerOpen,
+            modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp).zIndex(2f),
+            enter = fadeIn() + scaleIn(initialScale = .72f),
+            exit = fadeOut() + scaleOut(targetScale = .72f),
+        ) {
+            FloatingActionButton(
+                onClick = { diceRollerOpen = true },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+            ) {
+                Icon(
+                    Icons.Rounded.Casino,
+                    contentDescription = state.t("Open dice roller", "Würfelroller öffnen"),
+                )
+            }
+        }
+
+        AnimatedVisibility(
             visible = activeWeapon != null,
             modifier = Modifier.fillMaxSize().zIndex(3f),
             enter = fadeIn(),
@@ -446,6 +466,10 @@ internal fun CharacterSheetScreen(
                 )
             }
         }
+    }
+
+    if (diceRollerOpen) {
+        DiceRollerDialog(state = state, onDismiss = { diceRollerOpen = false })
     }
 
     if (characterDeletionRequested) {
