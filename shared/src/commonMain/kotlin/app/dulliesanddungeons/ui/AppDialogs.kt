@@ -132,7 +132,7 @@ internal fun SearchDialog(state: DndAppState) {
                     value = query,
                     onValueChange = { query = it },
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    placeholder = { Text(state.t("Try “initiative”, “poisoned”, “longbow”…", "Versuche „Initiative“, „vergiftet“, „Langbogen“ …")) },
+                    placeholder = { Text(state.t("Try “golem”, “conjuration”, “dwarf”…", "Versuche „Golem“, „Beschwörung“, „Zwerg“ …")) },
                     leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
                     trailingIcon = if (query.text.isNotEmpty()) {{
                         IconButton(onClick = { query = TextFieldValue("") }) {

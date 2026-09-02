@@ -1,7 +1,7 @@
 {
   "$schema": "../../schema/content-pack-manifest.schema.json",
   "schemaVersion": 1,
-  "id": "srd-5.1-spells",
+  "id": "srd-5.1-wiki",
   "version": "1.0.0",
   "ruleset": {
     "id": "fifth-edition",
@@ -22,15 +22,22 @@
     "sourceWorks": [
       {
         "title": "System Reference Document 5.1",
-        "url": "https://media.wizards.com/2023/downloads/dnd/SRD_CC_v5.1.pdf",
+        "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf",
         "license": "CC-BY-4.0",
         "snapshot": "2014-srd-5.1",
         "sha256": "2504d2a0abb0a4d491a939be4f17910a2dde0312570ab8d208080225ccf0a1f0"
+      },
+      {
+        "title": "System-Referenzdokument 5.1",
+        "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1_DE.pdf",
+        "license": "CC-BY-4.0",
+        "snapshot": "2014-srd-5.1",
+        "sha256": "36d877d00554f9bbb90289b50db6da89498e812606a9a1bda4769f45d1df1b3a"
       }
     ]
   },
   "contentStatus": "audited-snapshot",
   "distributionReady": true,
-  "coverageReport": "../../reports/srd-5.1-spells.coverage.json",
-  "notes": "Complete eight-class spell index for this SRD revision; summaries are original compact catalog copy, not replacement rules text."
+  "coverageReport": "../../reports/srd-5.1-wiki.coverage.json",
+  "notes": "Player-facing index of SRD classes, subclasses, ancestries/species, backgrounds, feats, schools, and creatures. Creature stat blocks are deliberately excluded."
 }

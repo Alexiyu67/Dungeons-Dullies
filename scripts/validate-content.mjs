@@ -7,6 +7,17 @@ const packsRoot = join(repoRoot, "content", "packs");
 const reportsRoot = join(repoRoot, "content", "reports");
 const schemasRoot = join(repoRoot, "content", "schema");
 const failures = [];
+const entryKinds = new Set([
+  "action", "ancestry", "background", "class", "condition", "creature", "equipment",
+  "feat", "feature", "knowledge", "language", "spell", "subclass",
+]);
+const spellClasses = new Set(["bard", "cleric", "druid", "paladin", "ranger", "sorcerer", "warlock", "wizard"]);
+const spellClassNames = [...spellClasses];
+const creatureSizes = new Set(["tiny", "small", "medium", "large", "huge", "gargantuan"]);
+const creatureTypes = new Set([
+  "aberration", "beast", "celestial", "construct", "dragon", "elemental", "fey", "fiend",
+  "giant", "humanoid", "monstrosity", "ooze", "plant", "undead",
+]);
 
 function readJson(path) {
   try {
@@ -49,6 +60,7 @@ function validatePack(packDir) {
     requireValue(new Set(ids).size === ids.length, `${entryPath}: duplicate entry ID`);
     for (const entry of file.entries ?? []) {
       requireValue(typeof entry.name === "string" && entry.name.length > 0, `${entryPath}: ${entry.id} has no name`);
+      requireValue(entryKinds.has(entry.kind), `${entryPath}: ${entry.id} has an unknown kind ${entry.kind}`);
       requireValue(["automatic", "guided", "informational"].includes(entry.automation?.level),
         `${entryPath}: ${entry.id} has an invalid automation level`);
       requireValue(typeof entry.source?.work === "string" && typeof entry.source?.locator === "string",
@@ -60,6 +72,8 @@ function validatePack(packDir) {
           `${entryPath}: ${entry.id} has an invalid spell level`);
         requireValue(Array.isArray(entry.spell.classes) && entry.spell.classes.length > 0,
           `${entryPath}: ${entry.id} has no spell class membership`);
+        requireValue(entry.spell.classes.every(value => spellClasses.has(value)),
+          `${entryPath}: ${entry.id} has an unknown spell class`);
       }
       if (entry.kind === "subclass") {
         requireValue(/^subclass\.[a-z0-9][a-z0-9.-]+$/.test(entry.subclass?.stableId ?? ""),
@@ -68,6 +82,14 @@ function validatePack(packDir) {
           `${entryPath}: ${entry.id} has no parent class`);
         requireValue(Number.isInteger(entry.subclass?.selectionLevel) && entry.subclass.selectionLevel >= 1 && entry.subclass.selectionLevel <= 20,
           `${entryPath}: ${entry.id} has an invalid subclass selection level`);
+      }
+      if (entry.kind === "creature") {
+        requireValue(/^creature\.[a-z0-9][a-z0-9.-]+$/.test(entry.creature?.stableId ?? ""),
+          `${entryPath}: ${entry.id} has an invalid stable creature ID`);
+        requireValue(creatureSizes.has(entry.creature?.size), `${entryPath}: ${entry.id} has an invalid creature size`);
+        requireValue(creatureTypes.has(entry.creature?.type), `${entryPath}: ${entry.id} has an invalid creature type`);
+        requireValue(!("armorClass" in (entry.creature ?? {})) && !("hitPoints" in (entry.creature ?? {})) && !("challengeRating" in (entry.creature ?? {})),
+          `${entryPath}: ${entry.id} exposes stat-block fields in a player overview`);
       }
     }
     localeIds.set(locale, new Set(ids));
@@ -138,19 +160,18 @@ function validateSrdSpellCatalog() {
     const entries = (catalog.entries ?? []).filter(entry => entry.revision === source.revision);
     requireValue(entries.length === source.uniqueSpellCount,
       `${path}: ${source.revision} unique count does not match entries`);
-    requireValue(entries.filter(entry => entry.classes.includes("SORCERER")).length === source.sorcererSpellCount,
-      `${path}: ${source.revision} Sorcerer count does not match entries`);
-    requireValue(entries.filter(entry => entry.classes.includes("WIZARD")).length === source.wizardSpellCount,
-      `${path}: ${source.revision} Wizard count does not match entries`);
+    const audited = {
+      "2014-srd-5.1": { unique: 319, bard: 112, cleric: 105, druid: 105, paladin: 31, ranger: 37, sorcerer: 120, warlock: 64, wizard: 204 },
+      "2024-srd-5.2.1": { unique: 338, bard: 129, cleric: 109, druid: 124, paladin: 38, ranger: 48, sorcerer: 138, warlock: 72, wizard: 217 },
+    }[source.revision];
+    for (const className of spellClassNames) {
+      requireValue(entries.filter(entry => entry.classes.includes(className.toUpperCase())).length === source.classSpellCounts?.[className],
+        `${path}: ${source.revision} ${className} count does not match entries`);
+    }
     requireValue(/^[a-f0-9]{64}$/.test(source.sha256 ?? ""),
       `${path}: ${source.revision} lacks a pinned source hash`);
-    const audited = {
-      "2014-srd-5.1": { unique: 211, sorcerer: 120, wizard: 204 },
-      "2024-srd-5.2.1": { unique: 225, sorcerer: 138, wizard: 217 },
-    }[source.revision];
-    requireValue(source.uniqueSpellCount === audited?.unique && source.sorcererSpellCount === audited?.sorcerer &&
-      source.wizardSpellCount === audited?.wizard,
-      `${path}: ${source.revision} coverage differs from the audited class-list totals`);
+    requireValue(source.uniqueSpellCount === audited?.unique && spellClassNames.every(className => source.classSpellCounts?.[className] === audited?.[className]),
+      `${path}: ${source.revision} coverage differs from the audited eight-class totals`);
   }
   const oldMind = revisionEntries.get("2014-srd-5.1:spell.feeblemind");
   const newMind = revisionEntries.get("2024-srd-5.2.1:spell.feeblemind");

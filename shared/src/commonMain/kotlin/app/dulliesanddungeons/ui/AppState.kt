@@ -38,6 +38,9 @@ import app.dulliesanddungeons.rules.SrdSpellCatalog
 import app.dulliesanddungeons.rules.SrdSpellCombatCatalog
 import app.dulliesanddungeons.rules.SrdSpellClass
 import app.dulliesanddungeons.rules.SrdSpellRevision
+import app.dulliesanddungeons.rules.SrdWikiCatalog
+import app.dulliesanddungeons.rules.SrdWikiKind
+import app.dulliesanddungeons.rules.SrdWikiRevision
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlin.random.Random
@@ -547,6 +550,8 @@ data class SearchResultUi(
     val modifier: Int = 0,
     val cost: ActionCost = ActionCost(),
     val resourceLabel: String? = null,
+    val searchTerms: List<String> = emptyList(),
+    val detailBody: String = "",
 )
 
 @Serializable
@@ -5223,6 +5228,10 @@ class DndAppState(
             add(SearchResultUi("stat-ac", t("Armor Class", "Rüstungsklasse"), character.armorClass.toString(), SearchResultKind.Navigate, t("Info", "Info")))
             add(SearchResultUi("stat-hp", t("Hit points", "Trefferpunkte"), "${character.hp}/${character.effectiveMaxHp}", SearchResultKind.Navigate, t("Info", "Info")))
             addAll(knowledgeEntries())
+            addAll(srdWikiEntries(character.ruleset))
+            addAll(srdSpellWikiEntries(character.ruleset))
+            addAll(builtInWikiItemEntries(character.ruleset))
+            addAll(localWikiEntries(character.ruleset))
             character.notes.forEach { note ->
                 add(SearchResultUi("note-${note.id}", note.title, note.body, SearchResultKind.Note, t("Open", "Öffnen")))
             }
@@ -5239,17 +5248,205 @@ class DndAppState(
             val quickActions = entries.filter { it.kind != SearchResultKind.Rule }.take(3)
             return (suggestedRules + quickActions).distinctBy { it.id }.take(6)
         }
-        return entries.filter {
-            it.title.contains(needle, ignoreCase = true) || it.subtitle.contains(needle, ignoreCase = true)
-        }.sortedBy { result ->
-            when {
-                result.title.equals(needle, true) && result.id.startsWith("rule-") -> 0
-                result.title.equals(needle, true) -> 1
-                result.title.startsWith(needle, true) && result.id.startsWith("rule-") -> 2
-                result.title.startsWith(needle, true) -> 3
-                else -> 4
+        val normalizedNeedle = normalizeWikiSearch(needle)
+        return entries.mapNotNull { result -> wikiSearchRank(result, normalizedNeedle)?.let { rank -> rank to result } }
+            .sortedWith(compareBy<Pair<Int, SearchResultUi>> { it.first }.thenBy { normalizeWikiSearch(it.second.title) }.thenBy { it.second.id })
+            .map { it.second }
+    }
+
+    private fun srdWikiEntries(ruleset: Ruleset): List<SearchResultUi> {
+        val revision = when (ruleset) {
+            Ruleset.Fifth2014 -> SrdWikiRevision.SRD_5_1
+            Ruleset.Fifth2024 -> SrdWikiRevision.SRD_5_2_1
+            Ruleset.Pf2eRemaster -> return emptyList()
+        }
+        return SrdWikiCatalog.forRevision(revision).map { entry ->
+            val text = if (language == UiLanguage.German) entry.de else entry.en
+            val category = when (entry.kind) {
+                SrdWikiKind.ACTION -> t("Action", "Aktion")
+                SrdWikiKind.ANCESTRY -> if (ruleset == Ruleset.Fifth2014) t("Race", "Volk") else t("Species", "Spezies")
+                SrdWikiKind.BACKGROUND -> t("Background", "Hintergrund")
+                SrdWikiKind.CLASS -> t("Class", "Klasse")
+                SrdWikiKind.CONDITION -> t("Condition", "Zustand")
+                SrdWikiKind.CREATURE -> t("Creature", "Kreatur")
+                SrdWikiKind.FEAT -> t("Feat", "Talent")
+                SrdWikiKind.KNOWLEDGE -> t("Magic school", "Magieschule")
+                SrdWikiKind.SUBCLASS -> t("Subclass", "Unterklasse")
             }
-        }.take(20)
+            val metadata = if (entry.kind == SrdWikiKind.CREATURE) {
+                val parts = entry.metadata.split('|')
+                if (parts.size == 2) t("${parts[0]} ${parts[1]}", "${localizedCreatureSize(parts[0])} · ${localizedCreatureType(parts[1])}") else entry.metadata
+            } else entry.metadata
+            val details = buildList {
+                add(text.summary)
+                add(text.beginnerTip)
+                if (metadata.isNotBlank()) add(metadata)
+                add(t("Source: ${entry.source} · ${entry.locator}", "Quelle: ${entry.source} · ${entry.locator}"))
+            }.joinToString("\n\n")
+            SearchResultUi(
+                id = "wiki-${revision.name.lowercase()}-${entry.id}",
+                title = text.name,
+                subtitle = "$category · ${text.summary}",
+                kind = SearchResultKind.Rule,
+                actionLabel = t("Info", "Info"),
+                searchTerms = listOf(entry.en.name, entry.de.name, entry.en.summary, entry.de.summary, entry.metadata) + entry.aliases + entry.keywords,
+                detailBody = details,
+            )
+        }
+    }
+
+    private fun srdSpellWikiEntries(ruleset: Ruleset): List<SearchResultUi> {
+        val revision = when (ruleset) {
+            Ruleset.Fifth2014 -> SrdSpellRevision.SRD_5_1
+            Ruleset.Fifth2024 -> SrdSpellRevision.SRD_5_2_1
+            Ruleset.Pf2eRemaster -> return emptyList()
+        }
+        val source = if (revision == SrdSpellRevision.SRD_5_1) "SRD 5.1" else "SRD 5.2.1"
+        return SrdSpellCatalog.entries.filter { it.revision == revision }.map { entry ->
+            val text = if (language == UiLanguage.German) entry.de else entry.en
+            val classNames = entry.classes.sortedBy { it.name }.joinToString(", ") { spellClassName(it) }
+            val flags = buildList {
+                if (entry.concentration) add(t("Concentration", "Konzentration"))
+                if (entry.ritual) add("Ritual")
+                if (entry.specificMaterial) add(t("Specific material", "Besondere Materialkomponente"))
+            }
+            val spellMetadata = buildList {
+                add(if (entry.level == 0) t("Cantrip", "Zaubertrick") else t("Level ${entry.level}", "Grad ${entry.level}"))
+                add(localizedSpellSchool(entry.school))
+                add(classNames)
+                addAll(flags)
+            }.joinToString(" · ")
+            val details = listOf(
+                text.summary,
+                spellMetadata,
+                t("Source: $source · $classNames spell lists; Spell Descriptions: ${entry.en.name}", "Quelle: $source · Zauberlisten $classNames; Zauberbeschreibungen: ${entry.en.name}"),
+            ).joinToString("\n\n")
+            SearchResultUi(
+                id = "wiki-spell-${revision.name.lowercase()}-${entry.id}",
+                title = text.name,
+                subtitle = t("Spell · $spellMetadata", "Zauber · $spellMetadata"),
+                kind = SearchResultKind.Rule,
+                actionLabel = t("Info", "Info"),
+                searchTerms = listOf(entry.en.name, entry.de.name, entry.en.summary, entry.de.summary, entry.school, localizedSpellSchool(entry.school), classNames) + entry.aliases,
+                detailBody = details,
+            )
+        }
+    }
+
+    private fun builtInWikiItemEntries(ruleset: Ruleset): List<SearchResultUi> = builtInKnownItemCatalog()
+        .filter { it.compatibleWith(ruleset) }
+        .map { item ->
+            val summary = item.details.ifBlank {
+                t("A ${item.type.name.lowercase()} in the built-in equipment catalog.", "Ein Eintrag der Kategorie ${item.type.name} im integrierten Ausrüstungskatalog.")
+            }
+            SearchResultUi(
+                id = "wiki-item-${item.id.replace(':', '-')}",
+                title = item.name,
+                subtitle = t("Item · ${item.type.name} · $summary", "Gegenstand · ${item.type.name} · $summary"),
+                kind = SearchResultKind.Rule,
+                actionLabel = t("Info", "Info"),
+                searchTerms = listOf(item.name, item.type.name, item.rarity.name, item.details, "equipment", "gear", "Ausrüstung", "Gegenstand"),
+                detailBody = "$summary\n\n" + t("Source: built-in SRD equipment catalog", "Quelle: integrierter SRD-Ausrüstungskatalog"),
+            )
+        }
+
+    private fun localWikiEntries(ruleset: Ruleset): List<SearchResultUi> = privateEntries
+        .filter { it.appliesTo(ruleset) }
+        .map { entry ->
+            val category = entry.normalizedKind().replaceFirstChar { it.titlecase() }
+            val summary = entry.summary.ifBlank { t("Private local Wiki entry.", "Privater lokaler Wiki-Eintrag.") }
+            val details = buildList {
+                add(summary)
+                if (entry.formula.isNotBlank()) add("Details: ${entry.formula}")
+                add(t("Source: ${entry.sourceNote} · stored only on this device", "Quelle: ${entry.sourceNote} · nur auf diesem Gerät gespeichert"))
+            }.joinToString("\n\n")
+            SearchResultUi(
+                id = "local-wiki-${entry.id}",
+                title = entry.name,
+                subtitle = t("Local · $category · $summary", "Lokal · $category · $summary"),
+                kind = SearchResultKind.Rule,
+                actionLabel = t("Info", "Info"),
+                searchTerms = listOf(entry.name, entry.kind, category, entry.summary, entry.formula, entry.sourceNote, "local", "private", "lokal", "privat"),
+                detailBody = details,
+            )
+        }
+
+    private fun wikiSearchRank(result: SearchResultUi, needle: String): Int? {
+        val title = normalizeWikiSearch(result.title)
+        val fields = (listOf(result.title, result.subtitle, result.detailBody) + result.searchTerms)
+            .map(::normalizeWikiSearch)
+            .filter(String::isNotBlank)
+        val combined = fields.joinToString(" ")
+        val words = needle.split(' ').filter(String::isNotBlank)
+        if (!words.all(combined::contains)) return null
+        return when {
+            title == needle && result.id.startsWith("rule-") -> 0
+            title == needle -> 1
+            fields.any { it == needle } -> 2
+            title.startsWith(needle) -> 3
+            fields.any { field -> field.split(' ').any { it.startsWith(needle) } } -> 4
+            combined.contains(needle) -> 5
+            else -> 6
+        }
+    }
+
+    private fun normalizeWikiSearch(value: String): String = value.lowercase()
+        .replace("ä", "a").replace("ö", "o").replace("ü", "u").replace("ß", "ss")
+        .replace("é", "e").replace("è", "e").replace("á", "a").replace("à", "a")
+        .map { if (it.isLetterOrDigit()) it else ' ' }
+        .joinToString("")
+        .replace(Regex("\\s+"), " ")
+        .trim()
+
+    private fun spellClassName(spellClass: SrdSpellClass): String = when (spellClass) {
+        SrdSpellClass.BARD -> t("Bard", "Barde")
+        SrdSpellClass.CLERIC -> t("Cleric", "Kleriker")
+        SrdSpellClass.DRUID -> t("Druid", "Druide")
+        SrdSpellClass.PALADIN -> "Paladin"
+        SrdSpellClass.RANGER -> t("Ranger", "Waldläufer")
+        SrdSpellClass.SORCERER -> t("Sorcerer", "Zauberer")
+        SrdSpellClass.WARLOCK -> t("Warlock", "Hexenmeister")
+        SrdSpellClass.WIZARD -> t("Wizard", "Magier")
+    }
+
+    private fun localizedSpellSchool(school: String): String = if (language == UiLanguage.English) school else when (school) {
+        "Abjuration" -> "Bannmagie"
+        "Conjuration" -> "Beschwörung"
+        "Divination" -> "Erkenntnismagie"
+        "Enchantment" -> "Verzauberung"
+        "Evocation" -> "Hervorrufung"
+        "Illusion" -> "Illusion"
+        "Necromancy" -> "Nekromantie"
+        "Transmutation" -> "Verwandlung"
+        else -> school
+    }
+
+    private fun localizedCreatureSize(size: String): String = when (size) {
+        "Tiny" -> "Winzig"
+        "Small" -> "Klein"
+        "Medium" -> "Mittelgroß"
+        "Large" -> "Groß"
+        "Huge" -> "Riesig"
+        "Gargantuan" -> "Gigantisch"
+        else -> size
+    }
+
+    private fun localizedCreatureType(type: String): String = when (type) {
+        "Aberration" -> "Aberration"
+        "Beast" -> "Tier"
+        "Celestial" -> "Celestisches Wesen"
+        "Construct" -> "Konstrukt"
+        "Dragon" -> "Drache"
+        "Elemental" -> "Elementarwesen"
+        "Fey" -> "Fee"
+        "Fiend" -> "Unhold"
+        "Giant" -> "Riese"
+        "Humanoid" -> "Humanoider"
+        "Monstrosity" -> "Monstrosität"
+        "Ooze" -> "Schlick"
+        "Plant" -> "Pflanze"
+        "Undead" -> "Untoter"
+        else -> type
     }
 
     fun handleSearchResult(result: SearchResultUi) {
@@ -5266,7 +5463,7 @@ class DndAppState(
             }
             SearchResultKind.Rule -> showInfo(
                 result.title,
-                result.subtitle + "\n\n" + t("Your current ruleset: ${selectedCharacter?.ruleset?.longLabel}.", "Dein aktuelles Regelwerk: ${selectedCharacter?.ruleset?.longLabel}."),
+                result.detailBody.ifBlank { result.subtitle } + "\n\n" + t("Your current ruleset: ${selectedCharacter?.ruleset?.longLabel}.", "Dein aktuelles Regelwerk: ${selectedCharacter?.ruleset?.longLabel}."),
                 result.cost.toCostTokens() + result.resourceLabel?.let { listOf(CostTokenUi(CostTokenKind.Resource, labelOverride = it)) }.orEmpty(),
             )
             SearchResultKind.Note, SearchResultKind.Navigate -> showInfo(result.title, result.subtitle)

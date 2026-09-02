@@ -1,0 +1,3373 @@
+{
+  "$schema": "../schema/coverage-report.schema.json",
+  "schemaVersion": 1,
+  "packId": "srd-5.2.1-wiki",
+  "generatedAt": "2026-09-02T00:00:00.000Z",
+  "sourceSnapshot": {
+    "name": "System Reference Document 5.2.1",
+    "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf",
+    "revision": "2024-srd-5.2.1",
+    "retrievedAt": "2026-09-02T00:00:00.000Z",
+    "sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87"
+  },
+  "summary": {
+    "seen": 419,
+    "included": 419,
+    "excluded": 0,
+    "pendingReview": 0
+  },
+  "records": [
+    {
+      "sourceId": "action.attack",
+      "category": "action",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.action.attack"
+    },
+    {
+      "sourceId": "action.dash",
+      "category": "action",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.action.dash"
+    },
+    {
+      "sourceId": "action.disengage",
+      "category": "action",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.action.disengage"
+    },
+    {
+      "sourceId": "action.dodge",
+      "category": "action",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.action.dodge"
+    },
+    {
+      "sourceId": "action.help",
+      "category": "action",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.action.help"
+    },
+    {
+      "sourceId": "action.hide",
+      "category": "action",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.action.hide"
+    },
+    {
+      "sourceId": "action.influence",
+      "category": "action",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.action.influence"
+    },
+    {
+      "sourceId": "action.magic",
+      "category": "action",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.action.magic"
+    },
+    {
+      "sourceId": "action.ready",
+      "category": "action",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.action.ready"
+    },
+    {
+      "sourceId": "action.search",
+      "category": "action",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.action.search"
+    },
+    {
+      "sourceId": "action.study",
+      "category": "action",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.action.study"
+    },
+    {
+      "sourceId": "action.utilize",
+      "category": "action",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.action.utilize"
+    },
+    {
+      "sourceId": "ancestry.dragonborn",
+      "category": "ancestry",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.ancestry.dragonborn"
+    },
+    {
+      "sourceId": "ancestry.dwarf",
+      "category": "ancestry",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.ancestry.dwarf"
+    },
+    {
+      "sourceId": "ancestry.elf",
+      "category": "ancestry",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.ancestry.elf"
+    },
+    {
+      "sourceId": "ancestry.gnome",
+      "category": "ancestry",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.ancestry.gnome"
+    },
+    {
+      "sourceId": "ancestry.goliath",
+      "category": "ancestry",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.ancestry.goliath"
+    },
+    {
+      "sourceId": "ancestry.halfling",
+      "category": "ancestry",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.ancestry.halfling"
+    },
+    {
+      "sourceId": "ancestry.human",
+      "category": "ancestry",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.ancestry.human"
+    },
+    {
+      "sourceId": "ancestry.orc",
+      "category": "ancestry",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.ancestry.orc"
+    },
+    {
+      "sourceId": "ancestry.tiefling",
+      "category": "ancestry",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.ancestry.tiefling"
+    },
+    {
+      "sourceId": "background.acolyte",
+      "category": "background",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.background.acolyte"
+    },
+    {
+      "sourceId": "background.criminal",
+      "category": "background",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.background.criminal"
+    },
+    {
+      "sourceId": "background.sage",
+      "category": "background",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.background.sage"
+    },
+    {
+      "sourceId": "background.soldier",
+      "category": "background",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.background.soldier"
+    },
+    {
+      "sourceId": "class.barbarian",
+      "category": "class",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.class.barbarian"
+    },
+    {
+      "sourceId": "class.bard",
+      "category": "class",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.class.bard"
+    },
+    {
+      "sourceId": "class.cleric",
+      "category": "class",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.class.cleric"
+    },
+    {
+      "sourceId": "class.druid",
+      "category": "class",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.class.druid"
+    },
+    {
+      "sourceId": "class.fighter",
+      "category": "class",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.class.fighter"
+    },
+    {
+      "sourceId": "class.monk",
+      "category": "class",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.class.monk"
+    },
+    {
+      "sourceId": "class.paladin",
+      "category": "class",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.class.paladin"
+    },
+    {
+      "sourceId": "class.ranger",
+      "category": "class",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.class.ranger"
+    },
+    {
+      "sourceId": "class.rogue",
+      "category": "class",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.class.rogue"
+    },
+    {
+      "sourceId": "class.sorcerer",
+      "category": "class",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.class.sorcerer"
+    },
+    {
+      "sourceId": "class.warlock",
+      "category": "class",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.class.warlock"
+    },
+    {
+      "sourceId": "class.wizard",
+      "category": "class",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.class.wizard"
+    },
+    {
+      "sourceId": "condition.blinded",
+      "category": "condition",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.condition.blinded"
+    },
+    {
+      "sourceId": "condition.charmed",
+      "category": "condition",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.condition.charmed"
+    },
+    {
+      "sourceId": "condition.deafened",
+      "category": "condition",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.condition.deafened"
+    },
+    {
+      "sourceId": "condition.exhaustion",
+      "category": "condition",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.condition.exhaustion"
+    },
+    {
+      "sourceId": "condition.frightened",
+      "category": "condition",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.condition.frightened"
+    },
+    {
+      "sourceId": "condition.grappled",
+      "category": "condition",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.condition.grappled"
+    },
+    {
+      "sourceId": "condition.incapacitated",
+      "category": "condition",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.condition.incapacitated"
+    },
+    {
+      "sourceId": "condition.invisible",
+      "category": "condition",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.condition.invisible"
+    },
+    {
+      "sourceId": "condition.paralyzed",
+      "category": "condition",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.condition.paralyzed"
+    },
+    {
+      "sourceId": "condition.petrified",
+      "category": "condition",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.condition.petrified"
+    },
+    {
+      "sourceId": "condition.poisoned",
+      "category": "condition",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.condition.poisoned"
+    },
+    {
+      "sourceId": "condition.prone",
+      "category": "condition",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.condition.prone"
+    },
+    {
+      "sourceId": "condition.restrained",
+      "category": "condition",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.condition.restrained"
+    },
+    {
+      "sourceId": "condition.stunned",
+      "category": "condition",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.condition.stunned"
+    },
+    {
+      "sourceId": "condition.unconscious",
+      "category": "condition",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.condition.unconscious"
+    },
+    {
+      "sourceId": "creature.aboleth",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.aboleth"
+    },
+    {
+      "sourceId": "creature.adult-black-dragon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.adult-black-dragon"
+    },
+    {
+      "sourceId": "creature.adult-blue-dragon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.adult-blue-dragon"
+    },
+    {
+      "sourceId": "creature.adult-brass-dragon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.adult-brass-dragon"
+    },
+    {
+      "sourceId": "creature.adult-bronze-dragon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.adult-bronze-dragon"
+    },
+    {
+      "sourceId": "creature.adult-copper-dragon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.adult-copper-dragon"
+    },
+    {
+      "sourceId": "creature.adult-gold-dragon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.adult-gold-dragon"
+    },
+    {
+      "sourceId": "creature.adult-green-dragon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.adult-green-dragon"
+    },
+    {
+      "sourceId": "creature.adult-red-dragon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.adult-red-dragon"
+    },
+    {
+      "sourceId": "creature.adult-silver-dragon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.adult-silver-dragon"
+    },
+    {
+      "sourceId": "creature.adult-white-dragon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.adult-white-dragon"
+    },
+    {
+      "sourceId": "creature.air-elemental",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.air-elemental"
+    },
+    {
+      "sourceId": "creature.allosaurus",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.allosaurus"
+    },
+    {
+      "sourceId": "creature.ancient-black-dragon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.ancient-black-dragon"
+    },
+    {
+      "sourceId": "creature.ancient-blue-dragon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.ancient-blue-dragon"
+    },
+    {
+      "sourceId": "creature.ancient-brass-dragon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.ancient-brass-dragon"
+    },
+    {
+      "sourceId": "creature.ancient-bronze-dragon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.ancient-bronze-dragon"
+    },
+    {
+      "sourceId": "creature.ancient-copper-dragon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.ancient-copper-dragon"
+    },
+    {
+      "sourceId": "creature.ancient-gold-dragon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.ancient-gold-dragon"
+    },
+    {
+      "sourceId": "creature.ancient-green-dragon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.ancient-green-dragon"
+    },
+    {
+      "sourceId": "creature.ancient-red-dragon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.ancient-red-dragon"
+    },
+    {
+      "sourceId": "creature.ancient-silver-dragon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.ancient-silver-dragon"
+    },
+    {
+      "sourceId": "creature.ancient-white-dragon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.ancient-white-dragon"
+    },
+    {
+      "sourceId": "creature.animated-armor",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.animated-armor"
+    },
+    {
+      "sourceId": "creature.animated-flying-sword",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.animated-flying-sword"
+    },
+    {
+      "sourceId": "creature.animated-rug-of-smothering",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.animated-rug-of-smothering"
+    },
+    {
+      "sourceId": "creature.ankheg",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.ankheg"
+    },
+    {
+      "sourceId": "creature.ankylosaurus",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.ankylosaurus"
+    },
+    {
+      "sourceId": "creature.ape",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.ape"
+    },
+    {
+      "sourceId": "creature.archelon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.archelon"
+    },
+    {
+      "sourceId": "creature.archmage",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.archmage"
+    },
+    {
+      "sourceId": "creature.assassin",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.assassin"
+    },
+    {
+      "sourceId": "creature.awakened-shrub",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.awakened-shrub"
+    },
+    {
+      "sourceId": "creature.awakened-tree",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.awakened-tree"
+    },
+    {
+      "sourceId": "creature.axe-beak",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.axe-beak"
+    },
+    {
+      "sourceId": "creature.azer-sentinel",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.azer-sentinel"
+    },
+    {
+      "sourceId": "creature.baboon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.baboon"
+    },
+    {
+      "sourceId": "creature.badger",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.badger"
+    },
+    {
+      "sourceId": "creature.balor",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.balor"
+    },
+    {
+      "sourceId": "creature.bandit",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.bandit"
+    },
+    {
+      "sourceId": "creature.bandit-captain",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.bandit-captain"
+    },
+    {
+      "sourceId": "creature.barbed-devil",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.barbed-devil"
+    },
+    {
+      "sourceId": "creature.basilisk",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.basilisk"
+    },
+    {
+      "sourceId": "creature.bat",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.bat"
+    },
+    {
+      "sourceId": "creature.bearded-devil",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.bearded-devil"
+    },
+    {
+      "sourceId": "creature.behir",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.behir"
+    },
+    {
+      "sourceId": "creature.berserker",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.berserker"
+    },
+    {
+      "sourceId": "creature.black-bear",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.black-bear"
+    },
+    {
+      "sourceId": "creature.black-dragon-wyrmling",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.black-dragon-wyrmling"
+    },
+    {
+      "sourceId": "creature.black-pudding",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.black-pudding"
+    },
+    {
+      "sourceId": "creature.blink-dog",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.blink-dog"
+    },
+    {
+      "sourceId": "creature.blood-hawk",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.blood-hawk"
+    },
+    {
+      "sourceId": "creature.blue-dragon-wyrmling",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.blue-dragon-wyrmling"
+    },
+    {
+      "sourceId": "creature.boar",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.boar"
+    },
+    {
+      "sourceId": "creature.bone-devil",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.bone-devil"
+    },
+    {
+      "sourceId": "creature.brass-dragon-wyrmling",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.brass-dragon-wyrmling"
+    },
+    {
+      "sourceId": "creature.bronze-dragon-wyrmling",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.bronze-dragon-wyrmling"
+    },
+    {
+      "sourceId": "creature.brown-bear",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.brown-bear"
+    },
+    {
+      "sourceId": "creature.bugbear-stalker",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.bugbear-stalker"
+    },
+    {
+      "sourceId": "creature.bugbear-warrior",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.bugbear-warrior"
+    },
+    {
+      "sourceId": "creature.bulette",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.bulette"
+    },
+    {
+      "sourceId": "creature.camel",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.camel"
+    },
+    {
+      "sourceId": "creature.cat",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.cat"
+    },
+    {
+      "sourceId": "creature.centaur-trooper",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.centaur-trooper"
+    },
+    {
+      "sourceId": "creature.chain-devil",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.chain-devil"
+    },
+    {
+      "sourceId": "creature.chimera",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.chimera"
+    },
+    {
+      "sourceId": "creature.chuul",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.chuul"
+    },
+    {
+      "sourceId": "creature.clay-golem",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.clay-golem"
+    },
+    {
+      "sourceId": "creature.cloaker",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.cloaker"
+    },
+    {
+      "sourceId": "creature.cloud-giant",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.cloud-giant"
+    },
+    {
+      "sourceId": "creature.cockatrice",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.cockatrice"
+    },
+    {
+      "sourceId": "creature.commoner",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.commoner"
+    },
+    {
+      "sourceId": "creature.constrictor-snake",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.constrictor-snake"
+    },
+    {
+      "sourceId": "creature.copper-dragon-wyrmling",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.copper-dragon-wyrmling"
+    },
+    {
+      "sourceId": "creature.couatl",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.couatl"
+    },
+    {
+      "sourceId": "creature.crab",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.crab"
+    },
+    {
+      "sourceId": "creature.crocodile",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.crocodile"
+    },
+    {
+      "sourceId": "creature.cultist",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.cultist"
+    },
+    {
+      "sourceId": "creature.cultist-fanatic",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.cultist-fanatic"
+    },
+    {
+      "sourceId": "creature.darkmantle",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.darkmantle"
+    },
+    {
+      "sourceId": "creature.death-dog",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.death-dog"
+    },
+    {
+      "sourceId": "creature.deer",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.deer"
+    },
+    {
+      "sourceId": "creature.deva",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.deva"
+    },
+    {
+      "sourceId": "creature.dire-wolf",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.dire-wolf"
+    },
+    {
+      "sourceId": "creature.djinni",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.djinni"
+    },
+    {
+      "sourceId": "creature.doppelganger",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.doppelganger"
+    },
+    {
+      "sourceId": "creature.draft-horse",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.draft-horse"
+    },
+    {
+      "sourceId": "creature.dragon-turtle",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.dragon-turtle"
+    },
+    {
+      "sourceId": "creature.dretch",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.dretch"
+    },
+    {
+      "sourceId": "creature.drider",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.drider"
+    },
+    {
+      "sourceId": "creature.druid",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.druid"
+    },
+    {
+      "sourceId": "creature.dryad",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.dryad"
+    },
+    {
+      "sourceId": "creature.dust-mephit",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.dust-mephit"
+    },
+    {
+      "sourceId": "creature.eagle",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.eagle"
+    },
+    {
+      "sourceId": "creature.earth-elemental",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.earth-elemental"
+    },
+    {
+      "sourceId": "creature.efreeti",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.efreeti"
+    },
+    {
+      "sourceId": "creature.elephant",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.elephant"
+    },
+    {
+      "sourceId": "creature.elk",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.elk"
+    },
+    {
+      "sourceId": "creature.erinyes",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.erinyes"
+    },
+    {
+      "sourceId": "creature.ettercap",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.ettercap"
+    },
+    {
+      "sourceId": "creature.ettin",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.ettin"
+    },
+    {
+      "sourceId": "creature.fire-elemental",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.fire-elemental"
+    },
+    {
+      "sourceId": "creature.fire-giant",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.fire-giant"
+    },
+    {
+      "sourceId": "creature.flesh-golem",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.flesh-golem"
+    },
+    {
+      "sourceId": "creature.flying-snake",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.flying-snake"
+    },
+    {
+      "sourceId": "creature.frog",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.frog"
+    },
+    {
+      "sourceId": "creature.frost-giant",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.frost-giant"
+    },
+    {
+      "sourceId": "creature.gargoyle",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.gargoyle"
+    },
+    {
+      "sourceId": "creature.gelatinous-cube",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.gelatinous-cube"
+    },
+    {
+      "sourceId": "creature.ghast",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.ghast"
+    },
+    {
+      "sourceId": "creature.ghost",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.ghost"
+    },
+    {
+      "sourceId": "creature.ghoul",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.ghoul"
+    },
+    {
+      "sourceId": "creature.giant-ape",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.giant-ape"
+    },
+    {
+      "sourceId": "creature.giant-badger",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.giant-badger"
+    },
+    {
+      "sourceId": "creature.giant-bat",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.giant-bat"
+    },
+    {
+      "sourceId": "creature.giant-boar",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.giant-boar"
+    },
+    {
+      "sourceId": "creature.giant-centipede",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.giant-centipede"
+    },
+    {
+      "sourceId": "creature.giant-constrictor-snake",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.giant-constrictor-snake"
+    },
+    {
+      "sourceId": "creature.giant-crab",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.giant-crab"
+    },
+    {
+      "sourceId": "creature.giant-crocodile",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.giant-crocodile"
+    },
+    {
+      "sourceId": "creature.giant-eagle",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.giant-eagle"
+    },
+    {
+      "sourceId": "creature.giant-elk",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.giant-elk"
+    },
+    {
+      "sourceId": "creature.giant-fire-beetle",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.giant-fire-beetle"
+    },
+    {
+      "sourceId": "creature.giant-frog",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.giant-frog"
+    },
+    {
+      "sourceId": "creature.giant-goat",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.giant-goat"
+    },
+    {
+      "sourceId": "creature.giant-hyena",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.giant-hyena"
+    },
+    {
+      "sourceId": "creature.giant-lizard",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.giant-lizard"
+    },
+    {
+      "sourceId": "creature.giant-octopus",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.giant-octopus"
+    },
+    {
+      "sourceId": "creature.giant-owl",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.giant-owl"
+    },
+    {
+      "sourceId": "creature.giant-rat",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.giant-rat"
+    },
+    {
+      "sourceId": "creature.giant-scorpion",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.giant-scorpion"
+    },
+    {
+      "sourceId": "creature.giant-seahorse",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.giant-seahorse"
+    },
+    {
+      "sourceId": "creature.giant-shark",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.giant-shark"
+    },
+    {
+      "sourceId": "creature.giant-spider",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.giant-spider"
+    },
+    {
+      "sourceId": "creature.giant-toad",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.giant-toad"
+    },
+    {
+      "sourceId": "creature.giant-venomous-snake",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.giant-venomous-snake"
+    },
+    {
+      "sourceId": "creature.giant-vulture",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.giant-vulture"
+    },
+    {
+      "sourceId": "creature.giant-wasp",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.giant-wasp"
+    },
+    {
+      "sourceId": "creature.giant-weasel",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.giant-weasel"
+    },
+    {
+      "sourceId": "creature.giant-wolf-spider",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.giant-wolf-spider"
+    },
+    {
+      "sourceId": "creature.gibbering-mouther",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.gibbering-mouther"
+    },
+    {
+      "sourceId": "creature.glabrezu",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.glabrezu"
+    },
+    {
+      "sourceId": "creature.gladiator",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.gladiator"
+    },
+    {
+      "sourceId": "creature.gnoll-warrior",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.gnoll-warrior"
+    },
+    {
+      "sourceId": "creature.goat",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.goat"
+    },
+    {
+      "sourceId": "creature.goblin-boss",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.goblin-boss"
+    },
+    {
+      "sourceId": "creature.goblin-minion",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.goblin-minion"
+    },
+    {
+      "sourceId": "creature.goblin-warrior",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.goblin-warrior"
+    },
+    {
+      "sourceId": "creature.gold-dragon-wyrmling",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.gold-dragon-wyrmling"
+    },
+    {
+      "sourceId": "creature.gorgon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.gorgon"
+    },
+    {
+      "sourceId": "creature.green-dragon-wyrmling",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.green-dragon-wyrmling"
+    },
+    {
+      "sourceId": "creature.green-hag",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.green-hag"
+    },
+    {
+      "sourceId": "creature.grick",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.grick"
+    },
+    {
+      "sourceId": "creature.griffon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.griffon"
+    },
+    {
+      "sourceId": "creature.grimlock",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.grimlock"
+    },
+    {
+      "sourceId": "creature.guard",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.guard"
+    },
+    {
+      "sourceId": "creature.guard-captain",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.guard-captain"
+    },
+    {
+      "sourceId": "creature.guardian-naga",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.guardian-naga"
+    },
+    {
+      "sourceId": "creature.half-dragon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.half-dragon"
+    },
+    {
+      "sourceId": "creature.harpy",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.harpy"
+    },
+    {
+      "sourceId": "creature.hawk",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.hawk"
+    },
+    {
+      "sourceId": "creature.hell-hound",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.hell-hound"
+    },
+    {
+      "sourceId": "creature.hezrou",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.hezrou"
+    },
+    {
+      "sourceId": "creature.hill-giant",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.hill-giant"
+    },
+    {
+      "sourceId": "creature.hippogriff",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.hippogriff"
+    },
+    {
+      "sourceId": "creature.hippopotamus",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.hippopotamus"
+    },
+    {
+      "sourceId": "creature.hobgoblin-captain",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.hobgoblin-captain"
+    },
+    {
+      "sourceId": "creature.hobgoblin-warrior",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.hobgoblin-warrior"
+    },
+    {
+      "sourceId": "creature.homunculus",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.homunculus"
+    },
+    {
+      "sourceId": "creature.horned-devil",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.horned-devil"
+    },
+    {
+      "sourceId": "creature.hunter-shark",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.hunter-shark"
+    },
+    {
+      "sourceId": "creature.hydra",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.hydra"
+    },
+    {
+      "sourceId": "creature.hyena",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.hyena"
+    },
+    {
+      "sourceId": "creature.ice-devil",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.ice-devil"
+    },
+    {
+      "sourceId": "creature.ice-mephit",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.ice-mephit"
+    },
+    {
+      "sourceId": "creature.imp",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.imp"
+    },
+    {
+      "sourceId": "creature.incubus",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.incubus"
+    },
+    {
+      "sourceId": "creature.invisible-stalker",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.invisible-stalker"
+    },
+    {
+      "sourceId": "creature.iron-golem",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.iron-golem"
+    },
+    {
+      "sourceId": "creature.jackal",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.jackal"
+    },
+    {
+      "sourceId": "creature.killer-whale",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.killer-whale"
+    },
+    {
+      "sourceId": "creature.knight",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.knight"
+    },
+    {
+      "sourceId": "creature.kobold-warrior",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.kobold-warrior"
+    },
+    {
+      "sourceId": "creature.kraken",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.kraken"
+    },
+    {
+      "sourceId": "creature.lamia",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.lamia"
+    },
+    {
+      "sourceId": "creature.lemure",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.lemure"
+    },
+    {
+      "sourceId": "creature.lich",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.lich"
+    },
+    {
+      "sourceId": "creature.lion",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.lion"
+    },
+    {
+      "sourceId": "creature.lizard",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.lizard"
+    },
+    {
+      "sourceId": "creature.mage",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.mage"
+    },
+    {
+      "sourceId": "creature.magma-mephit",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.magma-mephit"
+    },
+    {
+      "sourceId": "creature.magmin",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.magmin"
+    },
+    {
+      "sourceId": "creature.mammoth",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.mammoth"
+    },
+    {
+      "sourceId": "creature.manticore",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.manticore"
+    },
+    {
+      "sourceId": "creature.marilith",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.marilith"
+    },
+    {
+      "sourceId": "creature.mastiff",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.mastiff"
+    },
+    {
+      "sourceId": "creature.medusa",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.medusa"
+    },
+    {
+      "sourceId": "creature.merfolk-skirmisher",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.merfolk-skirmisher"
+    },
+    {
+      "sourceId": "creature.merrow",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.merrow"
+    },
+    {
+      "sourceId": "creature.mimic",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.mimic"
+    },
+    {
+      "sourceId": "creature.minotaur-of-baphomet",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.minotaur-of-baphomet"
+    },
+    {
+      "sourceId": "creature.minotaur-skeleton",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.minotaur-skeleton"
+    },
+    {
+      "sourceId": "creature.mule",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.mule"
+    },
+    {
+      "sourceId": "creature.mummy",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.mummy"
+    },
+    {
+      "sourceId": "creature.mummy-lord",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.mummy-lord"
+    },
+    {
+      "sourceId": "creature.nalfeshnee",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.nalfeshnee"
+    },
+    {
+      "sourceId": "creature.night-hag",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.night-hag"
+    },
+    {
+      "sourceId": "creature.nightmare",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.nightmare"
+    },
+    {
+      "sourceId": "creature.noble",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.noble"
+    },
+    {
+      "sourceId": "creature.ochre-jelly",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.ochre-jelly"
+    },
+    {
+      "sourceId": "creature.octopus",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.octopus"
+    },
+    {
+      "sourceId": "creature.ogre",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.ogre"
+    },
+    {
+      "sourceId": "creature.ogre-zombie",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.ogre-zombie"
+    },
+    {
+      "sourceId": "creature.oni",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.oni"
+    },
+    {
+      "sourceId": "creature.ooze",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.ooze"
+    },
+    {
+      "sourceId": "creature.otyugh",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.otyugh"
+    },
+    {
+      "sourceId": "creature.owl",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.owl"
+    },
+    {
+      "sourceId": "creature.owlbear",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.owlbear"
+    },
+    {
+      "sourceId": "creature.panther",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.panther"
+    },
+    {
+      "sourceId": "creature.pegasus",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.pegasus"
+    },
+    {
+      "sourceId": "creature.phase-spider",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.phase-spider"
+    },
+    {
+      "sourceId": "creature.piranha",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.piranha"
+    },
+    {
+      "sourceId": "creature.pirate",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.pirate"
+    },
+    {
+      "sourceId": "creature.pirate-captain",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.pirate-captain"
+    },
+    {
+      "sourceId": "creature.pit-fiend",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.pit-fiend"
+    },
+    {
+      "sourceId": "creature.planetar",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.planetar"
+    },
+    {
+      "sourceId": "creature.plesiosaurus",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.plesiosaurus"
+    },
+    {
+      "sourceId": "creature.polar-bear",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.polar-bear"
+    },
+    {
+      "sourceId": "creature.pony",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.pony"
+    },
+    {
+      "sourceId": "creature.priest",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.priest"
+    },
+    {
+      "sourceId": "creature.priest-acolyte",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.priest-acolyte"
+    },
+    {
+      "sourceId": "creature.pseudodragon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.pseudodragon"
+    },
+    {
+      "sourceId": "creature.pteranodon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.pteranodon"
+    },
+    {
+      "sourceId": "creature.purple-worm",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.purple-worm"
+    },
+    {
+      "sourceId": "creature.quasit",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.quasit"
+    },
+    {
+      "sourceId": "creature.rakshasa",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.rakshasa"
+    },
+    {
+      "sourceId": "creature.rat",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.rat"
+    },
+    {
+      "sourceId": "creature.raven",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.raven"
+    },
+    {
+      "sourceId": "creature.red-dragon-wyrmling",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.red-dragon-wyrmling"
+    },
+    {
+      "sourceId": "creature.reef-shark",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.reef-shark"
+    },
+    {
+      "sourceId": "creature.remorhaz",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.remorhaz"
+    },
+    {
+      "sourceId": "creature.rhinoceros",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.rhinoceros"
+    },
+    {
+      "sourceId": "creature.riding-horse",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.riding-horse"
+    },
+    {
+      "sourceId": "creature.roc",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.roc"
+    },
+    {
+      "sourceId": "creature.roper",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.roper"
+    },
+    {
+      "sourceId": "creature.rust-monster",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.rust-monster"
+    },
+    {
+      "sourceId": "creature.saber-toothed-tiger",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.saber-toothed-tiger"
+    },
+    {
+      "sourceId": "creature.sahuagin-warrior",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.sahuagin-warrior"
+    },
+    {
+      "sourceId": "creature.salamander",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.salamander"
+    },
+    {
+      "sourceId": "creature.satyr",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.satyr"
+    },
+    {
+      "sourceId": "creature.scorpion",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.scorpion"
+    },
+    {
+      "sourceId": "creature.scout",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.scout"
+    },
+    {
+      "sourceId": "creature.sea-hag",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.sea-hag"
+    },
+    {
+      "sourceId": "creature.seahorse",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.seahorse"
+    },
+    {
+      "sourceId": "creature.shadow",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.shadow"
+    },
+    {
+      "sourceId": "creature.shambling-mound",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.shambling-mound"
+    },
+    {
+      "sourceId": "creature.shield-guardian",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.shield-guardian"
+    },
+    {
+      "sourceId": "creature.shrieker-fungus",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.shrieker-fungus"
+    },
+    {
+      "sourceId": "creature.silver-dragon-wyrmling",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.silver-dragon-wyrmling"
+    },
+    {
+      "sourceId": "creature.skeleton",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.skeleton"
+    },
+    {
+      "sourceId": "creature.solar",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.solar"
+    },
+    {
+      "sourceId": "creature.specter",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.specter"
+    },
+    {
+      "sourceId": "creature.sphinx-of-lore",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.sphinx-of-lore"
+    },
+    {
+      "sourceId": "creature.sphinx-of-valor",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.sphinx-of-valor"
+    },
+    {
+      "sourceId": "creature.sphinx-of-wonder",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.sphinx-of-wonder"
+    },
+    {
+      "sourceId": "creature.spider",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.spider"
+    },
+    {
+      "sourceId": "creature.spirit-naga",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.spirit-naga"
+    },
+    {
+      "sourceId": "creature.sprite",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.sprite"
+    },
+    {
+      "sourceId": "creature.spy",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.spy"
+    },
+    {
+      "sourceId": "creature.steam-mephit",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.steam-mephit"
+    },
+    {
+      "sourceId": "creature.stirge",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.stirge"
+    },
+    {
+      "sourceId": "creature.stone-giant",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.stone-giant"
+    },
+    {
+      "sourceId": "creature.stone-golem",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.stone-golem"
+    },
+    {
+      "sourceId": "creature.storm-giant",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.storm-giant"
+    },
+    {
+      "sourceId": "creature.succubus",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.succubus"
+    },
+    {
+      "sourceId": "creature.swarm-of-bats",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.swarm-of-bats"
+    },
+    {
+      "sourceId": "creature.swarm-of-crawling-claws",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.swarm-of-crawling-claws"
+    },
+    {
+      "sourceId": "creature.swarm-of-insects",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.swarm-of-insects"
+    },
+    {
+      "sourceId": "creature.swarm-of-piranhas",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.swarm-of-piranhas"
+    },
+    {
+      "sourceId": "creature.swarm-of-rats",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.swarm-of-rats"
+    },
+    {
+      "sourceId": "creature.swarm-of-ravens",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.swarm-of-ravens"
+    },
+    {
+      "sourceId": "creature.swarm-of-venomous-snakes",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.swarm-of-venomous-snakes"
+    },
+    {
+      "sourceId": "creature.tarrasque",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.tarrasque"
+    },
+    {
+      "sourceId": "creature.tiger",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.tiger"
+    },
+    {
+      "sourceId": "creature.tough",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.tough"
+    },
+    {
+      "sourceId": "creature.tough-boss",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.tough-boss"
+    },
+    {
+      "sourceId": "creature.treant",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.treant"
+    },
+    {
+      "sourceId": "creature.triceratops",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.triceratops"
+    },
+    {
+      "sourceId": "creature.troll",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.troll"
+    },
+    {
+      "sourceId": "creature.troll-limb",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.troll-limb"
+    },
+    {
+      "sourceId": "creature.tyrannosaurus-rex",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.tyrannosaurus-rex"
+    },
+    {
+      "sourceId": "creature.unicorn",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.unicorn"
+    },
+    {
+      "sourceId": "creature.vampire",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.vampire"
+    },
+    {
+      "sourceId": "creature.vampire-familiar",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.vampire-familiar"
+    },
+    {
+      "sourceId": "creature.vampire-spawn",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.vampire-spawn"
+    },
+    {
+      "sourceId": "creature.venomous-snake",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.venomous-snake"
+    },
+    {
+      "sourceId": "creature.violet-fungus",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.violet-fungus"
+    },
+    {
+      "sourceId": "creature.vrock",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.vrock"
+    },
+    {
+      "sourceId": "creature.vulture",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.vulture"
+    },
+    {
+      "sourceId": "creature.warhorse",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.warhorse"
+    },
+    {
+      "sourceId": "creature.warhorse-skeleton",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.warhorse-skeleton"
+    },
+    {
+      "sourceId": "creature.warrior-infantry",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.warrior-infantry"
+    },
+    {
+      "sourceId": "creature.warrior-veteran",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.warrior-veteran"
+    },
+    {
+      "sourceId": "creature.water-elemental",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.water-elemental"
+    },
+    {
+      "sourceId": "creature.weasel",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.weasel"
+    },
+    {
+      "sourceId": "creature.werebear",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.werebear"
+    },
+    {
+      "sourceId": "creature.wereboar",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.wereboar"
+    },
+    {
+      "sourceId": "creature.wererat",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.wererat"
+    },
+    {
+      "sourceId": "creature.weretiger",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.weretiger"
+    },
+    {
+      "sourceId": "creature.werewolf",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.werewolf"
+    },
+    {
+      "sourceId": "creature.white-dragon-wyrmling",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.white-dragon-wyrmling"
+    },
+    {
+      "sourceId": "creature.wight",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.wight"
+    },
+    {
+      "sourceId": "creature.will-o-wisp",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.will-o-wisp"
+    },
+    {
+      "sourceId": "creature.winter-wolf",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.winter-wolf"
+    },
+    {
+      "sourceId": "creature.wolf",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.wolf"
+    },
+    {
+      "sourceId": "creature.worg",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.worg"
+    },
+    {
+      "sourceId": "creature.wraith",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.wraith"
+    },
+    {
+      "sourceId": "creature.wyvern",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.wyvern"
+    },
+    {
+      "sourceId": "creature.xorn",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.xorn"
+    },
+    {
+      "sourceId": "creature.young-black-dragon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.young-black-dragon"
+    },
+    {
+      "sourceId": "creature.young-blue-dragon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.young-blue-dragon"
+    },
+    {
+      "sourceId": "creature.young-brass-dragon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.young-brass-dragon"
+    },
+    {
+      "sourceId": "creature.young-bronze-dragon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.young-bronze-dragon"
+    },
+    {
+      "sourceId": "creature.young-copper-dragon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.young-copper-dragon"
+    },
+    {
+      "sourceId": "creature.young-gold-dragon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.young-gold-dragon"
+    },
+    {
+      "sourceId": "creature.young-green-dragon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.young-green-dragon"
+    },
+    {
+      "sourceId": "creature.young-red-dragon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.young-red-dragon"
+    },
+    {
+      "sourceId": "creature.young-silver-dragon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.young-silver-dragon"
+    },
+    {
+      "sourceId": "creature.young-white-dragon",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.young-white-dragon"
+    },
+    {
+      "sourceId": "creature.zombie",
+      "category": "creature",
+      "decision": "included",
+      "reason": "Included as a player-facing identity overview; stat-block data is excluded.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.creature.zombie"
+    },
+    {
+      "sourceId": "feat.ability-score-improvement",
+      "category": "feat",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.feat.ability-score-improvement"
+    },
+    {
+      "sourceId": "feat.alert",
+      "category": "feat",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.feat.alert"
+    },
+    {
+      "sourceId": "feat.archery",
+      "category": "feat",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.feat.archery"
+    },
+    {
+      "sourceId": "feat.boon-of-combat-prowess",
+      "category": "feat",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.feat.boon-of-combat-prowess"
+    },
+    {
+      "sourceId": "feat.boon-of-dimensional-travel",
+      "category": "feat",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.feat.boon-of-dimensional-travel"
+    },
+    {
+      "sourceId": "feat.boon-of-fate",
+      "category": "feat",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.feat.boon-of-fate"
+    },
+    {
+      "sourceId": "feat.boon-of-irresistible-offense",
+      "category": "feat",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.feat.boon-of-irresistible-offense"
+    },
+    {
+      "sourceId": "feat.boon-of-spell-recall",
+      "category": "feat",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.feat.boon-of-spell-recall"
+    },
+    {
+      "sourceId": "feat.boon-of-the-night-spirit",
+      "category": "feat",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.feat.boon-of-the-night-spirit"
+    },
+    {
+      "sourceId": "feat.boon-of-truesight",
+      "category": "feat",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.feat.boon-of-truesight"
+    },
+    {
+      "sourceId": "feat.defense",
+      "category": "feat",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.feat.defense"
+    },
+    {
+      "sourceId": "feat.grappler",
+      "category": "feat",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.feat.grappler"
+    },
+    {
+      "sourceId": "feat.great-weapon-fighting",
+      "category": "feat",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.feat.great-weapon-fighting"
+    },
+    {
+      "sourceId": "feat.magic-initiate",
+      "category": "feat",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.feat.magic-initiate"
+    },
+    {
+      "sourceId": "feat.savage-attacker",
+      "category": "feat",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.feat.savage-attacker"
+    },
+    {
+      "sourceId": "feat.skilled",
+      "category": "feat",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.feat.skilled"
+    },
+    {
+      "sourceId": "feat.two-weapon-fighting",
+      "category": "feat",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.feat.two-weapon-fighting"
+    },
+    {
+      "sourceId": "school.abjuration",
+      "category": "knowledge",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.school.abjuration"
+    },
+    {
+      "sourceId": "school.conjuration",
+      "category": "knowledge",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.school.conjuration"
+    },
+    {
+      "sourceId": "school.divination",
+      "category": "knowledge",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.school.divination"
+    },
+    {
+      "sourceId": "school.enchantment",
+      "category": "knowledge",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.school.enchantment"
+    },
+    {
+      "sourceId": "school.evocation",
+      "category": "knowledge",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.school.evocation"
+    },
+    {
+      "sourceId": "school.illusion",
+      "category": "knowledge",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.school.illusion"
+    },
+    {
+      "sourceId": "school.necromancy",
+      "category": "knowledge",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.school.necromancy"
+    },
+    {
+      "sourceId": "school.transmutation",
+      "category": "knowledge",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.school.transmutation"
+    },
+    {
+      "sourceId": "subclass.fighter.champion",
+      "category": "subclass",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.subclass.fighter.champion"
+    },
+    {
+      "sourceId": "subclass.druid.circle-of-the-land",
+      "category": "subclass",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.subclass.druid.circle-of-the-land"
+    },
+    {
+      "sourceId": "subclass.bard.college-of-lore",
+      "category": "subclass",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.subclass.bard.college-of-lore"
+    },
+    {
+      "sourceId": "subclass.sorcerer.draconic-sorcery",
+      "category": "subclass",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.subclass.sorcerer.draconic-sorcery"
+    },
+    {
+      "sourceId": "subclass.wizard.evoker",
+      "category": "subclass",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.subclass.wizard.evoker"
+    },
+    {
+      "sourceId": "subclass.warlock.fiend-patron",
+      "category": "subclass",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.subclass.warlock.fiend-patron"
+    },
+    {
+      "sourceId": "subclass.ranger.hunter",
+      "category": "subclass",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.subclass.ranger.hunter"
+    },
+    {
+      "sourceId": "subclass.cleric.life-domain",
+      "category": "subclass",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.subclass.cleric.life-domain"
+    },
+    {
+      "sourceId": "subclass.paladin.oath-of-devotion",
+      "category": "subclass",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.subclass.paladin.oath-of-devotion"
+    },
+    {
+      "sourceId": "subclass.barbarian.path-of-the-berserker",
+      "category": "subclass",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.subclass.barbarian.path-of-the-berserker"
+    },
+    {
+      "sourceId": "subclass.rogue.thief",
+      "category": "subclass",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.subclass.rogue.thief"
+    },
+    {
+      "sourceId": "subclass.monk.warrior-of-the-open-hand",
+      "category": "subclass",
+      "decision": "included",
+      "reason": "Included in the compact offline SRD index.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.subclass.monk.warrior-of-the-open-hand"
+    }
+  ]
+}

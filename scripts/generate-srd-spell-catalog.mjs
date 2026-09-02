@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Generates the checked-in, offline Wizard/Sorcerer spell catalog from the two
+ * Generates the checked-in, offline spell catalog for every SRD class from the two
  * official CC-BY SRD PDFs. The PDFs are inputs to this audit tool only; Android
  * builds consume the generated JSON/Kotlin and never access the network.
  *
@@ -40,7 +40,7 @@ const sourceDefinitions = {
     shortWork: "SRD 5.1",
     sourceUrl: "https://media.wizards.com/2023/downloads/dnd/SRD_CC_v5.1.pdf",
     expectedSha256: "2504d2a0abb0a4d491a939be4f17910a2dde0312570ab8d208080225ccf0a1f0",
-    expectedCounts: { unique: 211, sorcerer: 120, wizard: 204 },
+    expectedCounts: { unique: 319, bard: 112, cleric: 105, druid: 105, paladin: 31, ranger: 37, sorcerer: 120, warlock: 64, wizard: 204 },
     pdf: resolve(pdf51),
   },
   SRD_5_2_1: {
@@ -50,7 +50,7 @@ const sourceDefinitions = {
     shortWork: "SRD 5.2.1",
     sourceUrl: "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf",
     expectedSha256: "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
-    expectedCounts: { unique: 225, sorcerer: 138, wizard: 217 },
+    expectedCounts: { unique: 338, bard: 129, cleric: 109, druid: 124, paladin: 38, ranger: 48, sorcerer: 138, warlock: 72, wizard: 217 },
     pdf: resolve(pdf521),
   },
 };
@@ -65,6 +65,9 @@ const schools = [
   "Necromancy",
   "Transmutation",
 ];
+
+const spellClasses = ["BARD", "CLERIC", "DRUID", "PALADIN", "RANGER", "SORCERER", "WARLOCK", "WIZARD"];
+const classDisplayNames = Object.fromEntries(spellClasses.map(value => [value, titleCase(value)]));
 
 const schoolDe = {
   Abjuration: "Bannmagie",
@@ -99,22 +102,36 @@ try {
     }
   }
 
-  const raw51Lists = extractPdf(sourceDefinitions.SRD_5_1.pdf, ["-raw", "-f", "109", "-l", "114"]);
+  const raw51Lists = extractPdf(sourceDefinitions.SRD_5_1.pdf, ["-raw", "-f", "103", "-l", "114"]);
   const raw51All = extractPdf(sourceDefinitions.SRD_5_1.pdf, ["-raw"]);
-  const raw521Sorcerer = extractPdf(sourceDefinitions.SRD_5_2_1.pdf, ["-raw", "-f", "67", "-l", "69"]);
-  const raw521Wizard = extractPdf(sourceDefinitions.SRD_5_2_1.pdf, ["-raw", "-f", "79", "-l", "82"]);
+  const raw521Classes = {
+    BARD: extractPdf(sourceDefinitions.SRD_5_2_1.pdf, ["-raw", "-f", "33", "-l", "36"]),
+    CLERIC: extractPdf(sourceDefinitions.SRD_5_2_1.pdf, ["-raw", "-f", "38", "-l", "41"]),
+    DRUID: extractPdf(sourceDefinitions.SRD_5_2_1.pdf, ["-raw", "-f", "44", "-l", "48"]),
+    PALADIN: extractPdf(sourceDefinitions.SRD_5_2_1.pdf, ["-raw", "-f", "55", "-l", "58"]),
+    RANGER: extractPdf(sourceDefinitions.SRD_5_2_1.pdf, ["-raw", "-f", "60", "-l", "63"]),
+    SORCERER: extractPdf(sourceDefinitions.SRD_5_2_1.pdf, ["-raw", "-f", "67", "-l", "71"]),
+    WARLOCK: extractPdf(sourceDefinitions.SRD_5_2_1.pdf, ["-raw", "-f", "74", "-l", "77"]),
+    WIZARD: extractPdf(sourceDefinitions.SRD_5_2_1.pdf, ["-raw", "-f", "79", "-l", "82"]),
+  };
 
   const lists51 = {
+    BARD: parse51ClassList(raw51Lists, "Bard Spells", "Cleric Spells"),
+    CLERIC: parse51ClassList(raw51Lists, "Cleric Spells", "Druid Spells"),
+    DRUID: parse51ClassList(raw51Lists, "Druid Spells", "Paladin Spells"),
+    PALADIN: parse51ClassList(raw51Lists, "Paladin Spells", "Ranger Spells"),
+    RANGER: parse51ClassList(raw51Lists, "Ranger Spells", "Sorcerer Spells"),
     SORCERER: parse51ClassList(raw51Lists, "Sorcerer Spells", "Warlock Spells"),
+    WARLOCK: parse51ClassList(raw51Lists, "Warlock Spells", "Wizard Spells"),
     WIZARD: parse51ClassList(raw51Lists, "Wizard Spells", "Spell Descriptions"),
   };
-  const names51 = [...new Set([...lists51.SORCERER.flatMap(level => level.names), ...lists51.WIZARD.flatMap(level => level.names)])];
+  const names51 = [...new Set(Object.values(lists51).flatMap(levels => levels.flatMap(level => level.names)))];
   const metadata51 = parse51Metadata(raw51All, names51);
 
-  const lists521 = {
-    SORCERER: parse521ClassList(raw521Sorcerer, "Sorcerer", "Sorcerer Subclass"),
-    WIZARD: parse521ClassList(raw521Wizard, "Wizard", "Wizard Subclass"),
-  };
+  const lists521 = Object.fromEntries(spellClasses.map(className => {
+    const displayName = classDisplayNames[className];
+    return [className, parse521ClassList(raw521Classes[className], displayName, `${displayName} Subclass`)];
+  }));
 
   const revisions = [
     buildRevision(sourceDefinitions.SRD_5_1, lists51, metadata51),
@@ -127,9 +144,8 @@ try {
   writeKotlin(revisions);
 
   for (const revision of revisions) {
-    const sorcererCount = revision.spells.filter(spell => spell.classes.includes("SORCERER")).length;
-    const wizardCount = revision.spells.filter(spell => spell.classes.includes("WIZARD")).length;
-    console.log(`${revision.source.revision}: ${revision.spells.length} unique; Sorcerer ${sorcererCount}; Wizard ${wizardCount}`);
+    const counts = spellClasses.map(className => `${classDisplayNames[className]} ${revision.spells.filter(spell => spell.classes.includes(className)).length}`);
+    console.log(`${revision.source.revision}: ${revision.spells.length} unique; ${counts.join("; ")}`);
   }
 } finally {
   rmSync(tempRoot, { recursive: true, force: true });
@@ -311,7 +327,7 @@ function buildRevision(source, lists, metadata = null) {
 }
 
 function normalizeName(name) {
-  return repairText(name).replace(/\s+/g, " ").trim();
+  return repairText(name).replace(/[‘’]/g, "'").replace(/\s+/g, " ").trim();
 }
 
 function titleCase(value) {
@@ -393,19 +409,20 @@ function validateCatalog(revisions) {
       if (!spell.en.name || !spell.de.name || !spell.en.summary || !spell.de.summary) throw new Error(`${spell.id}: incomplete locale text`);
       if (spell.castPreviews.some(preview => preview.slotLevel < Math.max(1, spell.level))) throw new Error(`${spell.id}: invalid cast preview`);
     }
-    for (const className of ["SORCERER", "WIZARD"]) {
+    for (const className of spellClasses) {
       const classSpells = revision.spells.filter(spell => spell.classes.includes(className));
       const sorted = [...classSpells].sort(spellComparator);
       if (classSpells.some((spell, index) => spell.id !== sorted[index].id)) throw new Error(`${revision.source.revision}: ${className} not sorted`);
     }
-    const counts = {
-      unique: revision.spells.length,
-      sorcerer: revision.spells.filter(spell => spell.classes.includes("SORCERER")).length,
-      wizard: revision.spells.filter(spell => spell.classes.includes("WIZARD")).length,
-    };
-    for (const [key, expected] of Object.entries(revision.source.expectedCounts)) {
-      if (counts[key] !== expected) {
-        throw new Error(`${revision.source.revision}: ${key} count ${counts[key]} does not match audited ${expected}`);
+    if (revision.source.expectedCounts) {
+      const counts = Object.fromEntries([
+        ["unique", revision.spells.length],
+        ...spellClasses.map(className => [className.toLowerCase(), revision.spells.filter(spell => spell.classes.includes(className)).length]),
+      ]);
+      for (const [key, expected] of Object.entries(revision.source.expectedCounts)) {
+        if (counts[key] !== expected) {
+          throw new Error(`${revision.source.revision}: ${key} count ${counts[key]} does not match audited ${expected}`);
+        }
       }
     }
   }
@@ -424,8 +441,7 @@ function writeCatalogSource(revisions) {
       url: revision.source.sourceUrl,
       sha256: revision.source.expectedSha256,
       uniqueSpellCount: revision.spells.length,
-      sorcererSpellCount: revision.spells.filter(spell => spell.classes.includes("SORCERER")).length,
-      wizardSpellCount: revision.spells.filter(spell => spell.classes.includes("WIZARD")).length,
+      classSpellCounts: Object.fromEntries(spellClasses.map(className => [className.toLowerCase(), revision.spells.filter(spell => spell.classes.includes(className)).length])),
     })),
     entries: revisions.flatMap(revision => revision.spells),
   });
@@ -454,7 +470,7 @@ function writePacks(revisions) {
       contentStatus: "audited-snapshot",
       distributionReady: true,
       coverageReport: `../../reports/${reportName}`,
-      notes: "Complete Sorcerer and Wizard class-list spell index for this SRD revision; summaries are original compact catalog copy, not replacement rules text.",
+      notes: "Complete eight-class spell index for this SRD revision; summaries are original compact catalog copy, not replacement rules text.",
     });
     for (const locale of ["en", "de"]) {
       writeJson(join(packRoot, `entries.${locale}.json`), {
@@ -520,7 +536,7 @@ function coverageReport(revision) {
     summary: { seen: spells.length, included: spells.length, excluded: 0, pendingReview: 0 },
     records: spells.map(spell => ({
       sourceId: spell.id,
-      category: "wizard-sorcerer-spell",
+      category: "class-list-spell",
       decision: "included",
       reason: `Appears on the ${spell.classes.map(value => titleCase(value)).join(" and ")} class spell list.`,
       licenseEvidence: `${source.work}, CC-BY-4.0, pinned SHA-256 ${source.expectedSha256}`,
@@ -531,12 +547,13 @@ function coverageReport(revision) {
 
 function writeKotlin(revisions) {
   const entries = revisions.flatMap(revision => revision.spells);
+  const chunks = Array.from({ length: Math.ceil(entries.length / 40) }, (_, index) => entries.slice(index * 40, index * 40 + 40));
   const lines = [];
   lines.push("package app.dulliesanddungeons.rules");
   lines.push("");
   lines.push("/** Generated by scripts/generate-srd-spell-catalog.mjs. Do not hand-edit. */");
   lines.push("internal enum class SrdSpellRevision { SRD_5_1, SRD_5_2_1 }");
-  lines.push("internal enum class SrdSpellClass { SORCERER, WIZARD }");
+  lines.push(`internal enum class SrdSpellClass { ${spellClasses.join(", ")} }`);
   lines.push("internal data class SrdSpellText(val name: String, val summary: String)");
   lines.push("internal data class SrdSpellCastPreview(val slotLevel: Int, val en: String, val de: String)");
   lines.push("internal data class SrdSpellCatalogEntry(");
@@ -556,9 +573,15 @@ function writeKotlin(revisions) {
   lines.push("");
   lines.push("internal object SrdSpellCatalog {");
   lines.push("    val entries: List<SrdSpellCatalogEntry> = listOf(");
-  for (const spell of entries) lines.push(kotlinEntry(spell));
-  lines.push("    )");
+  for (let index = 0; index < chunks.length; index += 1) lines.push(`        entries${index}(),`);
+  lines.push("    ).flatten()");
   lines.push("");
+  chunks.forEach((chunk, index) => {
+    lines.push(`    private fun entries${index}(): List<SrdSpellCatalogEntry> = listOf(`);
+    for (const spell of chunk) lines.push(kotlinEntry(spell));
+    lines.push("    )");
+    lines.push("");
+  });
   lines.push("    fun forClass(revision: SrdSpellRevision, spellClass: SrdSpellClass): List<SrdSpellCatalogEntry> =");
   lines.push("        entries.filter { it.revision == revision && spellClass in it.classes }");
   lines.push("");

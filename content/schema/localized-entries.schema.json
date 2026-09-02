@@ -34,9 +34,12 @@
           "enum": [
             "action",
             "ancestry",
+            "background",
             "class",
             "condition",
+            "creature",
             "equipment",
+            "feat",
             "feature",
             "knowledge",
             "language",
@@ -96,7 +99,18 @@
               "type": "array",
               "minItems": 1,
               "uniqueItems": true,
-              "items": { "enum": ["sorcerer", "wizard"] }
+              "items": {
+                "enum": [
+                  "bard",
+                  "cleric",
+                  "druid",
+                  "paladin",
+                  "ranger",
+                  "sorcerer",
+                  "warlock",
+                  "wizard"
+                ]
+              }
             },
             "school": {
               "enum": [
@@ -149,6 +163,34 @@
                 "uniqueItems": true,
                 "items": { "type": "string", "minLength": 1 }
               }
+            }
+          }
+        },
+        "creature": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["stableId", "revision", "size", "type"],
+          "properties": {
+            "stableId": { "type": "string", "pattern": "^creature\\.[a-z0-9][a-z0-9.-]+$" },
+            "revision": { "enum": ["2014-srd-5.1", "2024-srd-5.2.1"] },
+            "size": { "enum": ["tiny", "small", "medium", "large", "huge", "gargantuan"] },
+            "type": {
+              "enum": [
+                "aberration",
+                "beast",
+                "celestial",
+                "construct",
+                "dragon",
+                "elemental",
+                "fey",
+                "fiend",
+                "giant",
+                "humanoid",
+                "monstrosity",
+                "ooze",
+                "plant",
+                "undead"
+              ]
             }
           }
         }

@@ -37,9 +37,10 @@ analytics, remote fonts, crash-upload SDKs, or content downloads. Portraits are
 copied and normalized into app-private storage. Android cloud backup is disabled;
 manual import/export goes through the system document picker.
 
-Search in the current slice is an in-memory index over the selected character and bundled
-beginner knowledge entries. The pack compiler is designed to replace it with local SQLite FTS as
-the audited compendium grows. No search query leaves the device in either design.
+Search in the current slice is an in-memory index over the selected character, approved private
+entries, built-in equipment, and the generated SRD spell/Wiki catalogs for that character's exact
+rules revision. Search normalizes English and German terms and never sends a query off-device. A
+future pack compiler can replace the index with local SQLite FTS without changing that boundary.
 
 ## Persistence and recovery
 

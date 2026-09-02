@@ -1629,6 +1629,52 @@ class DndAppStateTest {
     }
 
     @Test
+    fun playerWikiSearchesSchoolsSpellsAndPlayerSafeCreaturesOffline() {
+        val state = DndAppState(FakeStore())
+
+        val conjuration = state.search("Conjuration").first()
+        assertEquals("Conjuration", conjuration.title)
+        assertTrue(state.search("spell").size > 300)
+
+        val golem = state.search("Iron Golem").first()
+        assertEquals("Iron Golem", golem.title)
+        assertTrue(golem.subtitle.contains("Creature"))
+        assertTrue(golem.detailBody.contains("Large Construct"))
+        assertFalse(golem.detailBody.contains("Armor Class"))
+        assertFalse(golem.detailBody.contains("Hit Points"))
+        assertFalse(golem.detailBody.contains("Challenge Rating"))
+
+        state.toggleLanguage()
+        assertEquals("Beschwörung", state.search("Beschworung").first().title)
+        assertEquals("Eisengolem", state.search("Eisengolem").first().title)
+    }
+
+    @Test
+    fun wikiUsesOnlyTheCharactersSrdRevision() {
+        val state = DndAppState(FakeStore())
+        assertTrue(state.search("golem").filter { it.id.startsWith("wiki-") }.all { "srd_5_2_1" in it.id })
+
+        state.openCharacter("seed-sorcerer-5")
+        assertTrue(state.search("golem").filter { it.id.startsWith("wiki-") }.all { "srd_5_1" in it.id })
+    }
+
+    @Test
+    fun approvedPrivateRacesCreaturesAndFeaturesJoinWikiWithRulesetFiltering() {
+        val state = DndAppState(FakeStore())
+        state.addPrivateEntry(PrivateEntryUi("warforged", "Species", "Warforged", "A private table ancestry.", "ruleset=2024"))
+        state.addPrivateEntry(PrivateEntryUi("blade-song", "Feature", "Blade Song", "A private wizard feature.", "ruleset=2024"))
+        state.addPrivateEntry(PrivateEntryUi("clockwork-titan", "Creature", "Clockwork Titan", "A private construct.", "ruleset=2014"))
+
+        assertTrue(state.search("Warforged").single { it.id == "local-wiki-warforged" }.subtitle.startsWith("Local"))
+        assertTrue(state.search("Blade Song").any { it.id == "local-wiki-blade-song" })
+        assertTrue(state.search("Clockwork Titan").none { it.id == "local-wiki-clockwork-titan" })
+
+        state.openCharacter("seed-sorcerer-5")
+        assertTrue(state.search("Clockwork Titan").any { it.id == "local-wiki-clockwork-titan" })
+        assertTrue(state.search("Warforged").none { it.id == "local-wiki-warforged" })
+    }
+
+    @Test
     fun recordedPlayEnablesRestAndLongRestCanConsumeOneRation() {
         val store = FakeStore()
         val state = DndAppState(store)
