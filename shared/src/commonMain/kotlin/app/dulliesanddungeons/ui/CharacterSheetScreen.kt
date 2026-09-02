@@ -132,6 +132,7 @@ import org.jetbrains.compose.resources.decodeToImageBitmap
 internal fun CharacterSheetScreen(
     state: DndAppState,
     onPickPortrait: (PortraitPickTarget) -> Unit,
+    onEditPortrait: (PortraitPickTarget) -> Unit,
 ) {
     val character = state.selectedCharacter
     if (character == null) {
@@ -489,6 +490,7 @@ internal fun CharacterSheetScreen(
             portraitData = portraitData,
             onDismiss = { portraitViewerOpen = false },
             onExchange = { onPickPortrait(PortraitPickTarget.Character(character.id)) },
+            onEdit = { onEditPortrait(PortraitPickTarget.Character(character.id)) },
             onDelete = {
                 if (state.deleteCharacterPortrait(character.id)) portraitViewerOpen = false
             },
@@ -523,6 +525,7 @@ private fun PortraitViewerDialog(
     portraitData: ByteArray,
     onDismiss: () -> Unit,
     onExchange: () -> Unit,
+    onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
     var confirmDelete by remember(character.id) { mutableStateOf(false) }
@@ -549,23 +552,33 @@ private fun PortraitViewerDialog(
                     }
                 }
                 Surface(color = MaterialTheme.colorScheme.background) {
-                    Row(
+                    Column(
                         Modifier.fillMaxWidth().padding(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        OutlinedButton(
-                            onClick = { confirmDelete = true },
-                            modifier = Modifier.weight(1f).height(52.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                        ) {
-                            Icon(Icons.Rounded.Delete, contentDescription = null)
+                        Button(onClick = onEdit, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+                            Icon(Icons.Rounded.Edit, contentDescription = null)
                             Spacer(Modifier.width(7.dp))
-                            Text(state.t("Delete", "Löschen"))
+                            Text(state.t("Edit crop", "Zuschnitt bearbeiten"))
                         }
-                        Button(onClick = onExchange, modifier = Modifier.weight(1f).height(52.dp)) {
-                            Icon(Icons.Rounded.Refresh, contentDescription = null)
-                            Spacer(Modifier.width(7.dp))
-                            Text(state.t("Exchange", "Austauschen"))
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            OutlinedButton(onClick = onExchange, modifier = Modifier.weight(1f).height(48.dp)) {
+                                Icon(Icons.Rounded.Refresh, contentDescription = null)
+                                Spacer(Modifier.width(7.dp))
+                                Text(state.t("Replace", "Ersetzen"))
+                            }
+                            TextButton(
+                                onClick = { confirmDelete = true },
+                                modifier = Modifier.weight(1f).height(48.dp),
+                                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                            ) {
+                                Icon(Icons.Rounded.Delete, contentDescription = null)
+                                Spacer(Modifier.width(7.dp))
+                                Text(state.t("Delete", "Löschen"))
+                            }
                         }
                     }
                 }

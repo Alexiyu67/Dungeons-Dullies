@@ -5,6 +5,7 @@ import android.util.AtomicFile
 import app.dulliesanddungeons.data.LocalStateStore
 import java.io.File
 import java.io.FileOutputStream
+import java.util.UUID
 
 internal class AndroidLocalStateStore(context: Context) : LocalStateStore {
     private val stateFile = AtomicFile(File(context.filesDir, "character-state-v1.json"))
@@ -51,12 +52,20 @@ internal class AndroidLocalStateStore(context: Context) : LocalStateStore {
     }
 
     override fun writePortrait(characterId: String, bytes: ByteArray): String? = runCatching {
+        writePortraitFile(characterId, "display", bytes)
+    }.getOrNull()
+
+    override fun writePortraitSource(characterId: String, bytes: ByteArray): String? = runCatching {
+        writePortraitFile(characterId, "source", bytes)
+    }.getOrNull()
+
+    private fun writePortraitFile(characterId: String, kind: String, bytes: ByteArray): String {
         if (!portraitDirectory.exists()) portraitDirectory.mkdirs()
         val safeId = characterId.replace(Regex("[^A-Za-z0-9_-]"), "_")
-        val fileName = "$safeId-${bytes.contentHashCode().toUInt().toString(16)}.jpg"
+        val fileName = "$safeId-$kind-${UUID.randomUUID()}.jpg"
         File(portraitDirectory, fileName).writeBytes(bytes)
-        fileName
-    }.getOrNull()
+        return fileName
+    }
 
     override fun readPortrait(fileName: String): ByteArray? {
         if (fileName != File(fileName).name) return null

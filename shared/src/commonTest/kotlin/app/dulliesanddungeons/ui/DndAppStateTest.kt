@@ -3,6 +3,7 @@ package app.dulliesanddungeons.ui
 import app.dulliesanddungeons.data.LocalStateStore
 import app.dulliesanddungeons.data.PersistedAppState
 import app.dulliesanddungeons.domain.ActionCost
+import app.dulliesanddungeons.domain.PortraitCrop
 import app.dulliesanddungeons.domain.Recovery
 import app.dulliesanddungeons.domain.RollMode
 import app.dulliesanddungeons.domain.RecoveryAmount
@@ -178,6 +179,142 @@ class DndAppStateTest {
         assertTrue(state.editorOpen)
         assertEquals(target.id, state.selectedCharacterId)
         assertEquals(target.id, state.editorDraft?.original?.id)
+    }
+
+    @Test
+    fun portraitSourceAndCropSurviveRestartAndAreDeletedTogether() {
+        val store = FakeStore()
+        val state = DndAppState(store)
+        val character = assertNotNull(state.selectedCharacter)
+        val sourceBytes = byteArrayOf(1, 2, 3, 4, 5)
+        val displayBytes = byteArrayOf(9, 8, 7)
+        val crop = PortraitCrop(
+            rotationQuarterTurns = 1,
+            centerXFraction = 0.4f,
+            centerYFraction = 0.6f,
+            sizeFractionOfShortEdge = 0.55f,
+        )
+
+        assertTrue(
+            state.selectPortrait(
+                PortraitPickTarget.Character(character.id),
+                PortraitEditResult(sourceBytes, displayBytes, crop),
+            )
+        )
+        val saved = assertNotNull(state.selectedCharacter)
+        val displayFile = assertNotNull(saved.portraitFileName)
+        val sourceFile = assertNotNull(saved.portraitSourceFileName)
+        assertTrue(displayFile != sourceFile)
+
+        val restored = DndAppState(store)
+        val editSource = assertNotNull(restored.portraitEditSource(PortraitPickTarget.Character(character.id)))
+        assertContentEquals(sourceBytes, editSource.sourceBytes)
+        assertEquals(crop, editSource.crop)
+        assertFalse(editSource.usesRenderedFallback)
+
+        assertTrue(restored.deleteCharacterPortrait(character.id))
+        assertTrue(displayFile in store.deletedPortraits)
+        assertTrue(sourceFile in store.deletedPortraits)
+    }
+
+    @Test
+    fun legacyPortraitUsesRenderedImageAsEditSource() {
+        val legacyBytes = byteArrayOf(6, 5, 4, 3)
+        val legacyName = "legacy.jpg"
+        val seed = assertNotNull(DndAppState(FakeStore()).selectedCharacter)
+            .copy(portraitFileName = legacyName, portraitSourceFileName = null, portraitCrop = null)
+        val payload = Json.encodeToString(PersistedAppState(characters = listOf(seed.toDocument())))
+        val store = FakeStore(payload).apply { putPortrait(legacyName, legacyBytes) }
+
+        val restored = DndAppState(store)
+        val editSource = assertNotNull(restored.portraitEditSource(PortraitPickTarget.Character(seed.id)))
+
+        assertContentEquals(legacyBytes, editSource.sourceBytes)
+        assertEquals(PortraitCrop(), editSource.crop)
+        assertTrue(editSource.usesRenderedFallback)
+    }
+
+    @Test
+    fun failedSourceWriteKeepsThePreviousPortraitAndCleansThePartialDisplay() {
+        val store = FakeStore()
+        val state = DndAppState(store)
+        val character = assertNotNull(state.selectedCharacter)
+        assertTrue(
+            state.selectPortrait(
+                PortraitPickTarget.Character(character.id),
+                PortraitEditResult(byteArrayOf(1, 2), byteArrayOf(3, 4), PortraitCrop()),
+            )
+        )
+        val previous = assertNotNull(state.selectedCharacter)
+        val previousDisplay = assertNotNull(previous.portraitFileName)
+        val previousSource = assertNotNull(previous.portraitSourceFileName)
+
+        store.failSourceWrites = true
+        assertFalse(
+            state.selectPortrait(
+                PortraitPickTarget.Character(character.id),
+                PortraitEditResult(byteArrayOf(5, 6), byteArrayOf(7, 8), PortraitCrop(1)),
+            )
+        )
+
+        assertEquals(previousDisplay, state.selectedCharacter?.portraitFileName)
+        assertEquals(previousSource, state.selectedCharacter?.portraitSourceFileName)
+        assertContentEquals(byteArrayOf(3, 4), assertNotNull(state.portraitBytes(assertNotNull(state.selectedCharacter))))
+        assertTrue(store.deletedPortraits.any { it != previousDisplay && it != previousSource })
+    }
+
+    @Test
+    fun failedStateWriteRestoresThePreviousPortraitAndCleansNewAssets() {
+        val store = FakeStore()
+        val state = DndAppState(store)
+        val character = assertNotNull(state.selectedCharacter)
+        assertTrue(
+            state.selectPortrait(
+                PortraitPickTarget.Character(character.id),
+                PortraitEditResult(byteArrayOf(1, 2), byteArrayOf(3, 4), PortraitCrop()),
+            )
+        )
+        val previous = assertNotNull(state.selectedCharacter)
+        val previousDisplay = assertNotNull(previous.portraitFileName)
+        val previousSource = assertNotNull(previous.portraitSourceFileName)
+
+        store.failStateWrites = true
+        assertFalse(
+            state.selectPortrait(
+                PortraitPickTarget.Character(character.id),
+                PortraitEditResult(byteArrayOf(5, 6), byteArrayOf(7, 8), PortraitCrop(1)),
+            )
+        )
+
+        assertEquals(previousDisplay, state.selectedCharacter?.portraitFileName)
+        assertEquals(previousSource, state.selectedCharacter?.portraitSourceFileName)
+        assertTrue(store.deletedPortraits.any { it != previousDisplay && it != previousSource })
+        assertFalse(previousDisplay in store.deletedPortraits)
+        assertFalse(previousSource in store.deletedPortraits)
+    }
+
+    @Test
+    fun convertedCharactersSharePortraitAssetsUntilTheLastReferenceIsRemoved() {
+        val store = FakeStore()
+        val state = DndAppState(store)
+        val original = assertNotNull(state.selectedCharacter)
+        assertTrue(
+            state.selectPortrait(
+                PortraitPickTarget.Character(original.id),
+                PortraitEditResult(byteArrayOf(1, 2), byteArrayOf(3, 4), PortraitCrop()),
+            )
+        )
+        val displayFile = assertNotNull(state.selectedCharacter?.portraitFileName)
+        val sourceFile = assertNotNull(state.selectedCharacter?.portraitSourceFileName)
+        state.beginEdit()
+        assertNotNull(state.editorDraft).ruleset = Ruleset.Fifth2014
+        assertTrue(state.saveEdit())
+        val converted = assertNotNull(state.selectedCharacter)
+
+        assertTrue(state.deleteCharacterPortrait(converted.id))
+        assertFalse(displayFile in store.deletedPortraits)
+        assertFalse(sourceFile in store.deletedPortraits)
+        assertContentEquals(byteArrayOf(3, 4), assertNotNull(state.portraitBytes(state.characters.first { it.id == original.id })))
     }
 
     @Test
@@ -1198,18 +1335,24 @@ private class FakeStore(initialState: String? = null) : LocalStateStore {
     private var state: String? = initialState
     private val portraits = mutableMapOf<String, ByteArray>()
     val deletedPortraits = mutableSetOf<String>()
+    var failSourceWrites = false
+    var failStateWrites = false
 
     override fun readState(): String? = state
 
     override fun writeState(value: String) {
+        if (failStateWrites) error("state-write-failed")
         state = value
     }
 
     override fun writePortrait(characterId: String, bytes: ByteArray): String {
-        val name = "$characterId.jpg"
+        val name = "$characterId-${bytes.contentHashCode().toUInt().toString(16)}.jpg"
         portraits[name] = bytes
         return name
     }
+
+    override fun writePortraitSource(characterId: String, bytes: ByteArray): String? =
+        if (failSourceWrites) null else writePortrait("$characterId-source", bytes)
 
     override fun readPortrait(fileName: String): ByteArray? = portraits[fileName]
 
@@ -1220,4 +1363,8 @@ private class FakeStore(initialState: String? = null) : LocalStateStore {
     }
 
     fun raw(): String? = state
+
+    fun putPortrait(fileName: String, bytes: ByteArray) {
+        portraits[fileName] = bytes
+    }
 }

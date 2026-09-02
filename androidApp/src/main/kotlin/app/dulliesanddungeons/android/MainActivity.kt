@@ -1,8 +1,6 @@
 package app.dulliesanddungeons.android
 
 import android.animation.ValueAnimator
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
@@ -21,9 +19,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import androidx.core.graphics.scale
 import androidx.lifecycle.lifecycleScope
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
@@ -39,7 +37,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import java.io.ByteArrayOutputStream
 import java.util.UUID
 
 class MainActivity : ComponentActivity() {
@@ -65,12 +62,29 @@ class MainActivity : ComponentActivity() {
                 is BootstrapState.Error -> BootstrapErrorScreen(current.failure, ::beginBootstrap)
                 is BootstrapState.Ready -> {
                     var portraitTarget by remember(current.appState) { mutableStateOf<PortraitPickTarget?>(null) }
+                    var portraitEditorSession by remember(current.appState) { mutableStateOf<PortraitEditorSession?>(null) }
+                    var portraitSaving by remember(current.appState) { mutableStateOf(false) }
+                    val portraitScope = rememberCoroutineScope()
+                    fun showPortraitError() {
+                        Toast.makeText(
+                            this@MainActivity,
+                            current.appState.t("Portrait could not be opened", "Porträt konnte nicht geöffnet werden"),
+                            Toast.LENGTH_LONG,
+                        ).show()
+                    }
                     val portraitPicker = rememberLauncherForActivityResult(PickVisualMedia()) { uri ->
                         val target = portraitTarget
                         portraitTarget = null
-                        if (target != null) {
-                            uri?.let(::normalizedPortrait)?.let { bytes ->
-                                current.appState.selectPortrait(target, bytes)
+                        if (target != null && uri != null) {
+                            portraitScope.launch {
+                                val session = withContext(Dispatchers.IO) {
+                                    PortraitImageProcessor.fromUri(contentResolver, uri, target)
+                                }
+                                if (session == null) {
+                                    showPortraitError()
+                                } else {
+                                    portraitEditorSession = session
+                                }
                             }
                         }
                     }
@@ -80,7 +94,55 @@ class MainActivity : ComponentActivity() {
                             portraitTarget = target
                             portraitPicker.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly))
                         },
+                        onEditPortrait = { target ->
+                            val source = current.appState.portraitEditSource(target)
+                            if (source == null) {
+                                showPortraitError()
+                            } else {
+                                portraitScope.launch {
+                                    val session = withContext(Dispatchers.IO) {
+                                        PortraitImageProcessor.fromSource(source, target)
+                                    }
+                                    if (session == null) {
+                                        showPortraitError()
+                                    } else {
+                                        portraitEditorSession = session
+                                    }
+                                }
+                            }
+                        },
                         onImportPrivateContent = ::launchPrivateImport,
+                        portraitEditor = {
+                            portraitEditorSession?.let { session ->
+                                PortraitCropDialog(
+                                    state = current.appState,
+                                    session = session,
+                                    saving = portraitSaving,
+                                    onDismiss = { portraitEditorSession = null },
+                                    onSave = { crop ->
+                                        portraitSaving = true
+                                        portraitScope.launch {
+                                            val result = withContext(Dispatchers.IO) {
+                                                PortraitImageProcessor.render(session, crop)
+                                            }
+                                            val saved = result?.let {
+                                                current.appState.selectPortrait(session.target, it)
+                                            } == true
+                                            if (saved) {
+                                                portraitEditorSession = null
+                                            } else {
+                                                Toast.makeText(
+                                                    this@MainActivity,
+                                                    current.appState.t("Portrait could not be saved", "Porträt konnte nicht gespeichert werden"),
+                                                    Toast.LENGTH_LONG,
+                                                ).show()
+                                            }
+                                            portraitSaving = false
+                                        }
+                                    },
+                                )
+                            }
+                        },
                     )
                 }
             }
@@ -217,22 +279,6 @@ class MainActivity : ComponentActivity() {
             delay(250)
         }
     }
-
-    private fun normalizedPortrait(uri: Uri): ByteArray? = runCatching {
-        val source = contentResolver.openInputStream(uri)?.use(BitmapFactory::decodeStream) ?: return null
-        val longest = maxOf(source.width, source.height)
-        val scaled = if (longest > 512) {
-            val scale = 512f / longest
-            source.scale((source.width * scale).toInt(), (source.height * scale).toInt())
-        } else source
-        ByteArrayOutputStream().use { output ->
-            scaled.compress(Bitmap.CompressFormat.JPEG, 86, output)
-            output.toByteArray()
-        }.also {
-            if (scaled !== source) scaled.recycle()
-            source.recycle()
-        }
-    }.getOrNull()
 
     private sealed interface BootstrapState {
         data object Loading : BootstrapState

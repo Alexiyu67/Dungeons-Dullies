@@ -18,6 +18,7 @@ import app.dulliesanddungeons.domain.DiceRoll
 import app.dulliesanddungeons.domain.HitPointChangeKind
 import app.dulliesanddungeons.domain.MovementMode
 import app.dulliesanddungeons.domain.PlaySessionRecord
+import app.dulliesanddungeons.domain.PortraitCrop
 import app.dulliesanddungeons.domain.Recovery
 import app.dulliesanddungeons.domain.RollMode
 import app.dulliesanddungeons.domain.RollRequest
@@ -53,6 +54,24 @@ sealed interface PortraitPickTarget {
     data object Editor : PortraitPickTarget
     data class Character(val characterId: String) : PortraitPickTarget
 }
+
+data class PortraitEditResult(
+    val sourceBytes: ByteArray,
+    val portraitBytes: ByteArray,
+    val crop: PortraitCrop,
+)
+
+data class PortraitEditSource(
+    val sourceBytes: ByteArray,
+    val crop: PortraitCrop,
+    val usesRenderedFallback: Boolean = false,
+)
+
+private data class StoredPortraitAssets(
+    val displayFileName: String,
+    val sourceFileName: String,
+    val crop: PortraitCrop,
+)
 
 enum class StatMethod { Rolled, StandardArray, PointBuy, Manual }
 
@@ -288,6 +307,8 @@ data class CharacterUi(
     val proficiency: Int,
     val portraitSeed: Int,
     val portraitFileName: String? = null,
+    val portraitSourceFileName: String? = null,
+    val portraitCrop: PortraitCrop? = null,
     val abilities: Map<String, Int>,
     val skills: Map<String, Int>,
     val saves: Map<String, Int>,
@@ -787,6 +808,8 @@ class CreationDraft {
     val languages = mutableStateListOf("Common")
     var startingArmorChoice by mutableStateOf<StartingArmorChoice>(StartingArmorChoice.Recommended)
     var portraitBytes by mutableStateOf<ByteArray?>(null)
+    var portraitSourceBytes by mutableStateOf<ByteArray?>(null)
+    var portraitCrop by mutableStateOf<PortraitCrop?>(null)
     val rolledScores = mutableStateListOf<Int>()
     val manualAbilities = mutableStateMapOf(
         "STR" to 10, "DEX" to 10, "CON" to 10, "INT" to 10, "WIS" to 10, "CHA" to 10,
@@ -813,6 +836,8 @@ class CreationDraft {
         languages += "Common"
         startingArmorChoice = StartingArmorChoice.Recommended
         portraitBytes = null
+        portraitSourceBytes = null
+        portraitCrop = null
         rolledScores.clear()
         manualAbilities.keys.toList().forEach { manualAbilities[it] = 10 }
     }
@@ -836,7 +861,7 @@ class LevelUpDraft(character: CharacterUi, initialHitDieSides: Int) {
 
 enum class EditorSection { Hub, Identity, Build, Abilities, Combat, Spells, Review }
 
-class CharacterEditorDraft(character: CharacterUi, portrait: ByteArray?) {
+class CharacterEditorDraft(character: CharacterUi, portrait: ByteArray?, portraitSource: PortraitEditSource?) {
     val original = character
     var section by mutableStateOf(EditorSection.Hub)
     var name by mutableStateOf(character.name)
@@ -857,6 +882,8 @@ class CharacterEditorDraft(character: CharacterUi, portrait: ByteArray?) {
     var initiativeManual by mutableStateOf(character.derivation.initiative == null)
     var proficiencyManual by mutableStateOf(!character.derivation.proficiencyFromLevel)
     var portraitBytes by mutableStateOf(portrait)
+    var portraitSourceBytes by mutableStateOf(portraitSource?.sourceBytes)
+    var portraitCrop by mutableStateOf(portraitSource?.crop)
     var portraitChanged by mutableStateOf(false)
     val abilities = mutableStateMapOf<String, Int>().apply { putAll(character.abilities) }
     val spells = mutableStateListOf<SpellUi>().apply { addAll(character.spells) }
@@ -1062,7 +1089,15 @@ class DndAppState(
         val id = "character-${characters.size + 1}-${Random.nextInt(10_000)}"
         val caster = isCasterClass(creation.ruleset, creation.className) ||
             privateEntryForName("class", creation.className)?.formula?.contains("caster", ignoreCase = true) == true
-        val portraitFileName = creation.portraitBytes?.let { storage.writePortrait(id, it) }
+        val portraitResult = creation.portraitBytes?.let { portraitBytes ->
+            PortraitEditResult(
+                sourceBytes = creation.portraitSourceBytes ?: portraitBytes,
+                portraitBytes = portraitBytes,
+                crop = creation.portraitCrop ?: PortraitCrop(),
+            )
+        }
+        val portraitAssets = portraitResult?.let { writePortraitAssets(id, it) }
+        val portraitSaveFailed = portraitResult != null && portraitAssets == null
         val abilities = abilityScoresForDraft()
         val constitutionModifier = abilityModifier(abilities.getValue("CON"))
         val dexterityModifier = abilityModifier(abilities.getValue("DEX"))
@@ -1145,7 +1180,9 @@ class DndAppState(
             initiative = if (creation.ruleset == Ruleset.Pf2eRemaster) abilityModifier(abilities.getValue("WIS")) + proficiency else dexterityModifier,
             proficiency = proficiency,
             portraitSeed = characters.size + 2,
-            portraitFileName = portraitFileName,
+            portraitFileName = portraitAssets?.displayFileName,
+            portraitSourceFileName = portraitAssets?.sourceFileName,
+            portraitCrop = portraitAssets?.crop,
             abilities = abilities,
             skills = linkedMapOf(
                 "Athletics" to abilityModifier(abilities.getValue("STR")) + if (creation.ruleset == Ruleset.Pf2eRemaster) proficiency else 0,
@@ -1190,43 +1227,117 @@ class DndAppState(
             ),
         )
         characters += created
-        persist()
+        if (!persist()) {
+            characters.remove(created)
+            deletePortraitFileIfUnused(portraitAssets?.displayFileName)
+            deletePortraitFileIfUnused(portraitAssets?.sourceFileName)
+            showInfo(
+                t("Character not saved", "Charakter nicht gespeichert"),
+                t("Your character could not be stored. Please try again.", "Dein Charakter konnte nicht gespeichert werden. Versuche es erneut."),
+            )
+            return
+        }
         openCharacter(created.id)
-    }
-
-    fun selectDraftPortrait(bytes: ByteArray) {
-        creation.portraitBytes = bytes
-    }
-
-    fun selectPortrait(target: PortraitPickTarget, bytes: ByteArray) {
-        when (target) {
-            PortraitPickTarget.Creation -> selectDraftPortrait(bytes)
-            PortraitPickTarget.Editor -> editorDraft?.let { draft ->
-                draft.portraitBytes = bytes
-                draft.portraitChanged = true
-            }
-            is PortraitPickTarget.Character -> replaceCharacterPortrait(target.characterId, bytes)
+        if (portraitSaveFailed) {
+            showInfo(
+                t("Portrait not saved", "Porträt nicht gespeichert"),
+                t("The character was created without the selected portrait.", "Der Charakter wurde ohne das ausgewählte Porträt erstellt."),
+            )
         }
     }
 
-    private fun replaceCharacterPortrait(characterId: String, bytes: ByteArray): Boolean {
+    fun selectDraftPortrait(bytes: ByteArray) {
+        selectPortrait(PortraitPickTarget.Creation, PortraitEditResult(bytes, bytes, PortraitCrop()))
+    }
+
+    fun selectPortrait(target: PortraitPickTarget, bytes: ByteArray): Boolean =
+        selectPortrait(target, PortraitEditResult(bytes, bytes, PortraitCrop()))
+
+    fun selectPortrait(target: PortraitPickTarget, result: PortraitEditResult): Boolean =
+        when (target) {
+            PortraitPickTarget.Creation -> {
+                creation.portraitBytes = result.portraitBytes
+                creation.portraitSourceBytes = result.sourceBytes
+                creation.portraitCrop = result.crop
+                true
+            }
+            PortraitPickTarget.Editor -> editorDraft?.let { draft ->
+                draft.portraitBytes = result.portraitBytes
+                draft.portraitSourceBytes = result.sourceBytes
+                draft.portraitCrop = result.crop
+                draft.portraitChanged = true
+                true
+            } ?: false
+            is PortraitPickTarget.Character -> replaceCharacterPortrait(target.characterId, result)
+        }
+
+    fun portraitEditSource(target: PortraitPickTarget): PortraitEditSource? = when (target) {
+        PortraitPickTarget.Creation -> creation.portraitBytes?.let { display ->
+            PortraitEditSource(
+                sourceBytes = creation.portraitSourceBytes ?: display,
+                crop = creation.portraitCrop ?: PortraitCrop(),
+                usesRenderedFallback = creation.portraitSourceBytes == null,
+            )
+        }
+        PortraitPickTarget.Editor -> editorDraft?.portraitBytes?.let { display ->
+            PortraitEditSource(
+                sourceBytes = editorDraft?.portraitSourceBytes ?: display,
+                crop = editorDraft?.portraitCrop ?: PortraitCrop(),
+                usesRenderedFallback = editorDraft?.portraitSourceBytes == null,
+            )
+        }
+        is PortraitPickTarget.Character -> characters.firstOrNull { it.id == target.characterId }?.let(::portraitEditSource)
+    }
+
+    private fun portraitEditSource(character: CharacterUi): PortraitEditSource? {
+        val display = portraitBytes(character) ?: return null
+        val source = character.portraitSourceFileName?.let(storage::readPortrait)
+        return PortraitEditSource(
+            sourceBytes = source ?: display,
+            crop = character.portraitCrop ?: PortraitCrop(),
+            usesRenderedFallback = source == null,
+        )
+    }
+
+    private fun replaceCharacterPortrait(characterId: String, result: PortraitEditResult): Boolean {
         val index = characters.indexOfFirst { it.id == characterId }
         if (index < 0) return false
-        val oldFileName = characters[index].portraitFileName
-        val newFileName = storage.writePortrait(characterId, bytes) ?: return false
-        characters[index] = characters[index].copy(portraitFileName = newFileName)
-        persist()
-        deletePortraitFileIfUnused(oldFileName, exceptFileName = newFileName)
+        val original = characters[index]
+        val assets = writePortraitAssets(characterId, result) ?: return false
+        characters[index] = original.copy(
+            portraitFileName = assets.displayFileName,
+            portraitSourceFileName = assets.sourceFileName,
+            portraitCrop = assets.crop,
+        )
+        if (!persist()) {
+            characters[index] = original
+            deletePortraitFileIfUnused(assets.displayFileName)
+            deletePortraitFileIfUnused(assets.sourceFileName)
+            return false
+        }
+        deletePortraitFileIfUnused(original.portraitFileName)
+        deletePortraitFileIfUnused(original.portraitSourceFileName)
         return true
     }
 
     fun deleteCharacterPortrait(characterId: String = selectedCharacterId.orEmpty()): Boolean {
         val index = characters.indexOfFirst { it.id == characterId }
         if (index < 0) return false
-        val oldFileName = characters[index].portraitFileName ?: return false
-        characters[index] = characters[index].copy(portraitFileName = null)
-        persist()
-        deletePortraitFileIfUnused(oldFileName)
+        val original = characters[index]
+        val oldDisplayFileName = original.portraitFileName
+        val oldSourceFileName = original.portraitSourceFileName
+        if (oldDisplayFileName == null && oldSourceFileName == null) return false
+        characters[index] = characters[index].copy(
+            portraitFileName = null,
+            portraitSourceFileName = null,
+            portraitCrop = null,
+        )
+        if (!persist()) {
+            characters[index] = original
+            return false
+        }
+        deletePortraitFileIfUnused(oldDisplayFileName)
+        deletePortraitFileIfUnused(oldSourceFileName)
         return true
     }
 
@@ -1265,12 +1376,26 @@ class DndAppState(
 
         persist()
         deletePortraitFileIfUnused(character.portraitFileName)
+        deletePortraitFileIfUnused(character.portraitSourceFileName)
         return true
     }
 
-    private fun deletePortraitFileIfUnused(fileName: String?, exceptFileName: String? = null) {
-        val candidate = fileName?.takeUnless { it == exceptFileName } ?: return
-        if (characters.none { it.portraitFileName == candidate }) storage.deletePortrait(candidate)
+    private fun writePortraitAssets(characterId: String, result: PortraitEditResult): StoredPortraitAssets? {
+        val displayFileName = storage.writePortrait(characterId, result.portraitBytes) ?: return null
+        val sourceFileName = storage.writePortraitSource(characterId, result.sourceBytes)
+        if (sourceFileName == null) {
+            deletePortraitFileIfUnused(displayFileName)
+            return null
+        }
+        return StoredPortraitAssets(displayFileName, sourceFileName, result.crop)
+    }
+
+    private fun deletePortraitFileIfUnused(fileName: String?) {
+        val candidate = fileName ?: return
+        val used = characters.any {
+            it.portraitFileName == candidate || it.portraitSourceFileName == candidate
+        }
+        if (!used) storage.deletePortrait(candidate)
     }
 
     fun beginEdit(
@@ -1287,7 +1412,11 @@ class DndAppState(
             return
         }
         selectedCharacterId = character.id
-        editorDraft = CharacterEditorDraft(character, portraitBytes(character)).also { draft ->
+        editorDraft = CharacterEditorDraft(
+            character = character,
+            portrait = portraitBytes(character),
+            portraitSource = portraitEditSource(character),
+        ).also { draft ->
             draft.section = section ?: if (focusAbility != null) EditorSection.Abilities else EditorSection.Hub
         }
         editorOpen = true
@@ -1358,23 +1487,53 @@ class DndAppState(
         )
         val existingIndex = characters.indexOfFirst { it.id == original.id }
         if (existingIndex < 0) return false
+        val charactersBeforeEdit = characters.toList()
+        val selectedCharacterBeforeEdit = selectedCharacterId
 
-        var replacedPortraitFile: String? = null
+        val portraitResult = if (draft.portraitChanged) {
+            val portraitBytes = draft.portraitBytes ?: return false
+            PortraitEditResult(
+                sourceBytes = draft.portraitSourceBytes ?: portraitBytes,
+                portraitBytes = portraitBytes,
+                crop = draft.portraitCrop ?: PortraitCrop(),
+            )
+        } else null
+        val replacedPortraitFiles = mutableSetOf<String>()
+        val newPortraitFiles = mutableSetOf<String>()
         if (draft.ruleset == original.ruleset) {
-            val portraitName = if (draft.portraitChanged) {
-                draft.portraitBytes?.let { storage.writePortrait(original.id, it) } ?: original.portraitFileName
-            } else original.portraitFileName
-            characters[existingIndex] = base.copy(portraitFileName = portraitName)
-            if (portraitName != original.portraitFileName) replacedPortraitFile = original.portraitFileName
+            val assets = portraitResult?.let { writePortraitAssets(original.id, it) }
+            if (portraitResult != null && assets == null) {
+                showInfo(
+                    t("Portrait not saved", "Porträt nicht gespeichert"),
+                    t("The previous portrait is still intact. Please try again.", "Das vorherige Porträt ist weiterhin vorhanden. Versuche es erneut."),
+                )
+                return false
+            }
+            characters[existingIndex] = if (assets == null) base else base.copy(
+                portraitFileName = assets.displayFileName,
+                portraitSourceFileName = assets.sourceFileName,
+                portraitCrop = assets.crop,
+            )
+            if (assets != null) {
+                newPortraitFiles += assets.displayFileName
+                newPortraitFiles += assets.sourceFileName
+                original.portraitFileName?.let(replacedPortraitFiles::add)
+                original.portraitSourceFileName?.let(replacedPortraitFiles::add)
+            }
             selectedCharacterId = original.id
         } else {
             val convertedId = "conversion-${characters.size + 1}-${Random.nextInt(10_000)}"
-            val portraitName = draft.portraitBytes?.let { storage.writePortrait(convertedId, it) }
-                ?: original.portraitFileName
-            val converted = base.copy(
+            val assets = portraitResult?.let { writePortraitAssets(convertedId, it) }
+            if (portraitResult != null && assets == null) {
+                showInfo(
+                    t("Portrait not saved", "Porträt nicht gespeichert"),
+                    t("The conversion was not created. Please try again.", "Die Konvertierung wurde nicht erstellt. Versuche es erneut."),
+                )
+                return false
+            }
+            val convertedBase = base.copy(
                 id = convertedId,
                 ruleset = draft.ruleset,
-                portraitFileName = portraitName,
                 sourceCharacterId = original.id,
                 notes = base.notes + CharacterNote(
                     id = uniqueId("ruleset-conversion", base.notes.map { it.id }),
@@ -1385,11 +1544,30 @@ class DndAppState(
                     ),
                 ),
             )
+            val converted = if (assets == null) convertedBase else convertedBase.copy(
+                portraitFileName = assets.displayFileName,
+                portraitSourceFileName = assets.sourceFileName,
+                portraitCrop = assets.crop,
+            )
+            if (assets != null) {
+                newPortraitFiles += assets.displayFileName
+                newPortraitFiles += assets.sourceFileName
+            }
             characters += converted
             selectedCharacterId = converted.id
         }
-        persist()
-        deletePortraitFileIfUnused(replacedPortraitFile)
+        if (!persist()) {
+            characters.clear()
+            characters.addAll(charactersBeforeEdit)
+            selectedCharacterId = selectedCharacterBeforeEdit
+            newPortraitFiles.forEach(::deletePortraitFileIfUnused)
+            showInfo(
+                t("Character not saved", "Charakter nicht gespeichert"),
+                t("Your changes could not be stored. Please try again.", "Deine Änderungen konnten nicht gespeichert werden. Versuche es erneut."),
+            )
+            return false
+        }
+        replacedPortraitFiles.forEach(::deletePortraitFileIfUnused)
         editorOpen = false
         editorDraft = null
         return true
@@ -4027,9 +4205,9 @@ class DndAppState(
 
     private fun abilityModifier(score: Int): Int = kotlin.math.floor((score - 10) / 2.0).toInt()
 
-    private fun persist() {
+    private fun persist(): Boolean {
         turnSession?.let { savedTurnDrafts[it.characterId] = it.snapshot() }
-        runCatching {
+        return runCatching {
             val documents = characters.map { character ->
                 val characterConditions = conditions.filter { it.characterId == character.id }
                 val document = character.toDocument(characterConditions)
@@ -4049,7 +4227,7 @@ class DndAppState(
                     )
                 )
             )
-        }
+        }.isSuccess
     }
 }
 

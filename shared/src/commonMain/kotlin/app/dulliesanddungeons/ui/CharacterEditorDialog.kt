@@ -59,7 +59,11 @@ import kotlin.math.floor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun CharacterEditorDialog(state: DndAppState, onPickPortrait: (PortraitPickTarget) -> Unit) {
+internal fun CharacterEditorDialog(
+    state: DndAppState,
+    onPickPortrait: (PortraitPickTarget) -> Unit,
+    onEditPortrait: (PortraitPickTarget) -> Unit,
+) {
     val draft = state.editorDraft ?: return
     Dialog(
         onDismissRequest = state::cancelEdit,
@@ -101,7 +105,7 @@ internal fun CharacterEditorDialog(state: DndAppState, onPickPortrait: (Portrait
                 ) {
                     when (draft.section) {
                         EditorSection.Hub -> item { EditorHub(state, draft) }
-                        EditorSection.Identity -> item { IdentityEditor(state, draft, onPickPortrait) }
+                        EditorSection.Identity -> item { IdentityEditor(state, draft, onPickPortrait, onEditPortrait) }
                         EditorSection.Build -> item { BuildEditor(state, draft) }
                         EditorSection.Abilities -> item { AbilitiesEditor(state, draft) }
                         EditorSection.Combat -> item { CombatEditor(state, draft) }
@@ -192,12 +196,29 @@ private fun EditorHubCard(icon: androidx.compose.ui.graphics.vector.ImageVector,
 }
 
 @Composable
-private fun IdentityEditor(state: DndAppState, draft: CharacterEditorDraft, onPickPortrait: (PortraitPickTarget) -> Unit) {
+private fun IdentityEditor(
+    state: DndAppState,
+    draft: CharacterEditorDraft,
+    onPickPortrait: (PortraitPickTarget) -> Unit,
+    onEditPortrait: (PortraitPickTarget) -> Unit,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            CharacterPortrait(draft.name, draft.original.portraitSeed, Modifier.size(82.dp), draft.portraitBytes)
+            CharacterPortrait(
+                draft.name,
+                draft.original.portraitSeed,
+                Modifier.size(82.dp),
+                draft.portraitBytes,
+                onClick = draft.portraitBytes?.let { { onEditPortrait(PortraitPickTarget.Editor) } },
+                clickLabel = state.t("Edit portrait crop", "Porträtzuschnitt bearbeiten"),
+            )
             Spacer(Modifier.width(14.dp))
-            TextButton(onClick = { onPickPortrait(PortraitPickTarget.Editor) }) { Text(state.t("Change portrait", "Porträt ändern")) }
+            TextButton(onClick = { onPickPortrait(PortraitPickTarget.Editor) }) {
+                Text(
+                    if (draft.portraitBytes == null) state.t("Choose picture", "Bild wählen")
+                    else state.t("Choose another", "Anderes wählen")
+                )
+            }
         }
         OutlinedTextField(
             value = draft.name,

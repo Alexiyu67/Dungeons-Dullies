@@ -149,13 +149,16 @@ dependencies {
     implementation(projects.shared)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.core.splashscreen)
+    implementation(libs.androidx.exifinterface)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.pdfbox.android)
     implementation(compose.runtime)
     implementation(compose.animation)
     implementation(compose.foundation)
+    implementation(compose.materialIconsExtended)
     implementation(compose.material3)
     implementation(compose.ui)
+    testImplementation(libs.kotlin.test)
 }
 
 tasks.register("verifyReleaseTag") {

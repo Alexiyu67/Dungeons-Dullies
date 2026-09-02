@@ -3,6 +3,7 @@ package app.dulliesanddungeons.rules
 import app.dulliesanddungeons.domain.RulesetId
 import app.dulliesanddungeons.domain.ChoiceSelection
 import app.dulliesanddungeons.domain.FiveEBuildData
+import app.dulliesanddungeons.domain.PortraitCrop
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -48,5 +49,25 @@ class ConversionPlannerTest {
         assertTrue(conversion.character.proficiencyIds.isEmpty())
         assertTrue(conversion.plan.unresolvedChoiceIds.contains("fighter"))
         assertTrue(conversion.plan.warnings.single().contains("guided rebuild"))
+    }
+
+    @Test
+    fun conversionPreservesNonDestructivePortraitAssets() {
+        val crop = PortraitCrop(1, 0.4f, 0.6f, 0.75f)
+        val source = sampleBuild(level = 5).copy(
+            portraitFileName = "display.jpg",
+            portraitSourceFileName = "source.jpg",
+            portraitCrop = crop,
+        )
+
+        val conversion = ConversionPlanner.copyForRuleset(
+            source = source,
+            targetCharacterId = "character-2",
+            targetRuleset = RulesetId.FIFTH_EDITION_2014,
+        )
+
+        assertEquals("display.jpg", conversion.character.portraitFileName)
+        assertEquals("source.jpg", conversion.character.portraitSourceFileName)
+        assertEquals(crop, conversion.character.portraitCrop)
     }
 }

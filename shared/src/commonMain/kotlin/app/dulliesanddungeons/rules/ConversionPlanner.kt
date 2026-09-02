@@ -30,7 +30,7 @@ object ConversionPlanner {
             "Conversion must create a separately identified character"
         }
         val relatedFifthEditions = source.ruleset in fifthEditionRulesets && targetRuleset in fifthEditionRulesets
-        val preserved = setOf("name", "portraitFileName", "locale", "abilities")
+        val preserved = setOf("name", "portraitFileName", "portraitSourceFileName", "portraitCrop", "locale", "abilities")
         val choiceIds = buildSet {
             add(source.ancestryId)
             add(source.backgroundId)
@@ -88,6 +88,8 @@ object ConversionPlanner {
             locale = source.locale,
             contentVersions = emptyList(),
             portraitFileName = source.portraitFileName,
+            portraitSourceFileName = source.portraitSourceFileName,
+            portraitCrop = source.portraitCrop,
             rules = targetPayload,
         )
         return ConversionDraft(

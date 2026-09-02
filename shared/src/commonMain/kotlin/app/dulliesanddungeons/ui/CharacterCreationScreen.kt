@@ -63,7 +63,11 @@ import kotlin.math.roundToInt
 private const val LAST_CREATION_STEP = 5
 
 @Composable
-internal fun CharacterCreationScreen(state: DndAppState, onPickPortrait: (PortraitPickTarget) -> Unit) {
+internal fun CharacterCreationScreen(
+    state: DndAppState,
+    onPickPortrait: (PortraitPickTarget) -> Unit,
+    onEditPortrait: (PortraitPickTarget) -> Unit,
+) {
     val draft = state.creation
     Column(Modifier.fillMaxSize()) {
         Row(
@@ -98,11 +102,11 @@ internal fun CharacterCreationScreen(state: DndAppState, onPickPortrait: (Portra
             item {
                 when (draft.step) {
                     0 -> RulesetStep(state)
-                    1 -> IdentityStep(state, onPickPortrait)
+                    1 -> IdentityStep(state, onPickPortrait, onEditPortrait)
                     2 -> BuildStep(state)
                     3 -> LevelAndStatsStep(state)
                     4 -> DetailsStep(state)
-                    else -> ReviewStep(state)
+                    else -> ReviewStep(state, onEditPortrait)
                 }
             }
         }
@@ -197,7 +201,11 @@ private fun RulesetStep(state: DndAppState) {
 }
 
 @Composable
-private fun IdentityStep(state: DndAppState, onPickPortrait: (PortraitPickTarget) -> Unit) {
+private fun IdentityStep(
+    state: DndAppState,
+    onPickPortrait: (PortraitPickTarget) -> Unit,
+    onEditPortrait: (PortraitPickTarget) -> Unit,
+) {
     val draft = state.creation
     Column(verticalArrangement = Arrangement.spacedBy(18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         StepIntro(state.t("Meet your hero", "Lerne deine Heldin kennen"), state.t("Start with a name and a face. You can change both at any time.", "Beginne mit einem Namen und einem Gesicht. Beides lässt sich jederzeit ändern."))
@@ -206,11 +214,16 @@ private fun IdentityStep(state: DndAppState, onPickPortrait: (PortraitPickTarget
             draft.name.hashCode(),
             Modifier.size(112.dp),
             draft.portraitBytes,
+            onClick = draft.portraitBytes?.let { { onEditPortrait(PortraitPickTarget.Creation) } },
+            clickLabel = state.t("Edit portrait crop", "Porträtzuschnitt bearbeiten"),
         )
         OutlinedButton(onClick = { onPickPortrait(PortraitPickTarget.Creation) }, modifier = Modifier.height(48.dp)) {
             Icon(Icons.Rounded.CameraAlt, contentDescription = null)
             Spacer(Modifier.width(8.dp))
-            Text(state.t("Choose picture", "Bild wählen"))
+            Text(
+                if (draft.portraitBytes == null) state.t("Choose picture", "Bild wählen")
+                else state.t("Choose another", "Anderes wählen")
+            )
         }
         OutlinedTextField(
             value = draft.name,
@@ -659,14 +672,21 @@ private fun DetailsStep(state: DndAppState) {
 }
 
 @Composable
-private fun ReviewStep(state: DndAppState) {
+private fun ReviewStep(state: DndAppState, onEditPortrait: (PortraitPickTarget) -> Unit) {
     val draft = state.creation
     Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
         StepIntro(state.t("Ready for adventure", "Bereit fürs Abenteuer"), state.t("Review the essentials. You can edit and level up from the character sheet.", "Prüfe das Wichtigste. Bearbeiten und Stufenaufstieg sind später vom Charakterbogen aus möglich."))
         Card(shape = RoundedCornerShape(22.dp), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
             Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    CharacterPortrait(draft.name, draft.name.hashCode(), Modifier.size(64.dp), draft.portraitBytes)
+                    CharacterPortrait(
+                        draft.name,
+                        draft.name.hashCode(),
+                        Modifier.size(64.dp),
+                        draft.portraitBytes,
+                        onClick = draft.portraitBytes?.let { { onEditPortrait(PortraitPickTarget.Creation) } },
+                        clickLabel = state.t("Edit portrait crop", "Porträtzuschnitt bearbeiten"),
+                    )
                     Spacer(Modifier.width(14.dp))
                     Column(Modifier.weight(1f)) {
                         Text(draft.name, style = MaterialTheme.typography.titleLarge)

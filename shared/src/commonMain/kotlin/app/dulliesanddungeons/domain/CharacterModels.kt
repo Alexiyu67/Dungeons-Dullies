@@ -184,7 +184,11 @@ data class CharacterBuild(
     val sourceCharacterId: String? = null,
     val locale: LocaleId = LocaleId.EN,
     val contentVersions: List<ContentVersionRef> = emptyList(),
+    /** Rendered 512 px square used by lists, sheets, and the full-screen viewer. */
     val portraitFileName: String? = null,
+    /** Orientation-corrected private source retained for non-destructive re-cropping. */
+    val portraitSourceFileName: String? = null,
+    val portraitCrop: PortraitCrop? = null,
     /** Exact pack references for public/private entities selected by this build. */
     val entityReferences: Map<String, EntityRef> = emptyMap(),
     /** Only user-authored/local text is snapshotted; licensed pack prose stays in the pack. */
@@ -250,6 +254,14 @@ data class CharacterBuild(
         return entityReferences[entityId]?.let(resolver::resolve)
     }
 }
+
+@Serializable
+data class PortraitCrop(
+    val rotationQuarterTurns: Int = 0,
+    val centerXFraction: Float = 0.5f,
+    val centerYFraction: Float = 0.5f,
+    val sizeFractionOfShortEdge: Float = 1f,
+)
 
 @Serializable
 enum class HitPointGainMethod { FIRST_LEVEL_MAXIMUM, ROLLED, FIXED, MANUAL_OVERRIDE }
