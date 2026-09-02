@@ -7,10 +7,25 @@ import kotlin.test.assertTrue
 class SrdSpellCatalogTest {
     @Test
     fun classListsHaveAuditedCoverageCounts() {
-        assertEquals(120, SrdSpellCatalog.forClass(SrdSpellRevision.SRD_5_1, SrdSpellClass.SORCERER).size)
-        assertEquals(204, SrdSpellCatalog.forClass(SrdSpellRevision.SRD_5_1, SrdSpellClass.WIZARD).size)
-        assertEquals(138, SrdSpellCatalog.forClass(SrdSpellRevision.SRD_5_2_1, SrdSpellClass.SORCERER).size)
-        assertEquals(217, SrdSpellCatalog.forClass(SrdSpellRevision.SRD_5_2_1, SrdSpellClass.WIZARD).size)
+        val expected = mapOf(
+            SrdSpellRevision.SRD_5_1 to mapOf(
+                SrdSpellClass.BARD to 112, SrdSpellClass.CLERIC to 105, SrdSpellClass.DRUID to 105,
+                SrdSpellClass.PALADIN to 31, SrdSpellClass.RANGER to 37, SrdSpellClass.SORCERER to 120,
+                SrdSpellClass.WARLOCK to 64, SrdSpellClass.WIZARD to 204,
+            ),
+            SrdSpellRevision.SRD_5_2_1 to mapOf(
+                SrdSpellClass.BARD to 129, SrdSpellClass.CLERIC to 109, SrdSpellClass.DRUID to 124,
+                SrdSpellClass.PALADIN to 38, SrdSpellClass.RANGER to 48, SrdSpellClass.SORCERER to 138,
+                SrdSpellClass.WARLOCK to 72, SrdSpellClass.WIZARD to 217,
+            ),
+        )
+        expected.forEach { (revision, counts) ->
+            counts.forEach { (spellClass, count) ->
+                assertEquals(count, SrdSpellCatalog.forClass(revision, spellClass).size, "$revision $spellClass")
+            }
+        }
+        assertEquals(319, SrdSpellCatalog.entries.count { it.revision == SrdSpellRevision.SRD_5_1 })
+        assertEquals(338, SrdSpellCatalog.entries.count { it.revision == SrdSpellRevision.SRD_5_2_1 })
     }
 
     @Test

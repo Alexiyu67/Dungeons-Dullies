@@ -17,16 +17,29 @@ such in a release. Their manifests set `distributionReady` to `false`. A release
 pipeline must replace them with audited, source-complete packs, generate a
 coverage report, and verify the required notices before changing that flag.
 
-Two separately scoped, distribution-ready packs provide complete class-list
-indexes for the Sorcerer and Wizard spells in their respective CC SRDs:
+Two separately scoped, distribution-ready packs provide complete eight-class
+spell indexes for their respective CC SRDs:
 
-- `srd-5.1-spells`: 120 Sorcerer and 204 Wizard spells (211 unique).
-- `srd-5.2.1-spells`: 138 Sorcerer and 217 Wizard spells (225 unique).
+- `srd-5.1-spells`: 319 unique spells across Bard, Cleric, Druid, Paladin,
+  Ranger, Sorcerer, Warlock, and Wizard lists.
+- `srd-5.2.1-spells`: 338 unique spells across the same eight classes.
 
 They are compact selection/search catalogs, not replacements for the spell
 rules. Each manifest pins the official PDF SHA-256, each English/German entry
 set has identical stable IDs, and `reports/` records every included upstream
 class-list spell.
+
+Two companion Wiki packs provide compact bilingual search entries for SRD
+character options, all eight schools of magic, conditions, common actions, and
+creature identities:
+
+- `srd-5.1-wiki`: 385 entries, including 317 creature overviews.
+- `srd-5.2.1-wiki`: 419 entries, including 330 creature overviews.
+
+Creature entries contain only names, size categories, broad creature types,
+and original player-facing summaries. They deliberately contain no stat-block
+numbers. Approved private entries extend the same search locally for options
+that cannot be redistributed in the public app.
 
 ## Layout
 

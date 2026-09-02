@@ -212,11 +212,13 @@ class PrivateImportWorker(
     private fun guessKind(title: String, summary: String): String {
         val text = "$title $summary".lowercase(Locale.ROOT)
         val routes = linkedMapOf(
+            "creature" to listOf("creature", "monster", "enemy", "kreatur", "gegner", "golem"),
             "spell" to listOf("spell", "cantrip", "zauber"),
             "weapon" to listOf("weapon", "attack", "waffe", "angriff"),
             "condition" to listOf("condition", "zustand"),
             "feat" to listOf("feat", "talent"),
-            "species" to listOf("species", "ancestry", "spezies", "abstammung"),
+            "feature" to listOf("feature", "trait", "merkmal", "fähigkeit"),
+            "species" to listOf("species", "ancestry", "race", "spezies", "abstammung", "volk"),
             "background" to listOf("background", "hintergrund"),
             "subclass" to listOf("subclass", "subklasse"),
             "class" to listOf("class", "klasse"),

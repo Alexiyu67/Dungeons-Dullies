@@ -26,7 +26,7 @@ The expected compiler stages are:
 The compiler must not execute pack-provided code or deserialize arbitrary class
 names. Pack commands map to a closed application enum.
 
-## SRD Wizard/Sorcerer spell catalog
+## SRD spell and Wiki catalogs
 
 The complete SRD spell indexes are generated only during a reviewed content
 update. Download the official CC PDFs separately, verify that Poppler's
@@ -36,14 +36,23 @@ update. Download the official CC PDFs separately, verify that Poppler's
 node scripts/generate-srd-spell-catalog.mjs `
   --srd51 C:\reviewed-sources\SRD_CC_v5.1.pdf `
   --srd521 C:\reviewed-sources\SRD_CC_v5.2.1.pdf
+
+node scripts/generate-srd-wiki-catalog.mjs `
+  --srd51 C:\reviewed-sources\SRD_CC_v5.1.pdf `
+  --srd51-de C:\reviewed-sources\SRD_CC_v5.1_DE.pdf `
+  --srd521 C:\reviewed-sources\SRD_CC_v5.2.1.pdf `
+  --srd521-de C:\reviewed-sources\DE_SRD_CC_v5.2.1.pdf
 ```
 
 The generator rejects PDFs whose SHA-256 differs from the pinned snapshots and
-rejects extracted class lists whose totals differ from the audited counts. It
-emits the two localized content packs, coverage reports, the cross-edition JSON
-catalog, and `SrdSpellCatalog.kt`. These generated files are checked in; normal
-Gradle/Android builds are offline and do not invoke the generator or retain the
-PDFs.
+rejects extracted class lists whose totals differ from the audited counts. The
+spell generator emits the complete lists for all eight SRD spellcasting classes.
+The Wiki generator verifies both language snapshots and emits character-option,
+school, condition, action, and creature indexes; its creature parser retains only
+name, size, and broad type and never emits a stat block. Both generators write
+localized packs, coverage reports, JSON audit catalogs, and Kotlin runtime
+catalogs. These generated files are checked in; normal Gradle/Android builds are
+offline and do not invoke the generators or retain the PDFs.
 
 ## Versioning
 

@@ -7,10 +7,11 @@ iOS, while the first deliverable is a sideloadable Android APK.
 
 [Download the latest stable Android APK](https://github.com/Alexiyu67/Dungeons-Dullies/releases/latest/download/DulliesAndDungeons.apk)
 
-This repository is an implementation foundation and vertical slice. The checked-
-in rules packs are representative seed data, not complete compendia. In
-particular, commercial fifth-edition options outside SRD 5.1/5.2.1 are not
-bundled. See [content licensing](docs/LEGAL_CONTENT_POLICY.md) before adding data.
+This repository is an implementation foundation and vertical slice. It includes
+audited offline indexes for the open SRD 5.1 and 5.2.1 spell lists and player-facing
+Wiki topics; the remaining sample packs are representative rather than complete.
+Commercial fifth-edition options outside SRD 5.1/5.2.1 are not bundled. See
+[content licensing](docs/LEGAL_CONTENT_POLICY.md) before adding data.
 
 ## Principles
 
@@ -30,9 +31,11 @@ rolls, character/rules search, guided movement/attack/spell/custom-action turns,
 three-action turn resources, feature counters, and copy-based ruleset conversion. English and
 German UI paths are included.
 
-The checked-in compendium remains intentionally representative. A complete public release cannot
-legally bundle every commercial ancestry, subclass, feat, spell, or rule description without a
-redistributable source. The private-pack template is the extension point for lawfully supplied
+The public Wiki covers both open SRD revisions with compact bilingual entries for every class spell
+list, SRD character options, magic schools, conditions, common actions, and player-safe creature
+identities. It intentionally omits creature stat blocks and full replacement rules prose. A public
+release cannot legally bundle commercial options such as Warforged or Bladesong without a
+redistributable source; approved local entries are the extension point for lawfully supplied
 non-SRD material.
 
 ## Build

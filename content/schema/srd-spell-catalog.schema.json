@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dullies-and-dungeons.local/schema/srd-spell-catalog.schema.json",
-  "title": "Generated SRD Wizard and Sorcerer spell catalog",
+  "title": "Generated SRD class spell catalog",
   "type": "object",
   "additionalProperties": false,
   "required": ["schemaVersion", "generatedBy", "sources", "entries"],
@@ -20,8 +20,7 @@
           "url",
           "sha256",
           "uniqueSpellCount",
-          "sorcererSpellCount",
-          "wizardSpellCount"
+          "classSpellCounts"
         ],
         "properties": {
           "revision": { "enum": ["2014-srd-5.1", "2024-srd-5.2.1"] },
@@ -29,8 +28,21 @@
           "url": { "type": "string", "format": "uri" },
           "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
           "uniqueSpellCount": { "type": "integer", "minimum": 1 },
-          "sorcererSpellCount": { "type": "integer", "minimum": 1 },
-          "wizardSpellCount": { "type": "integer", "minimum": 1 }
+          "classSpellCounts": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["bard", "cleric", "druid", "paladin", "ranger", "sorcerer", "warlock", "wizard"],
+            "properties": {
+              "bard": { "type": "integer", "minimum": 1 },
+              "cleric": { "type": "integer", "minimum": 1 },
+              "druid": { "type": "integer", "minimum": 1 },
+              "paladin": { "type": "integer", "minimum": 1 },
+              "ranger": { "type": "integer", "minimum": 1 },
+              "sorcerer": { "type": "integer", "minimum": 1 },
+              "warlock": { "type": "integer", "minimum": 1 },
+              "wizard": { "type": "integer", "minimum": 1 }
+            }
+          }
         }
       }
     },
@@ -61,7 +73,7 @@
             "type": "array",
             "minItems": 1,
             "uniqueItems": true,
-            "items": { "enum": ["SORCERER", "WIZARD"] }
+            "items": { "enum": ["BARD", "CLERIC", "DRUID", "PALADIN", "RANGER", "SORCERER", "WARLOCK", "WIZARD"] }
           },
           "school": {
             "enum": [

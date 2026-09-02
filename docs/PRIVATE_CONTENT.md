@@ -12,8 +12,10 @@ the normal debug/release tasks must not scan that directory.
 ## Offline import and manual entry
 
 The character-sheet menu includes a small local-content editor for individual
-classes, subclasses, species, backgrounds, feats, spells, items, weapons,
-conditions, actions, and resources. Formulas remain optional; entries without a
+classes, subclasses, species, backgrounds, feats, features, spells, creatures,
+items, weapons, conditions, actions, resources, and rules. Approved entries are
+also searchable in the player Wiki under a clear `Local` label. Formulas remain
+optional; entries without a
 complete reviewed formula are informational and excluded from Suggested Turn.
 
 An approved ancestry or species entry can provide positive creation-time ability
