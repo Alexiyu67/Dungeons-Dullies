@@ -62,10 +62,12 @@ internal fun CharacterUi.toDocument(characterConditions: List<ConditionUi> = emp
     val classNames = progression.map { it.className }.ifEmpty { List(level) { className } }
     val classIdsByName = classNames.distinct().associateWith { "class:${slug(it)}" }
     val classes = classNames.groupingBy { it }.eachCount().map { (name, levels) ->
+        val selectedSubclassId = subclassIdsByClass[name]
+            ?: if (name == className && subclass.isNotBlank() && subclass != "—") "subclass:${slug(subclass)}" else null
         ClassLevel(
             classId = classIdsByName.getValue(name),
             levels = levels,
-            subclassId = if (name == className && subclass.isNotBlank() && subclass != "—") "subclass:${slug(subclass)}" else null,
+            subclassId = selectedSubclassId,
         )
     }
     val ancestryId = "ancestry:${slug(ancestry)}"
@@ -80,8 +82,13 @@ internal fun CharacterUi.toDocument(characterConditions: List<ConditionUi> = emp
             val name = classIdsByName.entries.first { it.value == value.classId }.key
             put(value.classId, CustomEntitySnapshot(value.classId, CustomEntityKind.CLASS, name))
         }
-        classes.mapNotNull { it.subclassId }.forEach { id ->
-            put(id, CustomEntitySnapshot(id, CustomEntityKind.SUBCLASS, subclass))
+        classes.forEach { classLevel ->
+            classLevel.subclassId?.let { id ->
+                val classDisplayName = classIdsByName.entries.first { it.value == classLevel.classId }.key
+                val subclassDisplayName = subclassNamesByClass[classDisplayName]
+                    ?: if (classDisplayName == className) subclass else displayId(id.substringAfter(':'))
+                put(id, CustomEntitySnapshot(id, CustomEntityKind.SUBCLASS, subclassDisplayName))
+            }
         }
         featIds.forEach { id -> put(id, CustomEntitySnapshot(id, CustomEntityKind.FEAT, displayId(id))) }
         languageRecords.forEach { put(it.id, CustomEntitySnapshot(it.id, CustomEntityKind.LANGUAGE, it.name)) }
@@ -198,6 +205,8 @@ internal fun CharacterUi.toDocument(characterConditions: List<ConditionUi> = emp
         unarmoredArmorClass = unarmoredArmorClass,
         proficiencyBonusOverride = proficiency.takeUnless { derivation.proficiencyFromLevel },
         storedProficiencyBonus = proficiency,
+        criticalHitThreshold = criticalHitThreshold,
+        initiativeRollMode = initiativeRollMode,
         initiative = derivation.initiative.toDomainFormula(initiative),
         savingThrows = saves.mapNotNull { (name, value) ->
             ability(name)?.let { it to derivation.saves[name].toDomainFormula(value) }
@@ -215,6 +224,7 @@ internal fun CharacterUi.toDocument(characterConditions: List<ConditionUi> = emp
             effectKey = feature.effect.name.lowercase(),
             custom = feature.custom,
             notes = feature.notes,
+            turnGuideEligible = feature.turnGuideEligible,
         )
     }
     return CharacterDocument(
@@ -245,6 +255,12 @@ internal fun CharacterDocument.toCharacterUi(): CharacterUi {
     val primaryClass = build.classes.firstOrNull()
     val className = primaryClass?.classId?.let(::displayName) ?: "Adventurer"
     val subclass = primaryClass?.subclassId?.let(::displayName) ?: "—"
+    val subclassIdsByClass = build.classes.mapNotNull { classLevel ->
+        classLevel.subclassId?.let { displayName(classLevel.classId) to it }
+    }.toMap()
+    val subclassNamesByClass = build.classes.mapNotNull { classLevel ->
+        classLevel.subclassId?.let { displayName(classLevel.classId) to displayName(it) }
+    }.toMap()
     val health = state.health
     val isDead = when (health) {
         is FiveEHealthState -> health.deathReason != null || health.exhaustionLevel >= 6
@@ -288,6 +304,7 @@ internal fun CharacterDocument.toCharacterUi(): CharacterUi {
             resourceId = feature.resourceId?.takeIf { it != feature.id },
             resourceCost = feature.resourceCost,
             resourceDieSides = pool?.dieSides,
+            turnGuideEligible = feature.turnGuideEligible,
         )
     }
     return CharacterUi(
@@ -298,6 +315,8 @@ internal fun CharacterDocument.toCharacterUi(): CharacterUi {
         ancestry = displayName(build.ancestryId),
         className = className,
         subclass = subclass,
+        subclassIdsByClass = subclassIdsByClass,
+        subclassNamesByClass = subclassNamesByClass,
         hp = state.currentHitPoints,
         maxHp = state.maximumHitPoints,
         temporaryHp = state.temporaryHitPoints,
@@ -316,6 +335,8 @@ internal fun CharacterDocument.toCharacterUi(): CharacterUi {
         flySpeedFeet = combat.baseSpeedsFeet[MovementMode.FLY],
         initiative = initiative,
         proficiency = proficiency,
+        criticalHitThreshold = combat.criticalHitThreshold,
+        initiativeRollMode = combat.initiativeRollMode,
         portraitSeed = sheet.portraitSeed,
         portraitFileName = build.portraitFileName,
         portraitSourceFileName = build.portraitSourceFileName,

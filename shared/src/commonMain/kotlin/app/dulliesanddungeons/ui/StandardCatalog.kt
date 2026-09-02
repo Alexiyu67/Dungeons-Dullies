@@ -288,6 +288,7 @@ internal fun privateKnownItem(entry: PrivateEntryUi): KnownItemUi? {
 internal fun PrivateEntryUi.normalizedPrivateKind(): String = when (kind.trim().lowercase()) {
     "ancestry", "species" -> "ancestry"
     "class" -> "class"
+    "subclass", "sub-class", "archetype" -> "subclass"
     "feat" -> "feat"
     "spell" -> "spell"
     "item", "equipment", "gear", "armor", "armour" -> "item"

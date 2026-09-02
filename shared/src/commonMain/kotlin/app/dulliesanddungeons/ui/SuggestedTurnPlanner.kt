@@ -6,10 +6,13 @@ package app.dulliesanddungeons.ui
  */
 object SuggestedTurnPlanner {
     fun build(character: CharacterUi, session: TurnSession?): List<SuggestedTurnStepUi> {
-        val availableFeatures = character.features.filter { it.remaining == null || it.remaining > 0 }
+        val availableFeatures = character.features.filter {
+            it.turnGuideEligible && (it.remaining == null || it.remaining > 0)
+        }
         val bonusFeature = availableFeatures.firstOrNull { it.actionCost.bonusActions > 0 }
         val resourceFeature = availableFeatures.firstOrNull {
-            it.remaining != null && it.actionCost.bonusActions == 0 &&
+            (it.remaining != null || it.actionCost.actions > 0 || it.actionCost.reactions > 0) &&
+                it.actionCost.bonusActions == 0 &&
                 it.effect != FeatureEffect.EXTRA_ACTION
         }
         val preparedSpell = character.availableSpells.firstOrNull { it.prepared }

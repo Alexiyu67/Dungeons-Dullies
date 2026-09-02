@@ -349,6 +349,8 @@ data class CombatProfile(
     val unarmoredArmorClass: Int? = null,
     val proficiencyBonusOverride: Int? = null,
     val storedProficiencyBonus: Int? = null,
+    val criticalHitThreshold: Int = 20,
+    val initiativeRollMode: RollMode = RollMode.NORMAL,
     val initiative: DerivedStatisticFormula = DerivedStatisticFormula(Ability.DEXTERITY),
     val savingThrows: Map<Ability, DerivedStatisticFormula> = emptyMap(),
     val skills: Map<String, DerivedStatisticFormula> = emptyMap(),
@@ -409,6 +411,7 @@ data class FeatureRecord(
     val effectKey: String = "resource_only",
     val custom: Boolean = false,
     val notes: String = "",
+    val turnGuideEligible: Boolean = true,
     val source: EntityRef? = null,
 )
 

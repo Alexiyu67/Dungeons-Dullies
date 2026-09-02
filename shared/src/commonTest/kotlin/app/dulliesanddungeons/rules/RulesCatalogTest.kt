@@ -26,6 +26,14 @@ class RulesCatalogTest {
         val build = sampleBuild(level = 5)
 
         assertTrue(app.dulliesanddungeons.domain.RulePredicate.HasClass("fighter", 5).matches(build))
+        val subclassBuild = build.copy(
+            rules = (build.rules as app.dulliesanddungeons.domain.FiveEBuildData).copy(
+                classes = listOf(app.dulliesanddungeons.domain.ClassLevel("fighter", 5, "champion"))
+            )
+        )
+        assertTrue(
+            app.dulliesanddungeons.domain.RulePredicate.HasSubclass("champion", 3).matches(subclassBuild)
+        )
         assertTrue(app.dulliesanddungeons.domain.RulePredicate.MinimumLevel(5).matches(build))
     }
 }

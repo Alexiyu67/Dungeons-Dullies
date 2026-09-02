@@ -18,6 +18,10 @@ sealed interface RulePredicate {
     data class HasClass(val classId: String, val minimumLevels: Int = 1) : RulePredicate
 
     @Serializable
+    @SerialName("has_subclass")
+    data class HasSubclass(val subclassId: String, val minimumClassLevels: Int = 1) : RulePredicate
+
+    @Serializable
     @SerialName("has_feature")
     data class HasFeature(val featureId: String) : RulePredicate
 
@@ -317,6 +321,17 @@ data class ClassDefinition(
     val featureIdsByLevel: Map<Int, List<String>> = emptyMap(),
     val multiclassPrerequisite: RulePredicate = RulePredicate.Always,
     val multiclassProficiencyIds: Set<String> = emptySet(),
+)
+
+@Serializable
+data class SubclassDefinition(
+    val id: String,
+    val name: String,
+    val ruleset: RulesetId,
+    val classId: String,
+    val selectionLevel: Int,
+    val featureIdsByLevel: Map<Int, List<String>> = emptyMap(),
+    val source: EntityRef? = null,
 )
 
 @Serializable

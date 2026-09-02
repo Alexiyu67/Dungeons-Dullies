@@ -40,7 +40,8 @@
             "feature",
             "knowledge",
             "language",
-            "spell"
+            "spell",
+            "subclass"
           ]
         },
         "name": { "type": "string", "minLength": 1 },
@@ -127,6 +128,26 @@
                   "slotLevel": { "type": "integer", "minimum": 1, "maximum": 9 },
                   "value": { "type": "string", "minLength": 1 }
                 }
+              }
+            }
+          }
+        },
+        "subclass": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["stableId", "revision", "parentClassId", "selectionLevel", "featureIdsByLevel"],
+          "properties": {
+            "stableId": { "type": "string", "pattern": "^subclass\\.[a-z0-9][a-z0-9.-]+$" },
+            "revision": { "enum": ["2014-srd-5.1", "2024-srd-5.2.1", "private"] },
+            "parentClassId": { "type": "string", "minLength": 1 },
+            "selectionLevel": { "type": "integer", "minimum": 1, "maximum": 20 },
+            "featureIdsByLevel": {
+              "type": "object",
+              "propertyNames": { "pattern": "^(?:[1-9]|1[0-9]|20)$" },
+              "additionalProperties": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": { "type": "string", "minLength": 1 }
               }
             }
           }
