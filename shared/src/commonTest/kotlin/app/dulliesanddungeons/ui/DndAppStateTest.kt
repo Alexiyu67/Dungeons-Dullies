@@ -182,6 +182,49 @@ class DndAppStateTest {
     }
 
     @Test
+    fun editorOpensDuringAnActiveTurnAndCancelKeepsTheTurn() {
+        val state = DndAppState(FakeStore())
+        state.openTurn()
+        val turn = assertNotNull(state.turnSession)
+        assertTrue(turn.commitDash())
+
+        state.beginEdit()
+
+        assertTrue(state.editorOpen)
+        assertFalse(state.turnOpen)
+        assertNull(state.infoTitle)
+        assertTrue(state.hasSavedTurnDraft())
+
+        state.cancelEdit()
+        state.openTurn()
+
+        assertTrue(state.turnOpen)
+        assertTrue(assertNotNull(state.turnSession).dashActive)
+    }
+
+    @Test
+    fun editingAnotherCharacterParksTheCurrentCharactersTurn() {
+        val state = DndAppState(FakeStore())
+        val sourceId = assertNotNull(state.selectedCharacterId)
+        val target = state.characters.first { it.id != sourceId }
+        state.openTurn()
+        assertTrue(assertNotNull(state.turnSession).commitDash())
+
+        state.beginEdit(characterId = target.id)
+
+        assertTrue(state.editorOpen)
+        assertEquals(target.id, state.selectedCharacterId)
+        assertNull(state.turnSession)
+        assertTrue(state.hasSavedTurnDraft(sourceId))
+
+        state.cancelEdit()
+        state.openCharacter(sourceId)
+        state.openTurn()
+
+        assertTrue(assertNotNull(state.turnSession).dashActive)
+    }
+
+    @Test
     fun portraitSourceAndCropSurviveRestartAndAreDeletedTogether() {
         val store = FakeStore()
         val state = DndAppState(store)
@@ -1214,6 +1257,97 @@ class DndAppStateTest {
     }
 
     @Test
+    fun editorSaveRebasesAndPersistsTheActiveTurn() {
+        val store = FakeStore()
+        val seed = assertNotNull(DndAppState(FakeStore()).selectedCharacter)
+        val source = seed.copy(hp = seed.maxHp - 10, maxHpReduction = 10)
+        store.writeState(Json.encodeToString(PersistedAppState(characters = listOf(source.toDocument()))))
+        val state = DndAppState(store)
+        val original = assertNotNull(state.selectedCharacter)
+        state.openTurn()
+        val turn = assertNotNull(state.turnSession)
+        turn.requestedMovement = 10
+        turn.commitMovement()
+        state.applyTurnDamage(7, critical = false, turn)
+
+        state.beginEdit(section = EditorSection.Combat)
+        val draft = assertNotNull(state.editorDraft)
+        draft.name = "Mara Reforged"
+        draft.maxHp = original.maxHp + 12
+        draft.speedFeet = 45
+        draft.abilities["DEX"] = 20
+
+        assertTrue(state.saveEdit())
+
+        val edited = assertNotNull(state.selectedCharacter)
+        assertEquals("Mara Reforged", edited.name)
+        assertEquals(original.maxHp + 12, edited.maxHp)
+        assertEquals(original.hp + 5, edited.hp)
+        val rebasedTurn = assertNotNull(state.turnSession)
+        assertEquals(10, rebasedTurn.movementUsed)
+        assertEquals(2, rebasedTurn.eventCount)
+        assertEquals(35, rebasedTurn.remainingMovement)
+
+        val restored = DndAppState(store)
+        assertEquals("Mara Reforged", restored.selectedCharacter?.name)
+        restored.openTurn()
+        val restoredTurn = assertNotNull(restored.turnSession)
+        assertEquals(10, restoredTurn.movementUsed)
+        assertEquals(2, restoredTurn.eventCount)
+        assertEquals(35, restoredTurn.remainingMovement)
+
+        restored.discardTurn()
+
+        val afterDiscard = assertNotNull(restored.selectedCharacter)
+        assertEquals("Mara Reforged", afterDiscard.name)
+        assertEquals(original.maxHp + 12, afterDiscard.maxHp)
+        assertEquals(10, afterDiscard.maxHpReduction)
+        assertEquals(afterDiscard.effectiveMaxHp, afterDiscard.hp)
+        assertEquals(45, afterDiscard.speedFeet)
+        assertEquals(20, afterDiscard.abilities["DEX"])
+    }
+
+    @Test
+    fun editorSaveRebasesAPersistedTurnThatIsNotOpen() {
+        val store = FakeStore()
+        val state = DndAppState(store)
+        state.openTurn()
+        assertTrue(assertNotNull(state.turnSession).commitDash())
+        state.closeTurnGuide()
+
+        val restored = DndAppState(store)
+        assertNull(restored.turnSession)
+        restored.beginEdit()
+        assertNotNull(restored.editorDraft).name = "Persistent edit"
+        assertTrue(restored.saveEdit())
+
+        val resumed = DndAppState(store)
+        resumed.openTurn()
+
+        assertTrue(assertNotNull(resumed.turnSession).dashActive)
+        resumed.discardTurn()
+        assertEquals("Persistent edit", resumed.selectedCharacter?.name)
+    }
+
+    @Test
+    fun failedEditorSaveRestoresTheActiveTurnState() {
+        val store = FakeStore()
+        val state = DndAppState(store)
+        val original = assertNotNull(state.selectedCharacter)
+        state.openTurn()
+        assertTrue(assertNotNull(state.turnSession).commitDash())
+        state.beginEdit()
+        assertNotNull(state.editorDraft).name = "Unsaved name"
+        store.failStateWrites = true
+
+        assertFalse(state.saveEdit())
+
+        assertEquals(original.name, state.selectedCharacter?.name)
+        assertTrue(state.editorOpen)
+        assertTrue(assertNotNull(state.turnSession).dashActive)
+    }
+
+    @Test
     fun changingRulesetFromEditorCreatesCopyAndPreservesOriginal() {
         val state = DndAppState(FakeStore())
         val original = state.selectedCharacter!!
@@ -1226,6 +1360,27 @@ class DndAppStateTest {
         assertEquals(original, state.characters.first { it.id == original.id })
         assertEquals(Ruleset.Pf2eRemaster, state.selectedCharacter!!.ruleset)
         assertEquals(original.id, state.selectedCharacter!!.sourceCharacterId)
+    }
+
+    @Test
+    fun rulesetConversionParksTheOriginalCharactersActiveTurn() {
+        val state = DndAppState(FakeStore())
+        val original = assertNotNull(state.selectedCharacter)
+        state.openTurn()
+        assertTrue(assertNotNull(state.turnSession).commitDash())
+        state.beginEdit()
+        assertNotNull(state.editorDraft).ruleset = Ruleset.Fifth2014
+
+        assertTrue(state.saveEdit())
+
+        assertEquals(Ruleset.Fifth2014, state.selectedCharacter?.ruleset)
+        assertNull(state.turnSession)
+        assertTrue(state.hasSavedTurnDraft(original.id))
+
+        state.openCharacter(original.id)
+        state.openTurn()
+
+        assertTrue(assertNotNull(state.turnSession).dashActive)
     }
 
     @Test

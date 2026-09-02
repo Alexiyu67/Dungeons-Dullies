@@ -103,6 +103,23 @@ internal fun CharacterEditorDialog(
                     contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
                     verticalArrangement = Arrangement.spacedBy(13.dp),
                 ) {
+                    if (state.hasSavedTurnDraft(draft.original.id)) {
+                        item {
+                            EditorNotice(
+                                if (draft.ruleset == draft.original.ruleset) {
+                                    state.t(
+                                        "Your active turn stays intact and will use the saved changes.",
+                                        "Dein aktiver Zug bleibt erhalten und verwendet die gespeicherten Änderungen.",
+                                    )
+                                } else {
+                                    state.t(
+                                        "Your active turn stays with the original character.",
+                                        "Dein aktiver Zug bleibt beim ursprünglichen Charakter.",
+                                    )
+                                },
+                            )
+                        }
+                    }
                     when (draft.section) {
                         EditorSection.Hub -> item { EditorHub(state, draft) }
                         EditorSection.Identity -> item { IdentityEditor(state, draft, onPickPortrait, onEditPortrait) }

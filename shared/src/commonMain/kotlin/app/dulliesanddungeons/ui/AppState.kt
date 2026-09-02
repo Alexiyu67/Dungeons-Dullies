@@ -1471,19 +1471,74 @@ class DndAppState(
         if (!used) storage.deletePortrait(candidate)
     }
 
+    private fun CharacterUi.withRebasedEditorValues(edited: CharacterUi): CharacterUi {
+        val missingHp = (effectiveMaxHp - hp).coerceAtLeast(0)
+        val rebased = copy(
+            name = edited.name,
+            profile = edited.profile,
+            level = edited.level,
+            ancestry = edited.ancestry,
+            className = edited.className,
+            subclass = edited.subclass,
+            maxHp = edited.maxHp,
+            maxHpReduction = edited.maxHpReduction,
+            armorClass = edited.armorClass,
+            unarmoredArmorClass = edited.unarmoredArmorClass,
+            speedFeet = edited.speedFeet,
+            flySpeedFeet = edited.flySpeedFeet,
+            initiative = edited.initiative,
+            proficiency = edited.proficiency,
+            abilities = edited.abilities,
+            saves = edited.saves,
+            skills = edited.skills,
+            weapons = edited.weapons,
+            spells = edited.spells,
+            derivation = edited.derivation,
+            portraitFileName = edited.portraitFileName,
+            portraitSourceFileName = edited.portraitSourceFileName,
+            portraitCrop = edited.portraitCrop,
+        )
+        val maximumDeath = rebased.ruleset != Ruleset.Pf2eRemaster && rebased.effectiveMaxHp == 0
+        return rebased.copy(
+            hp = (rebased.effectiveMaxHp - missingHp).coerceIn(0, rebased.effectiveMaxHp),
+            isDead = maximumDeath || isDead,
+            deathReason = if (maximumDeath) "Maximum Hit Points are zero" else deathReason,
+        )
+    }
+
+    private fun createTurnSession(character: CharacterUi, restored: TurnSessionSnapshotUi?): TurnSession =
+        TurnSession(character, restored, onEvent = { event, label ->
+            recordActivity(event, label ?: eventLabel(event))
+        })
+
+    private fun rebaseTurnAfterCharacterEdit(edited: CharacterUi) {
+        val liveSession = turnSession?.takeIf { it.characterId == edited.id }
+        val snapshot = liveSession?.snapshot() ?: savedTurnDrafts[edited.id] ?: return
+        val rebasedSnapshot = snapshot.copy(
+            baseline = snapshot.baseline.withRebasedEditorValues(edited),
+        )
+        savedTurnDrafts[edited.id] = rebasedSnapshot
+        if (liveSession != null) turnSession = createTurnSession(edited, rebasedSnapshot)
+    }
+
+    private fun parkLiveTurn(characterId: String) {
+        val session = turnSession?.takeIf { it.characterId == characterId } ?: return
+        savedTurnDrafts[characterId] = session.snapshot()
+        turnSession = null
+        turnOpen = false
+    }
+
     fun beginEdit(
         focusAbility: String? = null,
         section: EditorSection? = null,
         characterId: String? = null,
     ) {
         val character = characters.firstOrNull { it.id == (characterId ?: selectedCharacterId) } ?: return
-        if (turnSession != null) {
-            showInfo(
-                t("Active turn", "Aktiver Zug"),
-                t("Finish or discard the active turn before editing the build.", "Beende oder verwirf den aktiven Zug, bevor du den Build bearbeitest."),
-            )
-            return
+        if (turnSession?.characterId != null && turnSession?.characterId != character.id) {
+            saveTurnDraft()
+            turnSession = null
         }
+        turnOpen = false
         selectedCharacterId = character.id
         editorDraft = CharacterEditorDraft(
             character = character,
@@ -1575,6 +1630,9 @@ class DndAppState(
         if (existingIndex < 0) return false
         val charactersBeforeEdit = characters.toList()
         val selectedCharacterBeforeEdit = selectedCharacterId
+        val turnSessionBeforeEdit = turnSession
+        val savedTurnDraftsBeforeEdit = savedTurnDrafts.toMap()
+        val turnOpenBeforeEdit = turnOpen
 
         val portraitResult = if (draft.portraitChanged) {
             val portraitBytes = draft.portraitBytes ?: return false
@@ -1595,11 +1653,12 @@ class DndAppState(
                 )
                 return false
             }
-            characters[existingIndex] = if (assets == null) base else base.copy(
+            val edited = if (assets == null) base else base.copy(
                 portraitFileName = assets.displayFileName,
                 portraitSourceFileName = assets.sourceFileName,
                 portraitCrop = assets.crop,
             )
+            characters[existingIndex] = edited
             if (assets != null) {
                 newPortraitFiles += assets.displayFileName
                 newPortraitFiles += assets.sourceFileName
@@ -1607,6 +1666,7 @@ class DndAppState(
                 original.portraitSourceFileName?.let(replacedPortraitFiles::add)
             }
             selectedCharacterId = original.id
+            rebaseTurnAfterCharacterEdit(edited)
         } else {
             val convertedId = "conversion-${characters.size + 1}-${Random.nextInt(10_000)}"
             val assets = portraitResult?.let { writePortraitAssets(convertedId, it) }
@@ -1641,11 +1701,16 @@ class DndAppState(
             }
             characters += converted
             selectedCharacterId = converted.id
+            parkLiveTurn(original.id)
         }
         if (!persist()) {
             characters.clear()
             characters.addAll(charactersBeforeEdit)
             selectedCharacterId = selectedCharacterBeforeEdit
+            turnSession = turnSessionBeforeEdit
+            savedTurnDrafts.clear()
+            savedTurnDrafts.putAll(savedTurnDraftsBeforeEdit)
+            turnOpen = turnOpenBeforeEdit
             newPortraitFiles.forEach(::deletePortraitFileIfUnused)
             showInfo(
                 t("Character not saved", "Charakter nicht gespeichert"),
@@ -3871,7 +3936,7 @@ class DndAppState(
         val restoredDraft = savedTurnDrafts[character.id]
         if (restoredDraft == null) recoverFeatures(Recovery.TURN_START)
         val current = selectedCharacter ?: return
-        turnSession = TurnSession(current, restoredDraft, onEvent = { event, label -> recordActivity(event, label ?: eventLabel(event)) }).also { session ->
+        turnSession = createTurnSession(current, restoredDraft).also { session ->
             section?.let { session.selectedSection = it }
         }
         turnOpen = true
