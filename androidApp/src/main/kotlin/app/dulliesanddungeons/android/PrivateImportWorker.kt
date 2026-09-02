@@ -220,6 +220,7 @@ class PrivateImportWorker(
             "background" to listOf("background", "hintergrund"),
             "subclass" to listOf("subclass", "subklasse"),
             "class" to listOf("class", "klasse"),
+            "language" to listOf("language", "speech", "sprache"),
             "item" to listOf("item", "equipment", "gear", "gegenstand", "ausrüstung"),
             "resource" to listOf("uses", "charges", "rest", "verwendungen", "rast"),
         )

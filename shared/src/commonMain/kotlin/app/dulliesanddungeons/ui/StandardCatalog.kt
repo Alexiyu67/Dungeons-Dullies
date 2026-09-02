@@ -1,5 +1,41 @@
 package app.dulliesanddungeons.ui
 
+enum class KnownItemType { Weapon, Armor, Gear, Tool, Consumable, Rations }
+
+enum class ItemRarity {
+    Mundane,
+    Common,
+    Uncommon,
+    Rare,
+    VeryRare,
+    Legendary,
+    Artifact,
+    Unique,
+    Unspecified,
+}
+
+enum class KnownItemSource { BuiltIn, Local }
+
+enum class KnownItemSort { Name, Type, Rarity }
+
+enum class ItemBrowserTarget { Inventory, StartingArmor }
+
+data class KnownItemUi(
+    val id: String,
+    val name: String,
+    val type: KnownItemType,
+    val rarity: ItemRarity,
+    val details: String,
+    val source: KnownItemSource,
+    val supportedRulesets: Set<Ruleset>,
+    val equipment: EquipmentUi? = null,
+    val weapon: StandardWeaponTemplate? = null,
+    val privateEntry: PrivateEntryUi? = null,
+    val complete: Boolean = true,
+) {
+    fun compatibleWith(ruleset: Ruleset): Boolean = ruleset in supportedRulesets
+}
+
 /** Compact SRD 5.2.1 standard catalog used by the local add flow. */
 data class StandardWeaponTemplate(
     val id: String,
@@ -10,6 +46,9 @@ data class StandardWeaponTemplate(
     val properties: String,
     val range: String = "",
     val mastery: String = "",
+    val itemBonus: Int = 0,
+    val needsAttunement: Boolean = false,
+    val custom: Boolean = false,
 )
 
 val standardWeaponCatalog = listOf(
@@ -115,3 +154,197 @@ val standardEquipmentCatalog = listOf(
     EquipmentUi("splint-armor", "Splint Armor", EquipmentKind.ARMOR, details = "AC 17"),
     EquipmentUi("plate-armor", "Plate Armor", EquipmentKind.ARMOR, details = "AC 18"),
 )
+
+private val fifthEditionRulesets = setOf(Ruleset.Fifth2014, Ruleset.Fifth2024)
+private val everyRuleset = Ruleset.entries.toSet()
+
+internal fun builtInKnownItemCatalog(): List<KnownItemUi> = buildList {
+    standardWeaponCatalog.forEach { weapon ->
+        add(
+            KnownItemUi(
+                id = "weapon:${weapon.id}",
+                name = weapon.name,
+                type = KnownItemType.Weapon,
+                rarity = ItemRarity.Mundane,
+                details = listOf(weapon.damage, weapon.damageType, weapon.properties).filter(String::isNotBlank).joinToString(" · "),
+                source = KnownItemSource.BuiltIn,
+                supportedRulesets = fifthEditionRulesets,
+                weapon = weapon,
+            ),
+        )
+    }
+    standardEquipmentCatalog.forEach { equipment ->
+        add(
+            KnownItemUi(
+                id = "equipment:${equipment.id}",
+                name = equipment.name,
+                type = equipment.kind.toKnownItemType(),
+                rarity = if (equipment.id == "potion-healing") ItemRarity.Common else ItemRarity.Mundane,
+                details = equipment.details,
+                source = KnownItemSource.BuiltIn,
+                supportedRulesets = fifthEditionRulesets,
+                equipment = equipment,
+            ),
+        )
+    }
+
+    // These are the PF2e armor definitions the creation flow already knows how to grant.
+    listOf(
+        EquipmentUi("pf2e-leather-armor", "Leather Armor", EquipmentKind.ARMOR, details = "Item bonus +1 · Dexterity cap +4"),
+        EquipmentUi("pf2e-chain-shirt", "Chain Shirt", EquipmentKind.ARMOR, details = "Item bonus +2 · Dexterity cap +3"),
+        EquipmentUi("pf2e-scale-mail", "Scale Mail", EquipmentKind.ARMOR, details = "Item bonus +3 · Dexterity cap +2"),
+        EquipmentUi("pf2e-half-plate", "Half Plate", EquipmentKind.ARMOR, details = "Item bonus +5 · Dexterity cap +1"),
+    ).forEach { equipment ->
+        add(
+            KnownItemUi(
+                id = "equipment:${equipment.id}",
+                name = equipment.name,
+                type = KnownItemType.Armor,
+                rarity = ItemRarity.Common,
+                details = equipment.details,
+                source = KnownItemSource.BuiltIn,
+                supportedRulesets = setOf(Ruleset.Pf2eRemaster),
+                equipment = equipment,
+            ),
+        )
+    }
+}
+
+internal fun privateKnownItem(entry: PrivateEntryUi): KnownItemUi? {
+    val normalizedKind = entry.normalizedPrivateKind()
+    if (normalizedKind !in setOf("item", "weapon")) return null
+    val rulesets = entry.privateRulesets()
+    val rarity = entry.formulaValue("rarity")?.toItemRarity() ?: ItemRarity.Unspecified
+
+    if (normalizedKind == "weapon") {
+        val damage = entry.formulaValue("damage")
+            ?: Regex("\\b\\d+d\\d+(?:\\s*[+-]\\s*\\d+)?\\b", RegexOption.IGNORE_CASE).find(entry.formula)?.value
+        val damageType = entry.formulaValue("damage[ _-]?type")
+        val ability = entry.formulaValue("ability")?.uppercase()?.takeIf { it in setOf("STR", "DEX") } ?: "STR"
+        val template = damage?.let {
+            StandardWeaponTemplate(
+                id = "private-${entry.id}",
+                name = entry.name,
+                damage = it,
+                damageType = damageType.orEmpty(),
+                ability = ability,
+                properties = entry.formulaValue("properties").orEmpty(),
+                range = entry.formulaValue("range").orEmpty(),
+                mastery = entry.formulaValue("mastery").orEmpty(),
+                itemBonus = entry.formulaInt("(?:item[ _-]?)?bonus")?.coerceIn(-5, 5) ?: 0,
+                needsAttunement = entry.formulaFlag("attunement", "attuned", "requires attunement"),
+                custom = true,
+            )
+        }
+        return KnownItemUi(
+            id = "local-weapon:${entry.id}",
+            name = entry.name,
+            type = KnownItemType.Weapon,
+            rarity = rarity,
+            details = entry.summary,
+            source = KnownItemSource.Local,
+            supportedRulesets = rulesets,
+            weapon = template,
+            privateEntry = entry,
+            complete = template != null && damageType?.isNotBlank() == true,
+        )
+    }
+
+    val declaredType = entry.formulaValue("(?:type|category)")?.lowercase()?.replace('-', ' ')?.replace('_', ' ')
+        ?: entry.kind.trim().lowercase()
+    val itemType = when (declaredType) {
+        "armor", "armour", "shield" -> KnownItemType.Armor
+        "tool" -> KnownItemType.Tool
+        "consumable" -> KnownItemType.Consumable
+        "ration", "rations" -> KnownItemType.Rations
+        else -> KnownItemType.Gear
+    }
+    val kind = itemType.toEquipmentKind()
+    val armorClass = entry.formulaInt("(?:armor[ _-]?class|ac)")?.coerceIn(1, 30)
+    val shieldBonus = entry.formulaInt("shield(?:[ _-]?bonus)?")?.coerceIn(0, 9) ?: 0
+    val equipment = EquipmentUi(
+        id = "private-${entry.id}",
+        name = entry.name,
+        kind = kind,
+        details = entry.summary,
+        needsAttunement = entry.formulaFlag("attunement", "attuned", "requires attunement"),
+        armorClass = armorClass,
+        shieldBonus = shieldBonus,
+    )
+    return KnownItemUi(
+        id = "local-item:${entry.id}",
+        name = entry.name,
+        type = itemType,
+        rarity = rarity,
+        details = entry.summary,
+        source = KnownItemSource.Local,
+        supportedRulesets = rulesets,
+        equipment = equipment,
+        privateEntry = entry,
+        complete = itemType != KnownItemType.Armor || armorClass != null || shieldBonus > 0,
+    )
+}
+
+internal fun PrivateEntryUi.normalizedPrivateKind(): String = when (kind.trim().lowercase()) {
+    "ancestry", "species" -> "ancestry"
+    "class" -> "class"
+    "feat" -> "feat"
+    "spell" -> "spell"
+    "item", "equipment", "gear", "armor", "armour" -> "item"
+    "weapon" -> "weapon"
+    "language" -> "language"
+    else -> "informational"
+}
+
+internal fun PrivateEntryUi.privateRulesets(): Set<Ruleset> {
+    val marker = formulaValue("ruleset")?.lowercase() ?: return everyRuleset
+    return when (marker) {
+        "5e" -> fifthEditionRulesets
+        "5.5e", "2024", "fifth2024" -> setOf(Ruleset.Fifth2024)
+        "2014", "fifth2014" -> setOf(Ruleset.Fifth2014)
+        "pf2e", "pf2e remaster", "pf2e-remaster", "remaster" -> setOf(Ruleset.Pf2eRemaster)
+        else -> emptySet()
+    }
+}
+
+internal fun PrivateEntryUi.formulaValue(keyPattern: String): String? = Regex(
+    "(?:^|[,;]|\\s)(?:$keyPattern)\\s*[:=]\\s*(.+?)(?=\\s+[a-z][a-z _-]*\\s*[:=]|[,;]|$)",
+    setOf(RegexOption.IGNORE_CASE, RegexOption.MULTILINE),
+).find(formula)?.groupValues?.get(1)?.trim()?.takeIf(String::isNotBlank)
+
+private fun PrivateEntryUi.formulaInt(keyPattern: String): Int? = formulaValue(keyPattern)
+    ?.let { Regex("-?\\d+").find(it)?.value }
+    ?.toIntOrNull()
+
+private fun PrivateEntryUi.formulaFlag(vararg markers: String): Boolean = markers.any { marker ->
+    Regex("(?:^|[,;\\s])${Regex.escape(marker)}(?:\\s*[:=]\\s*(?:true|required|yes))?(?:$|[,;\\s])", RegexOption.IGNORE_CASE)
+        .containsMatchIn(formula)
+}
+
+private fun String.toItemRarity(): ItemRarity = when (trim().lowercase().replace('-', ' ').replace('_', ' ')) {
+    "mundane" -> ItemRarity.Mundane
+    "common" -> ItemRarity.Common
+    "uncommon" -> ItemRarity.Uncommon
+    "rare" -> ItemRarity.Rare
+    "very rare" -> ItemRarity.VeryRare
+    "legendary" -> ItemRarity.Legendary
+    "artifact" -> ItemRarity.Artifact
+    "unique" -> ItemRarity.Unique
+    else -> ItemRarity.Unspecified
+}
+
+internal fun EquipmentKind.toKnownItemType(): KnownItemType = when (this) {
+    EquipmentKind.GEAR -> KnownItemType.Gear
+    EquipmentKind.ARMOR -> KnownItemType.Armor
+    EquipmentKind.TOOL -> KnownItemType.Tool
+    EquipmentKind.CONSUMABLE -> KnownItemType.Consumable
+    EquipmentKind.RATIONS -> KnownItemType.Rations
+}
+
+internal fun KnownItemType.toEquipmentKind(): EquipmentKind = when (this) {
+    KnownItemType.Weapon, KnownItemType.Gear -> EquipmentKind.GEAR
+    KnownItemType.Armor -> EquipmentKind.ARMOR
+    KnownItemType.Tool -> EquipmentKind.TOOL
+    KnownItemType.Consumable -> EquipmentKind.CONSUMABLE
+    KnownItemType.Rations -> EquipmentKind.RATIONS
+}

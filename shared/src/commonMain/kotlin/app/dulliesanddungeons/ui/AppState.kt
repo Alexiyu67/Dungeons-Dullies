@@ -103,6 +103,13 @@ data class CreationPreviewUi(
     val startingArmor: String,
 )
 
+sealed interface StartingArmorChoice {
+    data object Recommended : StartingArmorChoice
+    data object Unarmored : StartingArmorChoice
+    data class Known(val itemId: String) : StartingArmorChoice
+    data class Custom(val item: EquipmentUi) : StartingArmorChoice
+}
+
 @Serializable
 data class EquipmentUi(
     val id: String,
@@ -741,6 +748,7 @@ class CreationDraft {
     val selectedFeatIds = mutableStateListOf<String>()
     val selectedSpellIds = mutableStateListOf<String>()
     val languages = mutableStateListOf("Common")
+    var startingArmorChoice by mutableStateOf<StartingArmorChoice>(StartingArmorChoice.Recommended)
     var portraitBytes by mutableStateOf<ByteArray?>(null)
     val rolledScores = mutableStateListOf<Int>()
     val manualAbilities = mutableStateMapOf(
@@ -766,6 +774,7 @@ class CreationDraft {
         selectedSpellIds.clear()
         languages.clear()
         languages += "Common"
+        startingArmorChoice = StartingArmorChoice.Recommended
         portraitBytes = null
         rolledScores.clear()
         manualAbilities.keys.toList().forEach { manualAbilities[it] = 10 }
@@ -861,6 +870,8 @@ class DndAppState(
     var hpAdjustOpen by mutableStateOf(false)
     var quickRollEditorOpen by mutableStateOf(false)
     var equipmentAddOpen by mutableStateOf(false)
+    var itemBrowserTarget by mutableStateOf(ItemBrowserTarget.Inventory)
+    var itemBrowserFeedback by mutableStateOf<String?>(null)
     var privateContentOpen by mutableStateOf(false)
     var turnOpen by mutableStateOf(false)
     var sessionHistoryOpen by mutableStateOf(false)
@@ -1054,8 +1065,8 @@ class DndAppState(
             "Monk" -> 10 + dexterityModifier + abilityModifier(abilities.getValue("WIS"))
             else -> 10 + dexterityModifier
         }
-        val startingArmor = startingArmorFor(creation.ruleset, creation.className, dexterityModifier, proficiency)
-        val armorClass = startingArmor?.armorClass ?: unarmoredArmorClass
+        val startingArmor = resolvedCreationArmor(dexterityModifier, proficiency)
+        val armorClass = (startingArmor?.armorClass ?: unarmoredArmorClass) + (startingArmor?.shieldBonus ?: 0)
         val weapons = creationWeapons(abilities, proficiency)
         val features = buildList {
             if (creation.className == "Fighter" && creation.ruleset != Ruleset.Pf2eRemaster) {
@@ -1365,6 +1376,32 @@ class DndAppState(
         }
     }
 
+    fun creationAbilityMethodExplanation(): String = when (creation.statMethod) {
+        StatMethod.Rolled -> t(
+            "Six scores are rolled with 4d6, dropping the lowest die each time. The totals are sorted from highest to lowest and assigned using ${creation.className}'s ability priority. Rerolling replaces all six scores.",
+            "Sechs Werte werden mit 4W6 gewürfelt; jeweils der niedrigste Würfel entfällt. Die Ergebnisse werden absteigend sortiert und nach der Attributspriorität von ${creation.className} verteilt. Neu würfeln ersetzt alle sechs Werte.",
+        )
+        StatMethod.StandardArray -> if (creation.ruleset == Ruleset.Pf2eRemaster) {
+            t(
+                "The fixed scores 18, 16, 14, 12, 10, and 8 are assigned using ${creation.className}'s ability priority.",
+                "Die festen Werte 18, 16, 14, 12, 10 und 8 werden nach der Attributspriorität von ${creation.className} verteilt.",
+            )
+        } else {
+            t(
+                "The fixed scores 15, 14, 13, 12, 10, and 8 are assigned using ${creation.className}'s ability priority.",
+                "Die festen Werte 15, 14, 13, 12, 10 und 8 werden nach der Attributspriorität von ${creation.className} verteilt.",
+            )
+        }
+        StatMethod.PointBuy -> t(
+            "The 27-point preset 15, 15, 14, 10, 8, and 8 is assigned using ${creation.className}'s ability priority.",
+            "Die 27-Punkte-Vorgabe 15, 15, 14, 10, 8 und 8 wird nach der Attributspriorität von ${creation.className} verteilt.",
+        )
+        StatMethod.Manual -> t(
+            "Each entered score is used exactly as shown. The app does not reorder manual values.",
+            "Jeder eingegebene Wert wird genau wie angezeigt verwendet. Manuelle Werte werden von der App nicht neu angeordnet.",
+        )
+    }
+
     fun creationAncestryOptions(): List<String> {
         val builtIn = if (creation.ruleset == Ruleset.Pf2eRemaster) {
             listOf("Human", "Elf", "Dwarf", "Goblin", "Orc", "Gnome", "Halfling", "Leshy")
@@ -1401,6 +1438,84 @@ class DndAppState(
     }
 
     fun creationSpellOptions(): List<SpellUi> = approvedPrivateSpellOptions(null)
+
+    fun creationLanguageOptions(): List<String> {
+        val builtIn = standardLanguageCatalog
+            .filter { creation.ruleset in it.rulesets }
+            .map { it.label(language) }
+        val local = approvedPrivateEntries("language").map { it.name }
+        return (builtIn + local)
+            .distinctBy { it.trim().lowercase() }
+            .sortedForPicker(language, { it })
+    }
+
+    fun knownItemCatalog(): List<KnownItemUi> = (builtInKnownItemCatalog() + privateEntries.mapNotNull(::privateKnownItem))
+        .distinctBy(KnownItemUi::id)
+
+    fun openItemBrowser(target: ItemBrowserTarget = ItemBrowserTarget.Inventory) {
+        itemBrowserTarget = target
+        itemBrowserFeedback = null
+        equipmentAddOpen = true
+    }
+
+    fun closeItemBrowser() {
+        equipmentAddOpen = false
+        itemBrowserFeedback = null
+    }
+
+    fun selectCreationArmor(item: KnownItemUi) {
+        if (item.type != KnownItemType.Armor) return
+        creation.startingArmorChoice = StartingArmorChoice.Known(item.id)
+        closeItemBrowser()
+    }
+
+    fun selectCreationUnarmored() {
+        creation.startingArmorChoice = StartingArmorChoice.Unarmored
+        closeItemBrowser()
+    }
+
+    fun setCustomCreationArmor(item: EquipmentUi) {
+        if (item.kind != EquipmentKind.ARMOR) return
+        creation.startingArmorChoice = StartingArmorChoice.Custom(item.copy(id = "starting-armor", worn = true))
+        closeItemBrowser()
+    }
+
+    fun creationArmorAdvisory(): String? {
+        val choice = creation.startingArmorChoice as? StartingArmorChoice.Known ?: return null
+        val item = knownItemCatalog().firstOrNull { it.id == choice.itemId }
+            ?: return t("This armor is no longer available; the class recommendation will be used.", "Diese Rüstung ist nicht mehr verfügbar; die Klassenempfehlung wird verwendet.")
+        return itemCompatibilityHint(item, creation.ruleset)
+    }
+
+    fun itemCompatibilityHint(item: KnownItemUi, ruleset: Ruleset): String? {
+        if (item.compatibleWith(ruleset)) return null
+        if (item.supportedRulesets.isEmpty()) {
+            return t("The ruleset marker is not recognized. You can still use this item.", "Die Regelwerksangabe wurde nicht erkannt. Du kannst diesen Gegenstand trotzdem verwenden.")
+        }
+        val expected = item.supportedRulesets.joinToString { it.shortLabel }
+        return t(
+            "Designed for $expected, not ${ruleset.shortLabel}. You can still use it.",
+            "Für $expected statt ${ruleset.shortLabel} gedacht. Du kannst den Gegenstand trotzdem verwenden.",
+        )
+    }
+
+    fun addKnownItem(item: KnownItemUi): Boolean {
+        if (!item.complete) return false
+        val addedName = when (item.type) {
+            KnownItemType.Weapon -> {
+                val weapon = item.weapon ?: return false
+                addStandardWeapon(weapon)
+                weapon.name
+            }
+            else -> {
+                val equipment = resolveKnownEquipmentForCharacter(item) ?: return false
+                addEquipment(equipment.copy(worn = false, attuned = false))
+                equipment.name
+            }
+        }
+        itemBrowserFeedback = t("Added $addedName", "$addedName hinzugefügt")
+        return true
+    }
 
     fun editableSpellCatalog(character: CharacterUi? = selectedCharacter): List<SpellUi> {
         val active = character ?: return emptyList()
@@ -1448,14 +1563,14 @@ class DndAppState(
             "Monk" -> 10 + dexterity + abilityModifier(abilities.getValue("WIS"))
             else -> 10 + dexterity
         }
-        val armor = startingArmorFor(creation.ruleset, creation.className, dexterity, proficiency)
+        val armor = resolvedCreationArmor(dexterity, proficiency)
         val primary = primaryAbilityFor(creation.className)
         return CreationPreviewUi(
             abilities = abilities,
             primaryAbility = primary,
             primaryScore = abilities.getValue(primary),
             hitPoints = creationHitPointGains(hitDieFor(creation.className), constitution).sum().coerceAtLeast(creation.level),
-            armorClass = armor?.armorClass ?: unarmored,
+            armorClass = (armor?.armorClass ?: unarmored) + (armor?.shieldBonus ?: 0),
             startingArmor = armor?.name ?: t("Unarmored", "Unge­rüstet"),
         )
     }
@@ -1979,6 +2094,45 @@ class DndAppState(
         className in setOf("Wizard", "Cleric", "Druid", "Bard", "Sorcerer", "Warlock", "Paladin", "Ranger")
     }
 
+    private fun resolvedCreationArmor(dexterityModifier: Int, proficiency: Int): EquipmentUi? = when (val choice = creation.startingArmorChoice) {
+        StartingArmorChoice.Recommended -> startingArmorFor(creation.ruleset, creation.className, dexterityModifier, proficiency)
+        StartingArmorChoice.Unarmored -> null
+        is StartingArmorChoice.Known -> knownItemCatalog()
+            .firstOrNull { it.id == choice.itemId && it.type == KnownItemType.Armor }
+            ?.let { resolveKnownEquipment(it, dexterityModifier, proficiency)?.let { armor ->
+                armor.copy(id = "starting-armor", worn = true, attuned = armor.needsAttunement)
+            } }
+            ?: startingArmorFor(creation.ruleset, creation.className, dexterityModifier, proficiency)
+        is StartingArmorChoice.Custom -> choice.item.copy(id = "starting-armor", worn = true)
+    }
+
+    internal fun resolveKnownEquipmentForCharacter(item: KnownItemUi): EquipmentUi? {
+        val character = selectedCharacter ?: return null
+        val dexterityModifier = abilityModifier(character.abilities["DEX"] ?: 10)
+        return resolveKnownEquipment(item, dexterityModifier, character.proficiency)
+    }
+
+    private fun resolveKnownEquipment(item: KnownItemUi, dexterityModifier: Int, proficiency: Int): EquipmentUi? {
+        val equipment = item.equipment ?: return null
+        val armorClass = when (equipment.id) {
+            "leather-armor" -> 11 + dexterityModifier
+            "studded-leather" -> 12 + dexterityModifier
+            "chain-shirt" -> 13 + dexterityModifier.coerceAtMost(2)
+            "scale-mail", "breastplate" -> 14 + dexterityModifier.coerceAtMost(2)
+            "half-plate" -> 15 + dexterityModifier.coerceAtMost(2)
+            "ring-mail" -> 14
+            "chain-mail" -> 16
+            "splint-armor" -> 17
+            "plate-armor" -> 18
+            "pf2e-leather-armor" -> 10 + proficiency + 1 + dexterityModifier.coerceAtMost(4)
+            "pf2e-chain-shirt" -> 10 + proficiency + 2 + dexterityModifier.coerceAtMost(3)
+            "pf2e-scale-mail" -> 10 + proficiency + 3 + dexterityModifier.coerceAtMost(2)
+            "pf2e-half-plate" -> 10 + proficiency + 5 + dexterityModifier.coerceAtMost(1)
+            else -> equipment.armorClass
+        }
+        return equipment.copy(armorClass = armorClass)
+    }
+
     private fun startingArmorFor(
         ruleset: Ruleset,
         className: String,
@@ -2095,22 +2249,10 @@ class DndAppState(
         }
     }
 
-    private fun PrivateEntryUi.normalizedKind(): String = when (kind.trim().lowercase()) {
-        "ancestry", "species" -> "ancestry"
-        "class" -> "class"
-        "feat" -> "feat"
-        "spell" -> "spell"
-        else -> "informational"
-    }
+    private fun PrivateEntryUi.normalizedKind(): String = normalizedPrivateKind()
 
     private fun PrivateEntryUi.appliesTo(ruleset: Ruleset): Boolean {
-        val marker = Regex("ruleset\\s*[:=]\\s*([a-zA-Z0-9.-]+)", RegexOption.IGNORE_CASE)
-            .find(formula)?.groupValues?.get(1)?.lowercase() ?: return true
-        return when (ruleset) {
-            Ruleset.Fifth2024 -> marker in setOf("5e", "5.5e", "2024", "fifth2024")
-            Ruleset.Fifth2014 -> marker in setOf("5e", "2014", "fifth2014")
-            Ruleset.Pf2eRemaster -> marker in setOf("pf2e", "pf2e-remaster", "remaster")
-        }
+        return ruleset in privateRulesets()
     }
 
     private fun secondWindUses(ruleset: Ruleset, fighterLevel: Int): Int = when (ruleset) {
@@ -3090,24 +3232,25 @@ class DndAppState(
         val weapon = WeaponUi(
             id = uniqueId(template.id, character.weapons.map { it.id }),
             name = template.name,
-            attackBonus = abilityBonus + character.proficiency,
+            attackBonus = abilityBonus + character.proficiency + template.itemBonus,
             damage = withAbilityDamage(template.damage, abilityBonus),
             damageType = template.damageType,
             properties = template.properties,
             ability = template.ability,
             range = template.range,
             mastery = template.mastery,
+            itemBonus = template.itemBonus,
+            needsAttunement = template.needsAttunement,
+            custom = template.custom,
             damageAbility = template.ability,
         )
         updateSelectedCharacter { it.copy(weapons = it.weapons + weapon) }
-        equipmentAddOpen = false
     }
 
     fun addCustomWeapon(weapon: WeaponUi) {
         val character = selectedCharacter ?: return
         val unique = weapon.copy(id = uniqueId(weapon.id.ifBlank { slug(weapon.name) }, character.weapons.map { it.id }), custom = true)
         updateSelectedCharacter { it.copy(weapons = it.weapons + unique) }
-        equipmentAddOpen = false
     }
 
     fun addEquipment(item: EquipmentUi) {
@@ -3119,7 +3262,6 @@ class DndAppState(
             character.resolvedEquipment + item.copy(id = uniqueId(item.id.ifBlank { slug(item.name) }, character.resolvedEquipment.map { it.id }))
         }
         updateSelectedCharacter { it.copy(equipmentItems = updatedItems) }
-        equipmentAddOpen = false
     }
 
     fun toggleEquipmentWorn(itemId: String) {

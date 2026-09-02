@@ -144,7 +144,7 @@ fun DulliesAndDungeonsApp(
         if (state.conditionsOpen) ConditionsDialog(state)
         if (state.hpAdjustOpen) HpAdjustDialog(state)
         if (state.quickRollEditorOpen) QuickRollEditorDialog(state)
-        if (state.equipmentAddOpen) EquipmentAddDialog(state)
+        if (state.equipmentAddOpen) ItemBrowserDialog(state)
         if (state.privateContentOpen) PrivateContentDialog(state, onImportPrivateContent)
         if (state.turnOpen) TurnAssistantDialog(state)
         if (state.sessionHistoryOpen) SessionHistoryDialog(state)

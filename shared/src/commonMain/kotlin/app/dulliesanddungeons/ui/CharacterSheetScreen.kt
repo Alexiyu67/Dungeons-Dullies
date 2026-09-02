@@ -322,7 +322,7 @@ internal fun CharacterSheetScreen(
 
                 item {
                     CollapsibleSectionHeader(state, state.t("Equipment", "Ausrüstung"), sectionExpanded("equipment"), { toggleSection("equipment") }) {
-                        TextButton(onClick = { state.equipmentAddOpen = true }) {
+                        TextButton(onClick = { state.openItemBrowser() }) {
                             Icon(Icons.Rounded.Add, contentDescription = null, Modifier.size(18.dp))
                             Spacer(Modifier.width(4.dp))
                             Text(state.t("Add", "Hinzufügen"))

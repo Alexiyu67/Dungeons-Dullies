@@ -186,6 +186,7 @@ def guess_kind(title: str, body: str) -> str:
         ("background", ("background", "hintergrund")),
         ("subclass", ("subclass", "subklasse")),
         ("class", ("class", "klasse")),
+        ("language", ("language", "speech", "sprache")),
         ("item", ("item", "equipment", "gear", "gegenstand", "ausrüstung")),
         ("resource", ("uses", "charges", "rest", "verwendungen", "rast")),
     )

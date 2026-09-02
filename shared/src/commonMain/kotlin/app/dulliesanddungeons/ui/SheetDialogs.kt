@@ -452,7 +452,7 @@ internal fun PrivateContentDialog(state: DndAppState, onImportPrivateContent: ()
     var summary by remember { mutableStateOf("") }
     var formula by remember { mutableStateOf("") }
     var expandedPackId by remember { mutableStateOf<String?>(null) }
-    val kinds = listOf("Class", "Subclass", "Species", "Background", "Feat", "Spell", "Item", "Weapon", "Condition", "Action", "Resource")
+    val kinds = listOf("Class", "Subclass", "Species", "Background", "Feat", "Spell", "Language", "Item", "Weapon", "Condition", "Action", "Resource")
     AlertDialog(
         onDismissRequest = { state.privateContentOpen = false },
         icon = { Icon(Icons.Rounded.Edit, contentDescription = null) },
