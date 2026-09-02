@@ -40,7 +40,7 @@ class SubclassCreationTest {
         assertNotNull(state.creationSubclassAdvisory())
         assertEquals(20, champion.resolveStats(2).criticalThreshold)
         assertTrue(champion.resolveFeatures(2, 2).isEmpty())
-        state.finishCreate()
+        state.finishCreateWithRequiredProficiencies()
 
         val character = assertNotNull(state.selectedCharacter)
         assertEquals("Champion", character.subclass)
@@ -56,12 +56,12 @@ class SubclassCreationTest {
         state.setCreationLevel(3)
         val before = state.characters.size
 
-        state.finishCreate()
+        state.finishCreateWithRequiredProficiencies()
         assertEquals(before, state.characters.size)
 
         val champion = state.creationSubclassOptions().single { it.name == "Champion" }
         state.selectCreationSubclass(champion.id)
-        state.finishCreate()
+        state.finishCreateWithRequiredProficiencies()
 
         val character = assertNotNull(state.selectedCharacter)
         assertEquals(19, character.criticalHitThreshold)
@@ -130,7 +130,7 @@ class SubclassCreationTest {
 
         state.addCustomSubclass("Storm School", "Storm magic and speed.", mechanics)
         assertTrue(state.creationSubclassOptions().any { it.name == "Storm School" && it.local })
-        state.finishCreate()
+        state.finishCreateWithRequiredProficiencies()
 
         val created = assertNotNull(state.selectedCharacter)
         val feature = created.features.single { it.name == "Storm Burst" }

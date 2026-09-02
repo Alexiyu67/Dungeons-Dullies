@@ -91,7 +91,7 @@ class ItemCatalogAndCreationTest {
         assertEquals(12, state.creationPreview().armorClass)
 
         state.creation.startingArmorChoice = StartingArmorChoice.Known(plate.id)
-        state.finishCreate()
+        state.finishCreateWithRequiredProficiencies()
         val created = assertNotNull(state.selectedCharacter)
         val armor = created.resolvedEquipment.single { it.kind == EquipmentKind.ARMOR }
         assertEquals(18, created.armorClass)

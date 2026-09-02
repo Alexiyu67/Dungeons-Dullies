@@ -26,7 +26,7 @@ class DndAppStateTest {
         state.creation.name = "Mira"
         state.creation.ancestry = "Elf"
         state.selectDraftPortrait(byteArrayOf(1, 2, 3, 4))
-        state.finishCreate()
+        state.finishCreateWithRequiredProficiencies()
         state.toggleLanguage()
         state.addCondition("Prone")
 
@@ -48,7 +48,7 @@ class DndAppStateTest {
         state.creation.characterDescription = "Patient and curious"
         state.creation.motive = "Find the lost observatory"
         state.creation.alignment = "Chaotic good"
-        state.finishCreate()
+        state.finishCreateWithRequiredProficiencies()
 
         assertEquals("Patient and curious", state.selectedCharacter?.profile?.characterDescription)
         assertEquals("Find the lost observatory", state.selectedCharacter?.profile?.motive)
@@ -82,7 +82,7 @@ class DndAppStateTest {
         state.beginCreate()
         state.creation.name = "Mira"
         state.creation.alignment = "Chaotic Good"
-        state.finishCreate()
+        state.finishCreateWithRequiredProficiencies()
 
         val restored = DndAppState(store)
         val character = restored.characters.single { it.name == "Mira" }
@@ -401,7 +401,7 @@ class DndAppStateTest {
 
         val preview = state.creationPreview()
         assertEquals(16, preview.abilities["CON"])
-        state.finishCreate()
+        state.finishCreateWithRequiredProficiencies()
         val character = assertNotNull(state.selectedCharacter)
         assertEquals(16, character.abilities["CON"])
         assertEquals(13, character.maxHp)
@@ -533,7 +533,7 @@ class DndAppStateTest {
         )
 
         val preview = state.creationPreview()
-        state.finishCreate()
+        state.finishCreateWithRequiredProficiencies()
         val character = assertNotNull(state.selectedCharacter)
 
         assertEquals(20, character.maxHp)
@@ -560,7 +560,7 @@ class DndAppStateTest {
         )
 
         val preview = state.creationPreview()
-        state.finishCreate()
+        state.finishCreateWithRequiredProficiencies()
         val character = assertNotNull(state.selectedCharacter)
         val staff = character.weapons.single()
 
@@ -600,7 +600,7 @@ class DndAppStateTest {
         )
         state.creation.selectedFeatIds += "star-touched"
         state.creation.selectedSpellIds += "moon-step"
-        state.finishCreate()
+        state.finishCreateWithRequiredProficiencies()
         val character = assertNotNull(state.selectedCharacter)
 
         assertEquals("Moonfolk", character.ancestry)

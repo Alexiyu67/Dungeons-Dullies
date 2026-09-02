@@ -1,6 +1,7 @@
 package app.dulliesanddungeons.ui
 
 import app.dulliesanddungeons.domain.ActionCost
+import app.dulliesanddungeons.domain.ProficiencyRank
 
 import app.dulliesanddungeons.domain.Recovery
 
@@ -9,7 +10,7 @@ import app.dulliesanddungeons.domain.Recovery
  * It deliberately contains summaries rather than rulebook prose; installed/private content can
  * contribute additional choices without changing the level-up reducer.
  */
-internal enum class GuidedLevelChoiceKind { SUBCLASS, SPELL, CLASS_OPTION }
+internal enum class GuidedLevelChoiceKind { SUBCLASS, SPELL, CLASS_OPTION, PROFICIENCY }
 
 internal data class GuidedFeatureUnlock(
     val id: String,
@@ -44,6 +45,8 @@ internal data class GuidedLevelOptionUi(
     val subclassName: String? = null,
     val feature: FeatureUi? = null,
     val spell: SpellUi? = null,
+    val proficiencyId: String? = null,
+    val proficiencyRank: ProficiencyRank? = null,
 )
 
 internal data class GuidedLevelChoiceUi(

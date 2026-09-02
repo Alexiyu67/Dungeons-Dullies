@@ -19,6 +19,7 @@ import app.dulliesanddungeons.domain.HitPointChangeKind
 import app.dulliesanddungeons.domain.MovementMode
 import app.dulliesanddungeons.domain.PlaySessionRecord
 import app.dulliesanddungeons.domain.PortraitCrop
+import app.dulliesanddungeons.domain.ProficiencyRank
 import app.dulliesanddungeons.domain.Recovery
 import app.dulliesanddungeons.domain.RollMode
 import app.dulliesanddungeons.domain.RollRequest
@@ -211,6 +212,7 @@ data class WeaponUi(
     val properties: String,
     val ability: String = "STR",
     val proficient: Boolean = true,
+    val proficiencyId: String? = null,
     val itemBonus: Int = 0,
     val abilityModifierOverride: Int? = null,
     val attackBonusOverride: Int? = null,
@@ -250,6 +252,7 @@ data class DerivedModifierFormulaUi(
     val ability: String,
     val proficiencyMultiplier: Int = 0,
     val base: Int = 0,
+    val proficiencyId: String? = null,
 )
 
 @Serializable
@@ -339,6 +342,11 @@ data class CharacterUi(
     val sourceCharacterId: String? = null,
     val hasSpellcastingCapability: Boolean = false,
     val derivation: CharacterDerivationUi = CharacterDerivationUi(),
+    val backgroundId: String = "background:local",
+    val backgroundName: String = "Local",
+    /** Stable proficiency IDs are retained for backwards compatibility with older documents. */
+    val proficiencyIds: Set<String> = emptySet(),
+    val proficiencyRanks: Map<String, ProficiencyRank> = emptyMap(),
     val activePlaySession: PlaySessionRecord? = null,
     val savedPlaySessions: List<PlaySessionRecord> = emptyList(),
     val hasPlayedSinceLongRest: Boolean = false,
@@ -808,6 +816,12 @@ class CreationDraft {
     var level by mutableIntStateOf(1)
     var ancestry by mutableStateOf("Human")
     var className by mutableStateOf("Fighter")
+    var backgroundId by mutableStateOf<String?>(null)
+    val backgroundSkillIds = mutableStateListOf<String>()
+    val classSkillIds = mutableStateListOf<String>()
+    val featSkillIds = mutableStateListOf<String>()
+    val skillRankChoices = mutableStateMapOf<String, ProficiencyRank>()
+    var proficiencyAdvisory by mutableStateOf<String?>(null)
     var subclassId by mutableStateOf<String?>(null)
     var subclassName by mutableStateOf("")
     var subclassAdvisory by mutableStateOf<String?>(null)
@@ -838,6 +852,12 @@ class CreationDraft {
         level = 1
         ancestry = "Human"
         className = "Fighter"
+        backgroundId = null
+        backgroundSkillIds.clear()
+        classSkillIds.clear()
+        featSkillIds.clear()
+        skillRankChoices.clear()
+        proficiencyAdvisory = null
         subclassId = null
         subclassName = ""
         subclassAdvisory = null
@@ -1102,6 +1122,13 @@ class DndAppState(
     }
 
     fun finishCreate() {
+        if (!creationProficiencySelectionValid()) {
+            showInfo(
+                t("Complete proficiency choices", "Fertigkeitswahlen abschließen"),
+                t("Choose a background and complete every required skill choice.", "Wähle einen Hintergrund und schließe alle erforderlichen Fertigkeitswahlen ab."),
+            )
+            return
+        }
         if (!creationSubclassSelectionValid()) {
             showInfo(
                 t("Choose a subclass", "W\u00e4hle eine Unterklasse"),
@@ -1126,40 +1153,22 @@ class DndAppState(
         val dexterityModifier = abilityModifier(abilities.getValue("DEX"))
         val hpGains = creationHitPointGains(hitDieFor(creation.className), constitutionModifier)
         val proficiency = if (creation.ruleset == Ruleset.Pf2eRemaster) creation.level + 2 else proficiencyForLevel(creation.level)
+        val proficiencyRanks = creationProficiencyRanks()
         val subclassOption = selectedCreationSubclass()
         val subclassStats = subclassOption?.resolveStats(creation.level, proficiency) ?: ResolvedSubclassStatsUi()
         val hitPoints = (hpGains.sum() + subclassStats.hitPointBonus).coerceAtLeast(creation.level)
-        val saveProficiencies = when (creation.className) {
-            "Fighter" -> setOf("STR", "CON")
-            "Wizard" -> setOf("INT", "WIS")
-            "Cleric", "Paladin", "Warlock" -> setOf("WIS", "CHA")
-            "Rogue" -> setOf("DEX", "INT")
-            "Ranger" -> setOf("STR", "DEX")
-            "Bard" -> setOf("DEX", "CHA")
-            "Druid" -> setOf("INT", "WIS")
-            "Sorcerer" -> setOf("CON", "CHA")
-            "Barbarian" -> setOf("STR", "CON")
-            "Monk" -> setOf("STR", "DEX")
-            else -> emptySet()
-        }
         val saveNames = linkedMapOf("Strength" to "STR", "Dexterity" to "DEX", "Constitution" to "CON", "Intelligence" to "INT", "Wisdom" to "WIS", "Charisma" to "CHA")
-        val saves = if (creation.ruleset == Ruleset.Pf2eRemaster) {
-            val expertSave = when (creation.className) {
-                "Fighter", "Barbarian" -> "CON"
-                "Rogue", "Ranger" -> "DEX"
-                else -> "WIS"
-            }
-            saveNames.mapValues { (_, key) ->
-                abilityModifier(abilities.getValue(key)) + creation.level + if (key == expertSave) 4 else 2
-            }
-        } else {
-            saveNames.mapValues { (_, key) ->
-                abilityModifier(abilities.getValue(key)) + (if (key in saveProficiencies) proficiency else 0) +
-                    subclassStats.savingThrowBonus
-            }
+        val saves = saveNames.mapValues { (_, key) ->
+            abilityModifier(abilities.getValue(key)) +
+                proficiencyModifier(creation.ruleset, creation.level, proficiencyRanks[saveProficiencyId(key)]) +
+                subclassStats.savingThrowBonus
         }
         val classUnarmoredArmorClass = if (creation.ruleset == Ruleset.Pf2eRemaster) {
-            10 + dexterityModifier + creation.level + if (creation.className == "Monk") 4 else 2
+            10 + dexterityModifier + proficiencyModifier(
+                creation.ruleset,
+                creation.level,
+                proficiencyRanks["armor:unarmored"],
+            )
         } else when (creation.className) {
             "Barbarian" -> 10 + dexterityModifier + constitutionModifier
             "Monk" -> 10 + dexterityModifier + abilityModifier(abilities.getValue("WIS"))
@@ -1172,10 +1181,15 @@ class DndAppState(
                 10 + dexterityModifier + abilityModifier(abilities.getValue("CHA"))
         }
         val unarmoredArmorClass = subclassUnarmoredArmorClass + subclassStats.armorClassBonus
-        val startingArmor = resolvedCreationArmor(dexterityModifier, proficiency)
+        val armorProficiency = proficiencyModifier(
+            creation.ruleset,
+            creation.level,
+            proficiencyRanks[creationArmorProficiencyId()],
+        )
+        val startingArmor = resolvedCreationArmor(dexterityModifier, armorProficiency)
         val armorClass = (startingArmor?.armorClass?.plus(subclassStats.armorClassBonus) ?: unarmoredArmorClass) +
             (startingArmor?.shieldBonus ?: 0)
-        val weapons = creationWeapons(abilities, proficiency).map { weapon ->
+        val weapons = creationWeapons(abilities, proficiencyRanks).map { weapon ->
             weapon.copy(
                 attackBonus = weapon.attackBonus + subclassStats.attackBonus,
                 itemBonus = weapon.itemBonus + subclassStats.attackBonus,
@@ -1221,7 +1235,13 @@ class DndAppState(
             unarmoredArmorClass = unarmoredArmorClass,
             speedFeet = speedFor(creation.ruleset, creation.ancestry) + subclassStats.speedBonusFeet,
             flySpeedFeet = if (creation.ancestry == "Aarakocra") 50 else null,
-            initiative = (if (creation.ruleset == Ruleset.Pf2eRemaster) abilityModifier(abilities.getValue("WIS")) + proficiency else dexterityModifier) + subclassStats.initiativeBonus,
+            initiative = (if (creation.ruleset == Ruleset.Pf2eRemaster) {
+                abilityModifier(abilities.getValue("WIS")) + proficiencyModifier(
+                    creation.ruleset,
+                    creation.level,
+                    proficiencyRanks["skill:perception"],
+                )
+            } else dexterityModifier) + subclassStats.initiativeBonus,
             proficiency = proficiency,
             criticalHitThreshold = subclassStats.criticalThreshold,
             initiativeRollMode = subclassStats.initiativeRollMode,
@@ -1230,12 +1250,10 @@ class DndAppState(
             portraitSourceFileName = portraitAssets?.sourceFileName,
             portraitCrop = portraitAssets?.crop,
             abilities = abilities,
-            skills = linkedMapOf(
-                "Athletics" to abilityModifier(abilities.getValue("STR")) + if (creation.ruleset == Ruleset.Pf2eRemaster) proficiency else 0,
-                "Perception" to abilityModifier(abilities.getValue("WIS")) + if (creation.ruleset == Ruleset.Pf2eRemaster) proficiency else 0,
-                "Stealth" to abilityModifier(abilities.getValue("DEX")) + if (creation.ruleset == Ruleset.Pf2eRemaster) proficiency else 0,
-                "Arcana" to abilityModifier(abilities.getValue("INT")) + if (creation.ruleset == Ruleset.Pf2eRemaster) proficiency else 0,
-            ),
+            skills = ProficiencyCatalog.skills(creation.ruleset, creation.backgroundId).associate { skill ->
+                skill.englishName to (abilityModifier(abilities.getValue(skill.ability)) +
+                    proficiencyModifier(creation.ruleset, creation.level, proficiencyRanks[skill.id]))
+            },
             saves = saves,
             languages = creation.languages.toList().ifEmpty { listOf("Common") },
             weapons = weapons,
@@ -1262,17 +1280,20 @@ class DndAppState(
             featIds = creation.selectedFeatIds.toList(),
             derivation = CharacterDerivationUi(
                 proficiencyFromLevel = creation.ruleset != Ruleset.Pf2eRemaster,
-                initiative = if (creation.ruleset == Ruleset.Pf2eRemaster) null else DerivedModifierFormulaUi("DEX", base = subclassStats.initiativeBonus),
-                saves = if (creation.ruleset == Ruleset.Pf2eRemaster) emptyMap() else saveNames.mapValues { (_, ability) ->
-                    DerivedModifierFormulaUi(ability, if (ability in saveProficiencies) 1 else 0, subclassStats.savingThrowBonus)
+                initiative = if (creation.ruleset == Ruleset.Pf2eRemaster) {
+                    DerivedModifierFormulaUi("WIS", base = subclassStats.initiativeBonus, proficiencyId = "skill:perception")
+                } else DerivedModifierFormulaUi("DEX", base = subclassStats.initiativeBonus),
+                saves = saveNames.mapValues { (_, ability) ->
+                    DerivedModifierFormulaUi(ability, base = subclassStats.savingThrowBonus, proficiencyId = saveProficiencyId(ability))
                 },
-                skills = if (creation.ruleset == Ruleset.Pf2eRemaster) emptyMap() else mapOf(
-                    "Athletics" to DerivedModifierFormulaUi("STR"),
-                    "Perception" to DerivedModifierFormulaUi("WIS"),
-                    "Stealth" to DerivedModifierFormulaUi("DEX"),
-                    "Arcana" to DerivedModifierFormulaUi("INT"),
-                ),
+                skills = ProficiencyCatalog.skills(creation.ruleset, creation.backgroundId).associate { skill ->
+                    skill.englishName to DerivedModifierFormulaUi(skill.ability, proficiencyId = skill.id)
+                },
             ),
+            backgroundId = requireNotNull(creation.backgroundId),
+            backgroundName = requireNotNull(selectedCreationBackground()).name(language),
+            proficiencyIds = proficiencyRanks.keys,
+            proficiencyRanks = proficiencyRanks,
         )
         characters += created
         if (!persist()) {
@@ -1479,20 +1500,22 @@ class DndAppState(
         val draft = editorDraft ?: return false
         if (!draft.isValid) return false
         val original = draft.original
-        val proficiency = if (draft.proficiencyManual) draft.proficiency else proficiencyForLevel(draft.level)
+        val proficiency = if (draft.proficiencyManual) draft.proficiency else {
+            if (draft.ruleset == Ruleset.Pf2eRemaster) draft.level + 2 else proficiencyForLevel(draft.level)
+        }
         val newAbilities = linkedMapOf<String, Int>().apply {
             listOf("STR", "DEX", "CON", "INT", "WIS", "CHA").forEach { ability ->
                 put(ability, draft.abilities[ability] ?: 10)
             }
         }
         val initiative = if (draft.initiativeManual) draft.initiative else {
-            original.derivation.initiative?.resolve(newAbilities, proficiency) ?: draft.initiative
+            original.derivation.initiative?.resolve(newAbilities, proficiency, draft.ruleset, draft.level, original.proficiencyRanks, original.proficiencyIds) ?: draft.initiative
         }
         val saves = original.saves.mapValues { (name, value) ->
-            original.derivation.saves[name]?.resolve(newAbilities, proficiency) ?: value
+            original.derivation.saves[name]?.resolve(newAbilities, proficiency, draft.ruleset, draft.level, original.proficiencyRanks, original.proficiencyIds) ?: value
         }
         val skills = original.skills.mapValues { (name, value) ->
-            original.derivation.skills[name]?.resolve(newAbilities, proficiency) ?: value
+            original.derivation.skills[name]?.resolve(newAbilities, proficiency, draft.ruleset, draft.level, original.proficiencyRanks, original.proficiencyIds) ?: value
         }
         val missingHp = (original.maxHp - original.hp).coerceAtLeast(0)
         val base = original.copy(
@@ -1518,14 +1541,15 @@ class DndAppState(
             saves = saves,
             skills = skills,
             weapons = original.weapons.map { weapon ->
-                if (draft.ruleset == Ruleset.Pf2eRemaster) {
-                    val ability = weapon.abilityModifierOverride ?: abilityModifier(newAbilities[weapon.ability] ?: 10)
-                    val rank = if (draft.className == "Fighter") 4 else 2
-                    weapon.copy(
-                        attackBonus = ability + draft.level + rank + weapon.itemBonus,
-                        damage = weapon.damageAbility?.let { replaceFormulaModifier(weapon.damage, abilityModifier(newAbilities[it] ?: 10)) } ?: weapon.damage,
-                    )
-                } else recalculateWeapon(weapon, newAbilities, proficiency)
+                recalculateWeapon(
+                    weapon,
+                    newAbilities,
+                    proficiency,
+                    draft.ruleset,
+                    draft.level,
+                    original.proficiencyRanks,
+                    original.proficiencyIds,
+                )
             },
             spells = draft.spells.toList(),
             derivation = original.derivation.copy(
@@ -1636,6 +1660,38 @@ class DndAppState(
         creation.level = safeLevel
         creation.subclassAdvisory = creationSubclassAdvisory()
         creation.rolledHpGains.clear()
+        if (creation.skillRankChoices.isNotEmpty()) {
+            creation.skillRankChoices.clear()
+            creation.proficiencyAdvisory = t(
+                "Skill increases were cleared for the new level.",
+                "Fertigkeitssteigerungen wurden für die neue Stufe zurückgesetzt.",
+            )
+        }
+    }
+
+    fun selectCreationRuleset(ruleset: Ruleset) {
+        if (ruleset == creation.ruleset) return
+        creation.ruleset = ruleset
+        creation.ancestry = "Human"
+        creation.className = "Fighter"
+        creation.subclassId = null
+        creation.subclassName = ""
+        creation.subclassAdvisory = null
+        creation.statMethod = if (ruleset == Ruleset.Pf2eRemaster) StatMethod.StandardArray else StatMethod.Rolled
+        creation.hpMethod = HpMethod.Fixed
+        creation.rolledScores.clear()
+        creation.rolledHpGains.clear()
+        creation.selectedFeatIds.clear()
+        creation.selectedSpellIds.clear()
+        creation.backgroundId = null
+        creation.backgroundSkillIds.clear()
+        creation.classSkillIds.clear()
+        creation.featSkillIds.clear()
+        creation.skillRankChoices.clear()
+        creation.proficiencyAdvisory = t(
+            "Choose a background and skills for the new ruleset.",
+            "Wähle Hintergrund und Fertigkeiten für das neue Regelwerk.",
+        )
     }
 
     fun selectCreationClass(className: String) {
@@ -1645,6 +1701,177 @@ class DndAppState(
         creation.subclassName = ""
         creation.subclassAdvisory = null
         creation.rolledHpGains.clear()
+        creation.classSkillIds.clear()
+        creation.featSkillIds.clear()
+        creation.skillRankChoices.clear()
+        creation.proficiencyAdvisory = t(
+            "Choose the skills granted by the new class.",
+            "Wähle die Fertigkeiten der neuen Klasse.",
+        )
+    }
+
+    internal fun creationBackgroundOptions(): List<BackgroundDefinitionUi> = ProficiencyCatalog.backgrounds(creation.ruleset)
+
+    internal fun selectedCreationBackground(): BackgroundDefinitionUi? =
+        ProficiencyCatalog.background(creation.ruleset, creation.backgroundId)
+
+    fun selectCreationBackground(backgroundId: String) {
+        val selected = ProficiencyCatalog.background(creation.ruleset, backgroundId) ?: return
+        if (creation.backgroundId == selected.id) return
+        val hadChoices = creation.backgroundId != null || creation.classSkillIds.isNotEmpty() || creation.skillRankChoices.isNotEmpty()
+        creation.backgroundId = selected.id
+        creation.backgroundSkillIds.clear()
+        val newlyGranted = selected.allGrantedSkillIds
+        creation.classSkillIds.removeAll { it in newlyGranted }
+        creation.featSkillIds.removeAll { it in newlyGranted }
+        creation.skillRankChoices.clear()
+        creation.proficiencyAdvisory = if (hadChoices) t(
+            "Selections that overlapped the new background were cleared.",
+            "Wahlen, die sich mit dem neuen Hintergrund überschnitten, wurden entfernt.",
+        ) else null
+    }
+
+    fun creationBackgroundSkillCount(): Int = selectedCreationBackground()?.customSkillCount ?: 0
+
+    fun toggleCreationBackgroundSkill(skillId: String) {
+        val count = creationBackgroundSkillCount()
+        if (count == 0 || ProficiencyCatalog.fiveESkills.none { it.id == skillId }) return
+        when {
+            skillId in creation.backgroundSkillIds -> creation.backgroundSkillIds.remove(skillId)
+            creation.backgroundSkillIds.size < count -> {
+                creation.backgroundSkillIds += skillId
+                creation.classSkillIds.remove(skillId)
+                creation.featSkillIds.remove(skillId)
+            }
+        }
+        creation.skillRankChoices.clear()
+    }
+
+    fun creationClassSkillCount(): Int {
+        val definition = ProficiencyCatalog.classDefinition(creation.ruleset, creation.className)
+        if (creation.ruleset != Ruleset.Pf2eRemaster) return definition.classSkillCount
+        val intelligenceModifier = abilityModifier(abilityScoresForDraft()["INT"] ?: 10)
+        val overlapReplacements = definition.fixedSkillIds.count { it in creationBackgroundGrantedSkillIds() }
+        return (definition.pf2AdditionalSkills + intelligenceModifier).coerceAtLeast(0) + overlapReplacements
+    }
+
+    internal fun creationClassSkillOptions(): List<CreationSkillOptionUi> {
+        val definition = ProficiencyCatalog.classDefinition(creation.ruleset, creation.className)
+        val unavailable = creationBackgroundGrantedSkillIds() + creation.backgroundSkillIds + definition.fixedSkillIds
+        return ProficiencyCatalog.skills(creation.ruleset, creation.backgroundId)
+            .filter { it.id in definition.classSkillIds && it.id !in unavailable }
+            .map { skill -> creationSkillOption(skill, creationBaseProficiencyRanks()) }
+    }
+
+    fun toggleCreationClassSkill(skillId: String) {
+        if (creationClassSkillOptions().none { it.id == skillId }) return
+        val count = creationClassSkillCount()
+        when {
+            skillId in creation.classSkillIds -> creation.classSkillIds.remove(skillId)
+            creation.classSkillIds.size < count -> creation.classSkillIds += skillId
+        }
+        creation.skillRankChoices.clear()
+    }
+
+    fun creationFeatSkillCount(): Int = if (creation.ruleset != Ruleset.Pf2eRemaster && "skilled" in creation.selectedFeatIds) 3 else 0
+
+    internal fun creationFeatSkillOptions(): List<CreationSkillOptionUi> {
+        val unavailable = creationBackgroundGrantedSkillIds() + creation.backgroundSkillIds + creation.classSkillIds
+        return ProficiencyCatalog.fiveESkills.filterNot { it.id in unavailable }
+            .map { skill -> creationSkillOption(skill, creationBaseProficiencyRanks()) }
+    }
+
+    fun toggleCreationFeatSkill(skillId: String) {
+        if (creationFeatSkillOptions().none { it.id == skillId }) return
+        val count = creationFeatSkillCount()
+        when {
+            skillId in creation.featSkillIds -> creation.featSkillIds.remove(skillId)
+            creation.featSkillIds.size < count -> creation.featSkillIds += skillId
+        }
+    }
+
+    fun creationSkillIncreaseCount(): Int = if (creation.ruleset != Ruleset.Pf2eRemaster) 0 else {
+        if (creation.className == "Rogue") (creation.level - 1).coerceAtLeast(0)
+        else ((creation.level - 1) / 2).coerceAtLeast(0)
+    }
+
+    fun creationSkillIncreaseCost(): Int {
+        val base = creationBaseProficiencyRanks()
+        return creation.skillRankChoices.entries.sumOf { (id, rank) ->
+            (rank.rankIndex() - (base[id]?.rankIndex() ?: 0)).coerceAtLeast(0)
+        }
+    }
+
+    internal fun creationRankSkillOptions(): List<CreationSkillOptionUi> =
+        ProficiencyCatalog.skills(creation.ruleset, creation.backgroundId).map { skill ->
+            creationSkillOption(skill, creationProficiencyRanks())
+        }
+
+    fun cycleCreationSkillRank(skillId: String) {
+        if (creation.ruleset != Ruleset.Pf2eRemaster) return
+        val baseRanks = creationBaseProficiencyRanks()
+        val base = baseRanks[skillId]
+        val current = creation.skillRankChoices[skillId] ?: base
+        val next = when (current) {
+            null -> ProficiencyRank.TRAINED
+            ProficiencyRank.TRAINED -> ProficiencyRank.EXPERT
+            ProficiencyRank.EXPERT -> ProficiencyRank.MASTER.takeIf { creation.level >= 7 }
+            ProficiencyRank.MASTER -> ProficiencyRank.LEGENDARY.takeIf { creation.level >= 15 }
+            ProficiencyRank.LEGENDARY -> null
+        }
+        if (next == null || next.rankIndex() <= (base?.rankIndex() ?: 0)) {
+            creation.skillRankChoices.remove(skillId)
+            return
+        }
+        val oldCost = creationSkillIncreaseCost()
+        val oldRank = creation.skillRankChoices[skillId]
+        creation.skillRankChoices[skillId] = next
+        if (creationSkillIncreaseCost() > creationSkillIncreaseCount()) {
+            if (oldRank == null) creation.skillRankChoices.remove(skillId) else creation.skillRankChoices[skillId] = oldRank
+        } else if (creationSkillIncreaseCost() == oldCost && oldRank == next) {
+            creation.skillRankChoices.remove(skillId)
+        }
+    }
+
+    fun creationProficiencyRanks(): Map<String, ProficiencyRank> =
+        creationBaseProficiencyRanks() + creation.skillRankChoices
+
+    fun creationProficiencySelectionValid(): Boolean {
+        val background = selectedCreationBackground() ?: return false
+        if (creation.backgroundSkillIds.size != background.customSkillCount) return false
+        if (creation.backgroundSkillIds.any { id -> ProficiencyCatalog.fiveESkills.none { it.id == id } }) return false
+        val definition = ProficiencyCatalog.classDefinition(creation.ruleset, creation.className)
+        val unavailable = creationBackgroundGrantedSkillIds() + creation.backgroundSkillIds + definition.fixedSkillIds
+        if (creation.classSkillIds.size != creationClassSkillCount()) return false
+        if (creation.classSkillIds.any { it !in definition.classSkillIds || it in unavailable }) return false
+        if (creation.featSkillIds.size != creationFeatSkillCount()) return false
+        if (creation.featSkillIds.any { it in creationBackgroundGrantedSkillIds() || it in creation.backgroundSkillIds || it in creation.classSkillIds }) return false
+        return creationSkillIncreaseCost() == creationSkillIncreaseCount()
+    }
+
+    fun creationBackgroundGrantedSkillIds(): Set<String> =
+        selectedCreationBackground()?.allGrantedSkillIds.orEmpty()
+
+    fun localizedSkillName(nameOrId: String): String =
+        ProficiencyCatalog.skillByDisplayName(selectedCharacter?.ruleset ?: creation.ruleset, nameOrId)?.name(language) ?: nameOrId
+
+    private fun creationBaseProficiencyRanks(): Map<String, ProficiencyRank> {
+        val definition = ProficiencyCatalog.classDefinition(creation.ruleset, creation.className)
+        return buildMap {
+            putAll(definition.automaticRanks)
+            (creationBackgroundGrantedSkillIds() + creation.backgroundSkillIds + definition.fixedSkillIds +
+                creation.classSkillIds + creation.featSkillIds).forEach { put(it, ProficiencyRank.TRAINED) }
+        }
+    }
+
+    private fun creationSkillOption(
+        skill: SkillDefinitionUi,
+        ranks: Map<String, ProficiencyRank>,
+    ): CreationSkillOptionUi {
+        val rank = ranks[skill.id]
+        val modifier = abilityModifier(abilityScoresForDraft()[skill.ability] ?: 10) +
+            proficiencyModifier(creation.ruleset, creation.level, rank)
+        return CreationSkillOptionUi(skill.id, skill.name(language), skill.ability, modifier, rank, skill.id in creationBackgroundGrantedSkillIds())
     }
 
     fun rollCreationHitPoints() {
@@ -1861,7 +2088,15 @@ class DndAppState(
         val choice = creation.startingArmorChoice as? StartingArmorChoice.Known ?: return null
         val item = knownItemCatalog().firstOrNull { it.id == choice.itemId }
             ?: return t("This armor is no longer available; the class recommendation will be used.", "Diese Rüstung ist nicht mehr verfügbar; die Klassenempfehlung wird verwendet.")
-        return itemCompatibilityHint(item, creation.ruleset)
+        itemCompatibilityHint(item, creation.ruleset)?.let { return it }
+        val proficiencyId = creationArmorProficiencyId()
+        if (proficiencyId !in creationProficiencyRanks()) {
+            return t(
+                "${creation.className} is not trained with this armor. It remains allowed, but its proficiency bonus is not added.",
+                "${creation.className} ist mit dieser Rüstung nicht geübt. Sie bleibt erlaubt, aber der Übungsbonus wird nicht addiert.",
+            )
+        }
+        return null
     }
 
     fun itemCompatibilityHint(item: KnownItemUi, ruleset: Ruleset): String? {
@@ -1933,9 +2168,10 @@ class DndAppState(
         val constitution = abilityModifier(abilities.getValue("CON"))
         val dexterity = abilityModifier(abilities.getValue("DEX"))
         val proficiency = if (creation.ruleset == Ruleset.Pf2eRemaster) creation.level + 2 else proficiencyForLevel(creation.level)
+        val ranks = creationProficiencyRanks()
         val subclassStats = selectedCreationSubclass()?.resolveStats(creation.level, proficiency) ?: ResolvedSubclassStatsUi()
         val classUnarmored = if (creation.ruleset == Ruleset.Pf2eRemaster) {
-            10 + dexterity + creation.level + if (creation.className == "Monk") 4 else 2
+            10 + dexterity + proficiencyModifier(creation.ruleset, creation.level, ranks["armor:unarmored"])
         } else when (creation.className) {
             "Barbarian" -> 10 + dexterity + constitution
             "Monk" -> 10 + dexterity + abilityModifier(abilities.getValue("WIS"))
@@ -1947,7 +2183,10 @@ class DndAppState(
             SubclassArmorFormulaUi.DEXTERITY_AND_CHARISMA_10 ->
                 10 + dexterity + abilityModifier(abilities.getValue("CHA"))
         }) + subclassStats.armorClassBonus
-        val armor = resolvedCreationArmor(dexterity, proficiency)
+        val armorProficiency = if (creation.ruleset == Ruleset.Pf2eRemaster) {
+            proficiencyModifier(creation.ruleset, creation.level, ranks[creationArmorProficiencyId()])
+        } else proficiency
+        val armor = resolvedCreationArmor(dexterity, armorProficiency)
         val primary = primaryAbilityFor(creation.className)
         return CreationPreviewUi(
             abilities = abilities,
@@ -2207,7 +2446,39 @@ class DndAppState(
     internal fun levelUpGuidedChoices(draft: LevelUpDraft? = levelUpDraft): List<GuidedLevelChoiceUi> {
         val activeDraft = draft ?: return emptyList()
         val character = selectedCharacter ?: return emptyList()
-        if (character.ruleset == Ruleset.Pf2eRemaster) return emptyList()
+        if (character.ruleset == Ruleset.Pf2eRemaster) {
+            val increaseDue = activeDraft.toLevel >= 2 &&
+                (activeDraft.className == "Rogue" || activeDraft.toLevel >= 3 && activeDraft.toLevel % 2 == 1)
+            if (!increaseDue) return emptyList()
+            val options = character.skills.keys.mapNotNull { name ->
+                val skill = ProficiencyCatalog.skillByDisplayName(character.ruleset, name) ?: return@mapNotNull null
+                if (skill.id == "skill:perception") return@mapNotNull null
+                val current = proficiencyRank(skill.id, character.proficiencyRanks, character.proficiencyIds)
+                val next = when (current) {
+                    null -> ProficiencyRank.TRAINED
+                    ProficiencyRank.TRAINED -> ProficiencyRank.EXPERT
+                    ProficiencyRank.EXPERT -> ProficiencyRank.MASTER.takeIf { activeDraft.toLevel >= 7 }
+                    ProficiencyRank.MASTER -> ProficiencyRank.LEGENDARY.takeIf { activeDraft.toLevel >= 15 }
+                    ProficiencyRank.LEGENDARY -> null
+                } ?: return@mapNotNull null
+                GuidedLevelOptionUi(
+                    id = "${skill.id}:${next.name.lowercase()}",
+                    name = skill.name(language),
+                    summary = "${current?.displayName(language) ?: t("Untrained", "Ungeübt")} → ${next.displayName(language)}",
+                    proficiencyId = skill.id,
+                    proficiencyRank = next,
+                )
+            }
+            return if (options.isEmpty()) emptyList() else listOf(
+                GuidedLevelChoiceUi(
+                    id = "pf2e-skill-increase-${activeDraft.toLevel}",
+                    title = t("Choose a skill increase", "Wähle eine Fertigkeitssteigerung"),
+                    kind = GuidedLevelChoiceKind.PROFICIENCY,
+                    chooseCount = 1,
+                    options = options,
+                ),
+            )
+        }
         val definition = guidedClassDefinitions[activeDraft.className]
         val classLevel = character.progression.count { it.className == activeDraft.className } + 1
         val choices = mutableListOf<GuidedLevelChoiceUi>()
@@ -2277,6 +2548,28 @@ class DndAppState(
                 )
             }
         }
+        if (activeDraft.selectedFeatId == "skilled") {
+            val options = ProficiencyCatalog.fiveESkills
+                .filterNot { it.id in character.proficiencyRanks || it.id in character.proficiencyIds }
+                .map { skill ->
+                    GuidedLevelOptionUi(
+                        id = "${skill.id}:trained",
+                        name = skill.name(language),
+                        summary = t("Become proficient", "Fertigkeit erlernen"),
+                        proficiencyId = skill.id,
+                        proficiencyRank = ProficiencyRank.TRAINED,
+                    )
+                }
+            if (options.isNotEmpty()) {
+                choices += GuidedLevelChoiceUi(
+                    id = "skilled-proficiencies",
+                    title = t("Choose three skill proficiencies", "Wähle drei Fertigkeiten"),
+                    kind = GuidedLevelChoiceKind.PROFICIENCY,
+                    chooseCount = 3.coerceAtMost(options.size),
+                    options = options,
+                )
+            }
+        }
         return choices
     }
 
@@ -2338,6 +2631,20 @@ class DndAppState(
             val selectedIds = draft.guidedSelections[choice.id].orEmpty()
             choice.options.filter { it.id in selectedIds }
         }
+        val updatedProficiencyRanks = buildMap {
+            character.proficiencyIds.forEach { put(it, ProficiencyRank.TRAINED) }
+            putAll(character.proficiencyRanks)
+            selectedOptions.forEach { option ->
+                val proficiencyId = option.proficiencyId
+                val rank = option.proficiencyRank
+                if (proficiencyId != null && rank != null) put(proficiencyId, rank)
+            }
+            if (character.ruleset != Ruleset.Pf2eRemaster && draft.className != character.className) {
+                ProficiencyCatalog.classDefinition(character.ruleset, draft.className).automaticRanks
+                    .filterKeys { it.startsWith("weapon:") || it.startsWith("armor:") }
+                    .forEach { (id, rank) -> put(id, rank) }
+            }
+        }
         val chosenSubclassId = selectedOptions.firstNotNullOfOrNull(GuidedLevelOptionUi::subclassId)
         val chosenSubclass = selectedOptions.firstNotNullOfOrNull(GuidedLevelOptionUi::subclassName)
         val updatedSubclassIds = character.subclassIdsByClass.toMutableMap().apply {
@@ -2352,7 +2659,7 @@ class DndAppState(
         val activeSubclass = subclassOptions(character.ruleset, draft.className).firstOrNull {
             it.id == activeSubclassId || it.name.equals(activeSubclassName, true)
         }
-        val newProficiency = proficiencyForLevel(newLevel)
+        val newProficiency = if (character.ruleset == Ruleset.Pf2eRemaster) newLevel + 2 else proficiencyForLevel(newLevel)
         val oldClassLevel = character.progression.count { it.className == draft.className }
         val newClassLevel = oldClassLevel + 1
         val oldSubclassStats = activeSubclass?.resolveStats(oldClassLevel, character.proficiency) ?: ResolvedSubclassStatsUi()
@@ -2369,7 +2676,15 @@ class DndAppState(
         val armorBonusIncrease = newSubclassStats.armorClassBonus - oldSubclassStats.armorClassBonus
         val unarmoredIncrease = armorBonusIncrease +
             subclassArmorFormula(newSubclassStats.armorFormula) - subclassArmorFormula(oldSubclassStats.armorFormula)
-        val wearingBodyArmor = character.equipmentItems.any { it.worn && it.armorClass != null }
+        val wornBodyArmor = character.equipmentItems.firstOrNull { it.worn && it.armorClass != null }
+        val wearingBodyArmor = wornBodyArmor != null
+        val pf2eBodyArmorIncrease = if (
+            character.ruleset == Ruleset.Pf2eRemaster &&
+            wornBodyArmor?.let(::armorProficiencyId) in updatedProficiencyRanks
+        ) 1 else 0
+        val pf2eUnarmoredIncrease = if (
+            character.ruleset == Ruleset.Pf2eRemaster && "armor:unarmored" in updatedProficiencyRanks
+        ) 1 else 0
         val selectedFeatures = buildList {
             addAll(selectedOptions.mapNotNull(GuidedLevelOptionUi::feature))
             activeSubclass?.let {
@@ -2384,13 +2699,35 @@ class DndAppState(
         }
         val selectedSpells = selectedOptions.mapNotNull(GuidedLevelOptionUi::spell) + activeSubclass?.resolveSpells(newClassLevel).orEmpty()
         val initiativeIncrease = newSubclassStats.initiativeBonus - oldSubclassStats.initiativeBonus
-        val newInitiative = (character.derivation.initiative?.resolve(newAbilities, newProficiency) ?: character.initiative) + initiativeIncrease
+        val skillDerivations = buildMap {
+            character.skills.forEach { (name, _) ->
+                val existing = character.derivation.skills[name]
+                val derived = ProficiencyCatalog.skillByDisplayName(character.ruleset, name)?.let { skill ->
+                    DerivedModifierFormulaUi(skill.ability, proficiencyId = skill.id)
+                }
+                (existing ?: derived)?.let { put(name, it) }
+            }
+        }
+        val saveDerivations = character.saves.mapValues { (name, _) ->
+            character.derivation.saves[name] ?: DerivedModifierFormulaUi(
+                saveAbbreviation(name),
+                proficiencyId = saveProficiencyId(saveAbbreviation(name)),
+            )
+        }
+        val newInitiative = (character.derivation.initiative?.resolve(
+            newAbilities,
+            newProficiency,
+            character.ruleset,
+            newLevel,
+            updatedProficiencyRanks,
+            character.proficiencyIds,
+        ) ?: character.initiative) + initiativeIncrease
         val savingThrowIncrease = newSubclassStats.savingThrowBonus - oldSubclassStats.savingThrowBonus
         val newSaves = character.saves.mapValues { (name, value) ->
-            (character.derivation.saves[name]?.resolve(newAbilities, newProficiency) ?: value) + savingThrowIncrease
+            (saveDerivations[name]?.resolve(newAbilities, newProficiency, character.ruleset, newLevel, updatedProficiencyRanks, character.proficiencyIds) ?: value) + savingThrowIncrease
         }
         val newSkills = character.skills.mapValues { (name, value) ->
-            character.derivation.skills[name]?.resolve(newAbilities, newProficiency) ?: value
+            skillDerivations[name]?.resolve(newAbilities, newProficiency, character.ruleset, newLevel, updatedProficiencyRanks, character.proficiencyIds) ?: value
         }
         val canonicalHitDie = hitDieFor(draft.className, character.ruleset)
         val updatedHitDieOverrides = character.hitDieOverrides.toMutableMap().apply {
@@ -2401,8 +2738,10 @@ class DndAppState(
             level = newLevel,
             hp = if (draft.healByIncrease) (character.hp + gain).coerceAtMost(newMax) else character.hp.coerceAtMost(newMax),
             maxHp = newMax,
-            armorClass = character.armorClass + if (wearingBodyArmor) armorBonusIncrease else unarmoredIncrease,
-            unarmoredArmorClass = character.unarmoredArmorClass + unarmoredIncrease,
+            armorClass = character.armorClass + if (wearingBodyArmor) {
+                armorBonusIncrease + pf2eBodyArmorIncrease
+            } else unarmoredIncrease + pf2eUnarmoredIncrease,
+            unarmoredArmorClass = character.unarmoredArmorClass + unarmoredIncrease + pf2eUnarmoredIncrease,
             subclass = newSubclass,
             subclassIdsByClass = updatedSubclassIds,
             subclassNamesByClass = updatedSubclassNames,
@@ -2419,6 +2758,10 @@ class DndAppState(
                     weapon.copy(itemBonus = weapon.itemBonus + (newSubclassStats.attackBonus - oldSubclassStats.attackBonus)),
                     newAbilities,
                     newProficiency,
+                    character.ruleset,
+                    newLevel,
+                    updatedProficiencyRanks,
+                    character.proficiencyIds,
                 )
             },
             progression = character.progression + LevelProgressionUi(
@@ -2431,14 +2774,17 @@ class DndAppState(
             ),
             hitDieOverrides = updatedHitDieOverrides,
             featIds = if (chosenFeat == null) character.featIds else (character.featIds + chosenFeat).distinct(),
+            proficiencyIds = updatedProficiencyRanks.keys,
+            proficiencyRanks = updatedProficiencyRanks,
             spells = (character.spells + selectedSpells).distinctBy(SpellUi::id),
             features = refreshedClassFeatures(character, draft.className, newSubclass, selectedFeatures),
             hasSpellcastingCapability = character.hasSpellcastingCapability || draft.className in setOf("Wizard", "Sorcerer"),
             derivation = character.derivation.copy(
                 initiative = character.derivation.initiative?.let { it.copy(base = it.base + initiativeIncrease) },
-                saves = character.derivation.saves.mapValues { (_, formula) ->
+                saves = saveDerivations.mapValues { (_, formula) ->
                     formula.copy(base = formula.base + savingThrowIncrease)
                 },
+                skills = skillDerivations,
             ),
         )
         updateSelectedCharacter { updated }
@@ -2717,25 +3063,68 @@ class DndAppState(
         return EquipmentUi("starting-armor", name, EquipmentKind.ARMOR, worn = true, armorClass = armorClass)
     }
 
-    private fun creationWeapons(abilities: Map<String, Int>, proficiency: Int): List<WeaponUi> {
+    private fun creationWeapons(
+        abilities: Map<String, Int>,
+        proficiencyRanks: Map<String, ProficiencyRank>,
+    ): List<WeaponUi> {
         val staffClass = creation.className in setOf("Wizard", "Sorcerer", "Cleric", "Druid")
         val dexterityClass = creation.className in setOf("Rogue", "Monk", "Ranger", "Bard", "Alchemist")
         val ability = if (staffClass) "STR" else if (dexterityClass) "DEX" else "STR"
         val abilityModifier = abilityModifier(abilities.getValue(ability))
-        val weaponProficiency = if (creation.ruleset == Ruleset.Pf2eRemaster) {
-            creation.level + if (creation.className == "Fighter") 4 else 2
-        } else proficiency
-        return when {
-            staffClass -> listOf(
-                WeaponUi("quarterstaff", "Quarterstaff", abilityModifier + weaponProficiency, withAbilityDamage("1d6", abilityModifier), "Bludgeoning", "Versatile (1d8)", ability = ability, damageAbility = ability),
-            )
-            dexterityClass -> listOf(
-                WeaponUi("shortsword", "Shortsword", abilityModifier + weaponProficiency, withAbilityDamage("1d6", abilityModifier), "Piercing", "Finesse", ability = ability, damageAbility = ability),
-            )
-            else -> listOf(
-                WeaponUi("longsword", "Longsword", abilityModifier + weaponProficiency, withAbilityDamage("1d8", abilityModifier), "Slashing", "Versatile (1d10)", ability = ability, damageAbility = ability),
+        fun proficiencyId(categoryId: String, weaponId: String): String =
+            categoryId.takeIf { it in proficiencyRanks } ?: "weapon:$weaponId"
+        fun weapon(id: String, name: String, damage: String, damageType: String, properties: String, categoryId: String): WeaponUi {
+            val trainingId = proficiencyId(categoryId, id)
+            val weaponProficiency = proficiencyModifier(creation.ruleset, creation.level, proficiencyRanks[trainingId])
+            return WeaponUi(
+                id,
+                name,
+                abilityModifier + weaponProficiency,
+                withAbilityDamage(damage, abilityModifier),
+                damageType,
+                properties,
+                ability = ability,
+                proficient = trainingId in proficiencyRanks,
+                proficiencyId = trainingId,
+                damageAbility = ability,
             )
         }
+        return when {
+            staffClass -> listOf(
+                weapon("quarterstaff", "Quarterstaff", "1d6", "Bludgeoning", "Versatile (1d8)", "weapon:simple"),
+            )
+            dexterityClass -> listOf(
+                weapon("shortsword", "Shortsword", "1d6", "Piercing", "Finesse", "weapon:martial"),
+            )
+            else -> listOf(
+                weapon("longsword", "Longsword", "1d8", "Slashing", "Versatile (1d10)", "weapon:martial"),
+            )
+        }
+    }
+
+    private fun creationArmorProficiencyId(): String = when (val choice = creation.startingArmorChoice) {
+        is StartingArmorChoice.Known -> when (choice.itemId.removePrefix("equipment:")) {
+            "pf2e-half-plate", "half-plate", "ring-mail", "chain-mail", "splint-armor", "plate-armor" -> "armor:heavy"
+            "pf2e-scale-mail", "scale-mail", "breastplate" -> "armor:medium"
+            "pf2e-leather-armor", "pf2e-chain-shirt", "leather-armor", "studded-leather", "chain-shirt" -> "armor:light"
+            else -> "armor:unarmored"
+        }
+        StartingArmorChoice.Unarmored -> "armor:unarmored"
+        is StartingArmorChoice.Custom -> "armor:unarmored"
+        StartingArmorChoice.Recommended -> when (creation.className) {
+            "Champion" -> "armor:heavy"
+            "Fighter" -> "armor:medium"
+            "Cleric", "Rogue", "Ranger", "Bard", "Druid", "Alchemist" -> "armor:light"
+            else -> "armor:unarmored"
+        }
+    }
+
+    private fun armorProficiencyId(item: EquipmentUi): String = when {
+        item.name.contains("half plate", true) || item.name.contains("plate armor", true) ||
+            item.name.contains("chain mail", true) || item.name.contains("splint", true) ||
+            item.name.contains("ring mail", true) -> "armor:heavy"
+        item.name.contains("scale mail", true) || item.name.contains("breastplate", true) -> "armor:medium"
+        else -> "armor:light"
     }
 
     private fun speedFor(ruleset: Ruleset, ancestry: String): Int = if (ruleset == Ruleset.Pf2eRemaster) {
@@ -3554,7 +3943,10 @@ class DndAppState(
 
     fun attackCalculation(character: CharacterUi, weapon: WeaponUi, multipleAttackPenalty: Int = 0): AttackCalculationUi {
         val ability = weapon.abilityModifierOverride ?: abilityModifier(character.abilities[weapon.ability] ?: 10)
-        val proficiency = if (weapon.proficient) character.proficiency else 0
+        val rank = weapon.proficiencyId?.let { id -> proficiencyRank(id, character.proficiencyRanks, character.proficiencyIds) }
+        val proficiency = if (weapon.proficiencyId != null) {
+            proficiencyModifier(character.ruleset, character.level, rank)
+        } else if (weapon.proficient) character.proficiency else 0
         val exhaustion = if (character.ruleset == Ruleset.Fifth2024) -2 * character.exhaustionLevel else 0
         val total = (weapon.attackBonusOverride ?: weapon.attackBonus) + exhaustion + multipleAttackPenalty
         return AttackCalculationUi(
@@ -3761,7 +4153,7 @@ class DndAppState(
         add(QuickRollUi(QuickRollKind.DEATH_SAVE, "death-save", t("Death save", "Todesrettungswurf")))
         character.abilities.keys.forEach { ability -> add(QuickRollUi(QuickRollKind.ABILITY, ability, ability)) }
         character.saves.forEach { (name, _) -> add(QuickRollUi(QuickRollKind.SAVE, name, saveAbbreviation(name))) }
-        character.skills.forEach { (name, _) -> add(QuickRollUi(QuickRollKind.SKILL, name, name)) }
+        character.skills.forEach { (name, _) -> add(QuickRollUi(QuickRollKind.SKILL, name, localizedSkillName(name))) }
     }
 
     fun executeQuickRoll(quickRoll: QuickRollUi) {
@@ -3800,14 +4192,22 @@ class DndAppState(
     fun addStandardWeapon(template: StandardWeaponTemplate) {
         val character = selectedCharacter ?: return
         val abilityBonus = abilityModifier(character.abilities[template.ability] ?: 10)
+        val simpleWeaponIds = setOf("club", "dagger", "greatclub", "handaxe", "javelin", "light-hammer", "mace", "quarterstaff", "sickle", "spear", "light-crossbow", "dart", "shortbow", "sling")
+        val categoryId = if (template.id in simpleWeaponIds) "weapon:simple" else "weapon:martial"
+        val specificId = "weapon:${template.id}"
+        val proficiencyId = categoryId.takeIf { it in character.proficiencyRanks || it in character.proficiencyIds } ?: specificId
+        val rank = proficiencyRank(proficiencyId, character.proficiencyRanks, character.proficiencyIds)
+        val proficiency = proficiencyModifier(character.ruleset, character.level, rank)
         val weapon = WeaponUi(
             id = uniqueId(template.id, character.weapons.map { it.id }),
             name = template.name,
-            attackBonus = abilityBonus + character.proficiency + template.itemBonus,
+            attackBonus = abilityBonus + proficiency + template.itemBonus,
             damage = withAbilityDamage(template.damage, abilityBonus),
             damageType = template.damageType,
             properties = template.properties,
             ability = template.ability,
+            proficient = rank != null,
+            proficiencyId = proficiencyId,
             range = template.range,
             mastery = template.mastery,
             itemBonus = template.itemBonus,
@@ -4136,7 +4536,7 @@ class DndAppState(
                 add(SearchResultUi("save-$name", t("$name saving throw", "$name-Rettungswurf"), t("Saving throw ${signed(modifier)}", "Rettungswurf ${signed(modifier)}"), SearchResultKind.Roll, t("Roll", "Würfeln"), modifier))
             }
             character.skills.forEach { (name, modifier) ->
-                add(SearchResultUi("skill-$name", name, t("Skill check ${signed(modifier)}", "Fertigkeitswurf ${signed(modifier)}"), SearchResultKind.Roll, t("Roll", "Würfeln"), modifier))
+                add(SearchResultUi("skill-$name", localizedSkillName(name), t("Skill check ${signed(modifier)}", "Fertigkeitswurf ${signed(modifier)}"), SearchResultKind.Roll, t("Roll", "Würfeln"), modifier))
             }
             character.weapons.forEach { weapon ->
                 add(SearchResultUi("weapon-${weapon.id}", weapon.name, t("Attack ${signed(weapon.attackBonus)} · ${weapon.damage}", "Angriff ${signed(weapon.attackBonus)} · ${weapon.damage}"), SearchResultKind.Action, t("Attack", "Angriff"), cost = ActionCost(actions = 1, attacks = 1)))
@@ -4424,15 +4824,36 @@ class DndAppState(
             else -> listOf("STR", "CON", "DEX", "WIS", "CHA", "INT")
         }
 
-    private fun DerivedModifierFormulaUi.resolve(abilities: Map<String, Int>, proficiency: Int): Int =
-        base + abilityModifier(abilities[ability] ?: 10) + proficiencyMultiplier * proficiency
+    private fun DerivedModifierFormulaUi.resolve(
+        abilities: Map<String, Int>,
+        proficiency: Int,
+        ruleset: Ruleset,
+        level: Int,
+        ranks: Map<String, ProficiencyRank>,
+        legacyIds: Set<String>,
+    ): Int {
+        val rank = proficiencyId?.let { id -> proficiencyRank(id, ranks, legacyIds) }
+        val proficiencyValue = if (proficiencyId != null) proficiencyModifier(ruleset, level, rank) else proficiencyMultiplier * proficiency
+        return base + abilityModifier(abilities[ability] ?: 10) + proficiencyValue
+    }
 
     private fun proficiencyForLevel(level: Int): Int = 2 + (level.coerceIn(1, 20) - 1) / 4
 
-    private fun recalculateWeapon(weapon: WeaponUi, abilities: Map<String, Int>, proficiency: Int): WeaponUi {
+    private fun recalculateWeapon(
+        weapon: WeaponUi,
+        abilities: Map<String, Int>,
+        proficiency: Int,
+        ruleset: Ruleset,
+        level: Int,
+        ranks: Map<String, ProficiencyRank>,
+        legacyIds: Set<String>,
+    ): WeaponUi {
         val ability = weapon.abilityModifierOverride ?: abilityModifier(abilities[weapon.ability] ?: 10)
+        val rank = weapon.proficiencyId?.let { id -> proficiencyRank(id, ranks, legacyIds) }
+        val proficiencyValue = if (weapon.proficiencyId != null) proficiencyModifier(ruleset, level, rank)
+        else if (weapon.proficient) proficiency else 0
         val attackBonus = if (weapon.attackBonusOverride == null) {
-            ability + (if (weapon.proficient) proficiency else 0) + weapon.itemBonus
+            ability + proficiencyValue + weapon.itemBonus
         } else weapon.attackBonus
         val damage = weapon.damageAbility?.let { damageAbility ->
             replaceFormulaModifier(weapon.damage, abilityModifier(abilities[damageAbility] ?: 10))
@@ -4454,6 +4875,34 @@ class DndAppState(
     }
 
     private fun abilityModifier(score: Int): Int = kotlin.math.floor((score - 10) / 2.0).toInt()
+
+    private fun ProficiencyRank.rankIndex(): Int = when (this) {
+        ProficiencyRank.TRAINED -> 1
+        ProficiencyRank.EXPERT -> 2
+        ProficiencyRank.MASTER -> 3
+        ProficiencyRank.LEGENDARY -> 4
+    }
+
+    private fun proficiencyRank(
+        id: String,
+        ranks: Map<String, ProficiencyRank>,
+        legacyIds: Set<String>,
+    ): ProficiencyRank? = ranks[id] ?: if (id in legacyIds) ProficiencyRank.TRAINED else null
+
+    private fun proficiencyModifier(ruleset: Ruleset, level: Int, rank: ProficiencyRank?): Int = when {
+        rank == null -> 0
+        ruleset == Ruleset.Pf2eRemaster -> level.coerceIn(1, 20) + rank.rankBonus
+        else -> proficiencyForLevel(level)
+    }
+
+    private fun saveProficiencyId(ability: String): String = when (ability.uppercase().take(3)) {
+        "STR" -> "save:strength"
+        "DEX" -> "save:dexterity"
+        "CON" -> "save:constitution"
+        "INT" -> "save:intelligence"
+        "WIS" -> "save:wisdom"
+        else -> "save:charisma"
+    }
 
     private fun persist(): Boolean {
         turnSession?.let { savedTurnDrafts[it.characterId] = it.snapshot() }

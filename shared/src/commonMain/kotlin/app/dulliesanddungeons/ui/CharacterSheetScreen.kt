@@ -216,7 +216,7 @@ internal fun CharacterSheetScreen(
                 item { RollShortcuts(state, character, sectionExpanded("quick-rolls")) { toggleSection("quick-rolls") } }
                 item { AbilityScores(state, character, sectionExpanded("abilities")) { toggleSection("abilities") } }
                 item { RollGrid(state, state.t("Saving throws", "Rettungswürfe"), character.saves.map { saveAbbreviation(it.key) to it.value }, sectionExpanded("saving-throws")) { toggleSection("saving-throws") } }
-                item { RollGrid(state, state.t("Skills", "Fertigkeiten"), character.skills.toList(), sectionExpanded("skills")) { toggleSection("skills") } }
+                item { RollGrid(state, state.t("Skills", "Fertigkeiten"), character.skills.map { state.localizedSkillName(it.key) to it.value }, sectionExpanded("skills")) { toggleSection("skills") } }
 
                 FeatureFamily.entries.filter { it != FeatureFamily.General }.forEach { family ->
                     val familyFeatures = groupedFeatures[family].orEmpty()

@@ -20,6 +20,15 @@ enum class LocaleId { EN, DE }
 @Serializable
 enum class Ability { STRENGTH, DEXTERITY, CONSTITUTION, INTELLIGENCE, WISDOM, CHARISMA }
 
+/** A missing entry means untrained. This keeps legacy proficiency ID sets readable. */
+@Serializable
+enum class ProficiencyRank(val rankBonus: Int) {
+    TRAINED(2),
+    EXPERT(4),
+    MASTER(6),
+    LEGENDARY(8),
+}
+
 @Serializable
 data class ContentVersionRef(val packId: String, val version: String)
 
@@ -115,6 +124,7 @@ data class ClassLevel(
 sealed interface RulesetBuildData {
     val level: Int
     val abilities: Map<Ability, Int>
+    val proficiencyRanks: Map<String, ProficiencyRank>
 }
 
 @Serializable
@@ -127,6 +137,7 @@ data class FiveEBuildData(
     val heritageId: String? = null,
     val feats: List<ChoiceSelection> = emptyList(),
     val proficiencyIds: Set<String> = emptySet(),
+    override val proficiencyRanks: Map<String, ProficiencyRank> = emptyMap(),
     val languages: List<ChoiceSelection> = emptyList(),
     val knownSpells: List<ChoiceSelection> = emptyList(),
     val preparedSpellIds: Set<String> = emptySet(),
@@ -169,6 +180,7 @@ data class Pf2eBuildData(
     override val abilities: Map<Ability, Int>,
     val featSelections: List<Pf2eFeatSelection> = emptyList(),
     val proficiencyIds: Set<String> = emptySet(),
+    override val proficiencyRanks: Map<String, ProficiencyRank> = emptyMap(),
     val languages: List<ChoiceSelection> = emptyList(),
     val knownSpells: List<ChoiceSelection> = emptyList(),
     val preparedSpellIds: Set<String> = emptySet(),
@@ -225,9 +237,10 @@ data class CharacterBuild(
         is Pf2eBuildData -> value.featSelections.mapTo(mutableSetOf()) { it.selection.id }
     }
     val proficiencyIds: Set<String> get() = when (val value = rules) {
-        is FiveEBuildData -> value.proficiencyIds
-        is Pf2eBuildData -> value.proficiencyIds
+        is FiveEBuildData -> value.proficiencyIds + value.proficiencyRanks.keys
+        is Pf2eBuildData -> value.proficiencyIds + value.proficiencyRanks.keys
     }
+    val proficiencyRanks: Map<String, ProficiencyRank> get() = rules.proficiencyRanks
     val languageIds: Set<String> get() = when (val value = rules) {
         is FiveEBuildData -> value.languages.mapTo(mutableSetOf()) { it.id }
         is Pf2eBuildData -> value.languages.mapTo(mutableSetOf()) { it.id }
@@ -315,6 +328,8 @@ data class LevelUpDraft(
 data class DerivedStatisticFormula(
     val ability: Ability? = null,
     val proficiencyMultiplier: Int = 0,
+    /** Stable save/skill/category ID whose rank supplies the proficiency modifier. */
+    val proficiencyId: String? = null,
     val base: Int = 0,
     val itemBonus: Int = 0,
     val override: Int? = null,
@@ -365,6 +380,8 @@ data class WeaponRecord(
     val damage: DiceExpression,
     val damageType: String,
     val proficient: Boolean = true,
+    /** Stable weapon category or specific training ID used by automatic attack calculations. */
+    val proficiencyId: String? = null,
     val itemBonus: Int = 0,
     val attackBonusOverride: Int? = null,
     val damageModifierOverride: Int? = null,

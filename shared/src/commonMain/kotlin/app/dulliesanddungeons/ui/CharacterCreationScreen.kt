@@ -127,7 +127,9 @@ internal fun CharacterCreationScreen(
                         if (draft.step < LAST_CREATION_STEP) draft.step++ else state.finishCreate()
                     },
                     enabled = (draft.step != 1 || draft.name.isNotBlank()) &&
-                        (draft.step != LAST_CREATION_STEP || state.creationSubclassSelectionValid()),
+                        (draft.step != 4 || state.creationProficiencySelectionValid()) &&
+                        (draft.step != LAST_CREATION_STEP ||
+                            state.creationSubclassSelectionValid() && state.creationProficiencySelectionValid()),
                     modifier = Modifier.weight(1f).height(52.dp),
                     shape = RoundedCornerShape(16.dp),
                 ) {
@@ -159,18 +161,7 @@ private fun RulesetStep(state: DndAppState) {
         Ruleset.entries.forEach { ruleset ->
             OutlinedCard(
                 onClick = {
-                    draft.ruleset = ruleset
-                    draft.ancestry = "Human"
-                    draft.className = "Fighter"
-                    draft.subclassId = null
-                    draft.subclassName = ""
-                    draft.subclassAdvisory = null
-                    draft.statMethod = if (ruleset == Ruleset.Pf2eRemaster) StatMethod.StandardArray else StatMethod.Rolled
-                    draft.hpMethod = HpMethod.Fixed
-                    draft.rolledScores.clear()
-                    draft.rolledHpGains.clear()
-                    draft.selectedFeatIds.clear()
-                    draft.selectedSpellIds.clear()
+                    state.selectCreationRuleset(ruleset)
                 },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
@@ -607,6 +598,9 @@ private fun DetailsStep(state: DndAppState) {
     val featChoices = featLevels.count { it <= draft.level }
     val featOptions = state.creationFeatOptions().sortedForPicker(state.language, FeatOptionUi::name, FeatOptionUi::id)
     val spellOptions = state.creationSpellOptions().sortedForPicker(state.language, SpellUi::name, SpellUi::id)
+    val backgrounds = state.creationBackgroundOptions()
+    val background = state.selectedCreationBackground()
+    val rankSkillOptions = state.creationRankSkillOptions()
     var languageText by remember(draft.ruleset) { mutableStateOf(draft.languages.joinToString(", ")) }
     val suggestedLanguages = languageSuggestions(languageText, state.creationLanguageOptions())
     Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
@@ -630,6 +624,90 @@ private fun DetailsStep(state: DndAppState) {
                 Icon(Icons.Rounded.Warning, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
                 Text(advisory, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
             }
+        }
+        Text(state.t("Background", "Hintergrund"), style = MaterialTheme.typography.titleMedium)
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(backgrounds, key = { it.id }) { option ->
+                FilterChip(
+                    selected = draft.backgroundId == option.id,
+                    onClick = { state.selectCreationBackground(option.id) },
+                    label = { Text(option.name(state.language)) },
+                )
+            }
+        }
+        background?.let { selected ->
+            val grantNames = selected.allGrantedSkillIds.mapNotNull { id ->
+                rankSkillOptions.firstOrNull { it.id == id }?.name
+            }
+            if (grantNames.isNotEmpty()) {
+                Text(
+                    state.t("Grants: ${grantNames.joinToString()}", "Gewährt: ${grantNames.joinToString()}"),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (selected.customSkillCount > 0) {
+                Text(
+                    state.t(
+                        "Background skills · ${draft.backgroundSkillIds.size}/${selected.customSkillCount}",
+                        "Hintergrundfertigkeiten · ${draft.backgroundSkillIds.size}/${selected.customSkillCount}",
+                    ),
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                rankSkillOptions.forEach { skill ->
+                    CreationSkillChoiceCard(
+                        state = state,
+                        skill = skill,
+                        selected = skill.id in draft.backgroundSkillIds,
+                        onClick = { state.toggleCreationBackgroundSkill(skill.id) },
+                    )
+                }
+            }
+        }
+        val classDefinition = ProficiencyCatalog.classDefinition(draft.ruleset, draft.className)
+        val fixedClassSkillNames = classDefinition.fixedSkillIds.mapNotNull { id ->
+            rankSkillOptions.firstOrNull { it.id == id }?.name
+        }
+        if (fixedClassSkillNames.isNotEmpty()) {
+            Text(
+                state.t("Class grants: ${fixedClassSkillNames.joinToString()}", "Klasse gewährt: ${fixedClassSkillNames.joinToString()}"),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        val classSkillCount = state.creationClassSkillCount()
+        Text(
+            state.t("Class skills · ${draft.classSkillIds.size}/$classSkillCount", "Klassenfertigkeiten · ${draft.classSkillIds.size}/$classSkillCount"),
+            style = MaterialTheme.typography.titleMedium,
+        )
+        state.creationClassSkillOptions().forEach { skill ->
+            CreationSkillChoiceCard(
+                state = state,
+                skill = skill,
+                selected = skill.id in draft.classSkillIds,
+                onClick = { state.toggleCreationClassSkill(skill.id) },
+            )
+        }
+        if (state.creationSkillIncreaseCount() > 0) {
+            Text(
+                state.t(
+                    "Skill increases · ${state.creationSkillIncreaseCost()}/${state.creationSkillIncreaseCount()}",
+                    "Fertigkeitssteigerungen · ${state.creationSkillIncreaseCost()}/${state.creationSkillIncreaseCount()}",
+                ),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            state.creationRankSkillOptions().forEach { skill ->
+                CreationSkillChoiceCard(
+                    state = state,
+                    skill = skill,
+                    selected = skill.id in draft.skillRankChoices,
+                    rankControl = true,
+                    onClick = { state.cycleCreationSkillRank(skill.id) },
+                )
+            }
+        }
+        draft.proficiencyAdvisory?.let { advisory ->
+            Text(advisory, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
         }
         OutlinedTextField(
             value = languageText,
@@ -672,9 +750,30 @@ private fun DetailsStep(state: DndAppState) {
                     feat = feat,
                     selected = feat.id in draft.selectedFeatIds,
                     onClick = {
-                        if (feat.id in draft.selectedFeatIds) draft.selectedFeatIds.remove(feat.id)
-                        else if (draft.selectedFeatIds.size < featChoices) draft.selectedFeatIds += feat.id
+                        if (feat.id in draft.selectedFeatIds) {
+                            draft.selectedFeatIds.remove(feat.id)
+                            if (feat.id == "skilled") draft.featSkillIds.clear()
+                        } else if (draft.selectedFeatIds.size < featChoices) {
+                            draft.selectedFeatIds += feat.id
+                        }
                     },
+                )
+            }
+        }
+        if (state.creationFeatSkillCount() > 0) {
+            Text(
+                state.t(
+                    "Skilled feat · ${draft.featSkillIds.size}/${state.creationFeatSkillCount()}",
+                    "Talent Geübt · ${draft.featSkillIds.size}/${state.creationFeatSkillCount()}",
+                ),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            state.creationFeatSkillOptions().forEach { skill ->
+                CreationSkillChoiceCard(
+                    state = state,
+                    skill = skill,
+                    selected = skill.id in draft.featSkillIds,
+                    onClick = { state.toggleCreationFeatSkill(skill.id) },
                 )
             }
         }
@@ -711,6 +810,40 @@ private fun DetailsStep(state: DndAppState) {
             state.t("Nothing gets silently removed", "Nichts wird unbemerkt entfernt"),
             state.t("If an earlier choice changes, we show everything that needs review before saving.", "Wenn sich eine frühere Wahl ändert, zeigen wir vor dem Speichern alles, was geprüft werden muss."),
         )
+    }
+}
+
+@Composable
+private fun CreationSkillChoiceCard(
+    state: DndAppState,
+    skill: CreationSkillOptionUi,
+    selected: Boolean,
+    rankControl: Boolean = false,
+    onClick: () -> Unit,
+) {
+    OutlinedCard(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.outlinedCardColors(
+            containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surface,
+        ),
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            if (!rankControl) Checkbox(checked = selected, onCheckedChange = null)
+            Column(Modifier.weight(1f)) {
+                Text(skill.name, style = MaterialTheme.typography.titleSmall)
+                Text(skill.ability, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            skill.rank?.let { rank ->
+                Text(rank.displayName(state.language), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+            }
+            Text(creationSigned(skill.modifier), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+        }
     }
 }
 
@@ -757,6 +890,11 @@ private fun ReviewStep(state: DndAppState, onEditPortrait: (PortraitPickTarget) 
                     },
                 )
                 ReviewRow(state.t("Ruleset", "Regelwerk"), draft.ruleset.longLabel)
+                ReviewRow(
+                    state.t("Background", "Hintergrund"),
+                    state.selectedCreationBackground()?.name(state.language) ?: state.t("Choose", "Wählen"),
+                    good = state.selectedCreationBackground() != null,
+                )
                 if (draft.ruleset != Ruleset.Pf2eRemaster) {
                     ReviewRow(
                         state.t("Subclass", "Unterklasse"),
@@ -766,9 +904,10 @@ private fun ReviewStep(state: DndAppState, onEditPortrait: (PortraitPickTarget) 
                 }
                 ReviewRow(
                     state.t("Required choices", "Erforderliche Wahlen"),
-                    if (state.creationSubclassSelectionValid()) state.t("Complete", "Vollst\u00e4ndig")
-                    else state.t("Choose subclass", "Unterklasse w\u00e4hlen"),
-                    good = state.creationSubclassSelectionValid(),
+                    if (state.creationSubclassSelectionValid() && state.creationProficiencySelectionValid()) {
+                        state.t("Complete", "Vollständig")
+                    } else state.t("Needs review", "Prüfung nötig"),
+                    good = state.creationSubclassSelectionValid() && state.creationProficiencySelectionValid(),
                 )
             }
         }

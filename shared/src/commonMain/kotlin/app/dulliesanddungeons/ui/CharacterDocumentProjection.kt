@@ -38,6 +38,7 @@ import app.dulliesanddungeons.domain.Pf2eBuildData
 import app.dulliesanddungeons.domain.Pf2eFeatCategory
 import app.dulliesanddungeons.domain.Pf2eFeatSelection
 import app.dulliesanddungeons.domain.Pf2eHealthState
+import app.dulliesanddungeons.domain.ProficiencyRank
 import app.dulliesanddungeons.domain.ProgressionLedger
 import app.dulliesanddungeons.domain.QuickRollShortcut
 import app.dulliesanddungeons.domain.RecoveryAmount
@@ -71,13 +72,13 @@ internal fun CharacterUi.toDocument(characterConditions: List<ConditionUi> = emp
         )
     }
     val ancestryId = "ancestry:${slug(ancestry)}"
-    val backgroundId = "background:local"
+    val backgroundId = this.backgroundId.takeIf { it.startsWith("background:") } ?: "background:${slug(backgroundName)}"
     val languageRecords = languages.map { name ->
         LanguageRecord("language:${slug(name)}", name, custom = true, locked = name in lockedLanguages)
     }
     val customEntities = buildMap {
         put(ancestryId, CustomEntitySnapshot(ancestryId, CustomEntityKind.ANCESTRY, ancestry))
-        put(backgroundId, CustomEntitySnapshot(backgroundId, CustomEntityKind.BACKGROUND, "Local"))
+        put(backgroundId, CustomEntitySnapshot(backgroundId, CustomEntityKind.BACKGROUND, backgroundName))
         classes.forEach { value ->
             val name = classIdsByName.entries.first { it.value == value.classId }.key
             put(value.classId, CustomEntitySnapshot(value.classId, CustomEntityKind.CLASS, name))
@@ -102,6 +103,8 @@ internal fun CharacterUi.toDocument(characterConditions: List<ConditionUi> = emp
             classes = classes,
             abilities = abilitiesByType,
             feats = featIds.map(::ChoiceSelection),
+            proficiencyIds = proficiencyIds.ifEmpty { proficiencyRanks.keys },
+            proficiencyRanks = proficiencyRanks,
             languages = languageRecords.map { ChoiceSelection(it.id) },
             knownSpells = spells.map { ChoiceSelection(it.id) },
             preparedSpellIds = spells.filter { it.prepared }.mapTo(mutableSetOf()) { it.id },
@@ -120,6 +123,8 @@ internal fun CharacterUi.toDocument(characterConditions: List<ConditionUi> = emp
             level = level,
             abilities = abilitiesByType,
             featSelections = featIds.map { Pf2eFeatSelection(Pf2eFeatCategory.BONUS, ChoiceSelection(it), level) },
+            proficiencyIds = proficiencyIds.ifEmpty { proficiencyRanks.keys },
+            proficiencyRanks = proficiencyRanks,
             languages = languageRecords.map { ChoiceSelection(it.id) },
             knownSpells = spells.map { ChoiceSelection(it.id) },
             preparedSpellIds = spells.filter { it.prepared }.mapTo(mutableSetOf()) { it.id },
@@ -274,10 +279,11 @@ internal fun CharacterDocument.toCharacterUi(): CharacterUi {
             modifier(build.abilities.getOrDefault(it, 10)).let { value -> method.abilityCap?.let(value::coerceAtMost) ?: value }
         } ?: 0)
     }
-    val proficiency = combat.storedProficiencyBonus ?: combat.proficiencyBonusOverride ?: if (build.ruleset.isFiveEdition) {
+    val proficiency = combat.proficiencyBonusOverride ?: if (build.ruleset.isFiveEdition) {
         2 + (build.level - 1) / 4
-    } else 0
-    val initiative = combat.initiative.value(build.abilities, proficiency, storedFallback = 0)
+    } else build.level + 2
+    val resolvedProficiency = proficiency.takeIf { it > 0 } ?: combat.storedProficiencyBonus ?: 0
+    val initiative = combat.initiative.value(build, resolvedProficiency, storedFallback = 0)
     val progressionUi = progression.entries.map { entry ->
         LevelProgressionUi(
             level = entry.characterLevel,
@@ -334,7 +340,7 @@ internal fun CharacterDocument.toCharacterUi(): CharacterUi {
         speedFeet = combat.baseSpeedsFeet[MovementMode.WALK] ?: 0,
         flySpeedFeet = combat.baseSpeedsFeet[MovementMode.FLY],
         initiative = initiative,
-        proficiency = proficiency,
+        proficiency = resolvedProficiency,
         criticalHitThreshold = combat.criticalHitThreshold,
         initiativeRollMode = combat.initiativeRollMode,
         portraitSeed = sheet.portraitSeed,
@@ -342,11 +348,11 @@ internal fun CharacterDocument.toCharacterUi(): CharacterUi {
         portraitSourceFileName = build.portraitSourceFileName,
         portraitCrop = build.portraitCrop,
         abilities = abilitiesUi,
-        skills = combat.skills.mapValues { it.value.value(build.abilities, proficiency, 0) },
-        saves = combat.savingThrows.map { (ability, formula) -> ability.displayName to formula.value(build.abilities, proficiency, 0) }.toMap(),
+        skills = combat.skills.mapValues { it.value.value(build, resolvedProficiency, 0) },
+        saves = combat.savingThrows.map { (ability, formula) -> ability.displayName to formula.value(build, resolvedProficiency, 0) }.toMap(),
         languages = sheet.languages.map { it.name },
         lockedLanguages = sheet.languages.filter { it.locked }.map { it.name },
-        weapons = sheet.weapons.map { it.toUi() },
+        weapons = sheet.weapons.map { it.toUi(build, resolvedProficiency) },
         spells = sheet.spells.map { it.toUi() },
         spellSlots = (1..9).mapNotNull { level ->
             val pool = resources["spell-slot-$level"]
@@ -376,6 +382,10 @@ internal fun CharacterDocument.toCharacterUi(): CharacterUi {
             }.toMap(),
             skills = combat.skills.mapNotNull { (name, formula) -> formula.toUiFormula()?.let { name to it } }.toMap(),
         ),
+        backgroundId = build.backgroundId,
+        backgroundName = displayName(build.backgroundId),
+        proficiencyIds = build.proficiencyIds,
+        proficiencyRanks = build.proficiencyRanks,
         activePlaySession = state.activePlaySession,
         savedPlaySessions = state.savedPlaySessions,
         hasPlayedSinceLongRest = state.hasPlayedSinceLongRest ||
@@ -610,6 +620,7 @@ private fun WeaponUi.toDomain(): WeaponRecord {
         damage = expression,
         damageType = damageType,
         proficient = proficient,
+        proficiencyId = proficiencyId,
         itemBonus = itemBonus,
         attackBonusOverride = attackBonusOverride,
         abilityModifierOverride = abilityModifierOverride,
@@ -627,15 +638,19 @@ private fun WeaponUi.toDomain(): WeaponRecord {
     )
 }
 
-private fun WeaponRecord.toUi() = WeaponUi(
+private fun WeaponRecord.toUi(build: CharacterBuild, proficiency: Int): WeaponUi {
+    val ability = abilityModifierOverride ?: modifier(build.abilities.getOrDefault(attackAbility, 10))
+    val automatic = ability + proficiencyFor(build, proficiencyId, proficiency, proficient) + itemBonus
+    return WeaponUi(
     id = id,
     name = name,
-    attackBonus = storedAttackBonus ?: attackBonusOverride ?: 0,
+    attackBonus = attackBonusOverride ?: automatic.takeIf { proficiencyId != null || proficient } ?: storedAttackBonus ?: automatic,
     damage = damageFormula ?: damage.format(),
     damageType = damageType,
     properties = properties.joinToString(", "),
     ability = attackAbility.shortName,
     proficient = proficient,
+    proficiencyId = proficiencyId,
     itemBonus = itemBonus,
     abilityModifierOverride = abilityModifierOverride,
     attackBonusOverride = attackBonusOverride,
@@ -646,6 +661,7 @@ private fun WeaponRecord.toUi() = WeaponUi(
     custom = custom,
     damageAbility = damageAbility?.shortName,
 )
+}
 
 private fun SpellUi.toDomain() = SpellRecord(
     id = id,
@@ -746,17 +762,36 @@ private fun DerivedModifierFormulaUi?.toDomainFormula(stored: Int): DerivedStati
     DerivedStatisticFormula(
         ability = ability(ability),
         proficiencyMultiplier = proficiencyMultiplier,
+        proficiencyId = proficiencyId,
         base = base,
         storedValue = stored,
     )
 }
 
 private fun DerivedStatisticFormula.toUiFormula(): DerivedModifierFormulaUi? =
-    ability?.takeIf { override == null }?.let { DerivedModifierFormulaUi(it.shortName, proficiencyMultiplier, base) }
+    ability?.takeIf { override == null }?.let { DerivedModifierFormulaUi(it.shortName, proficiencyMultiplier, base, proficiencyId) }
 
-private fun DerivedStatisticFormula.value(abilities: Map<Ability, Int>, proficiency: Int, storedFallback: Int): Int =
-    storedValue ?: override ?: (base + itemBonus + (ability?.let { modifier(abilities.getOrDefault(it, 10)) } ?: 0))
-        .let { it + proficiencyMultiplier * proficiency }.takeIf { ability != null } ?: storedFallback
+private fun DerivedStatisticFormula.value(build: CharacterBuild, proficiency: Int, storedFallback: Int): Int {
+    override?.let { return it }
+    val sourceAbility = ability ?: return storedValue ?: storedFallback
+    return base + itemBonus + modifier(build.abilities.getOrDefault(sourceAbility, 10)) +
+        if (proficiencyId != null) proficiencyFor(build, proficiencyId, proficiency) else proficiencyMultiplier * proficiency
+}
+
+private fun proficiencyFor(
+    build: CharacterBuild,
+    proficiencyId: String?,
+    fiveEProficiency: Int,
+    legacyProficient: Boolean = false,
+): Int {
+    val id = proficiencyId ?: return if (legacyProficient) fiveEProficiency else 0
+    val rank = build.proficiencyRanks[id] ?: ProficiencyRank.TRAINED.takeIf { id in build.proficiencyIds }
+    return when {
+        rank == null -> 0
+        build.ruleset.isFiveEdition -> fiveEProficiency
+        else -> build.level + rank.rankBonus
+    }
+}
 
 private fun HpMethod.toDomain() = when (this) {
     HpMethod.Fixed -> HitPointGainMethod.FIXED
