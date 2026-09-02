@@ -24,7 +24,9 @@ import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.Casino
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -44,6 +46,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -545,6 +551,8 @@ private fun DetailsStep(state: DndAppState) {
     val featChoices = featLevels.count { it <= draft.level }
     val featOptions = state.creationFeatOptions().sortedForPicker(state.language, FeatOptionUi::name, FeatOptionUi::id)
     val spellOptions = state.creationSpellOptions().sortedForPicker(state.language, SpellUi::name, SpellUi::id)
+    var languageText by remember(draft.ruleset) { mutableStateOf(draft.languages.joinToString(", ")) }
+    val suggestedLanguages = languageSuggestions(languageText, state.creationLanguageOptions())
     Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
         StepIntro(state.t("We did the rules work", "Wir haben die Regelarbeit erledigt"), state.t("Here is the recommended foundation. Every value will have a tappable explanation on your sheet.", "Hier ist die empfohlene Grundlage. Jeder Wert erhält auf deinem Bogen eine antippbare Erklärung."))
         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)), shape = RoundedCornerShape(20.dp)) {
@@ -552,43 +560,76 @@ private fun DetailsStep(state: DndAppState) {
                 ReviewRow(state.t("Primary ability", "Hauptattribut"), "${preview.primaryAbility} · ${preview.primaryScore}")
                 ReviewRow(state.t("Hit points", "Trefferpunkte"), preview.hitPoints.toString())
                 ReviewRow(state.t("Armor Class", "Rüstungsklasse"), preview.armorClass.toString())
-                ReviewRow(state.t("Languages", "Sprachen"), state.t("Common + one from ancestry", "Gemeinsprache + eine durch Abstammung"))
-                ReviewRow(state.t("Starting armor", "Startrüstung"), preview.startingArmor)
+                ReviewRow(state.t("Languages", "Sprachen"), draft.languages.joinToString(", ").ifBlank { state.t("None", "Keine") })
+                EditableReviewRow(
+                    state = state,
+                    label = state.t("Starting armor", "Startrüstung"),
+                    value = preview.startingArmor,
+                    onClick = { state.openItemBrowser(ItemBrowserTarget.StartingArmor) },
+                )
+            }
+        }
+        state.creationArmorAdvisory()?.let { advisory ->
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
+                Icon(Icons.Rounded.Warning, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
+                Text(advisory, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
             }
         }
         OutlinedTextField(
-            value = draft.languages.joinToString(", "),
+            value = languageText,
             onValueChange = { value ->
+                languageText = value
                 draft.languages.clear()
-                draft.languages.addAll(value.split(',').map { it.trim() }.filter { it.isNotBlank() }.distinct())
+                draft.languages.addAll(value.split(',').map { it.trim() }.filter { it.isNotBlank() }.distinctBy { it.lowercase() })
             },
             modifier = Modifier.fillMaxWidth(),
             label = { Text(state.t("Languages", "Sprachen")) },
             supportingText = { Text(state.t("Separate languages with commas.", "Sprachen mit Kommas trennen.")) },
         )
+        if (suggestedLanguages.isNotEmpty()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)),
+            ) {
+                Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                    suggestedLanguages.forEach { suggestion ->
+                        Surface(
+                            onClick = {
+                                languageText = replaceActiveLanguageSegment(languageText, suggestion)
+                                draft.languages.clear()
+                                draft.languages.addAll(languageText.split(',').map { it.trim() }.filter { it.isNotBlank() }.distinctBy { it.lowercase() })
+                            },
+                            color = androidx.compose.ui.graphics.Color.Transparent,
+                        ) {
+                            Text(suggestion, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 11.dp), style = MaterialTheme.typography.labelLarge)
+                        }
+                    }
+                }
+            }
+        }
         if (draft.ruleset != Ruleset.Pf2eRemaster && featChoices > 0) {
             Text(state.t("Feat choices · ${draft.selectedFeatIds.size}/$featChoices", "Talentwahlen · ${draft.selectedFeatIds.size}/$featChoices"), style = MaterialTheme.typography.titleMedium)
             featOptions.forEach { feat ->
-                FilterChip(
+                FeatSelectionCard(
+                    state = state,
+                    feat = feat,
                     selected = feat.id in draft.selectedFeatIds,
                     onClick = {
                         if (feat.id in draft.selectedFeatIds) draft.selectedFeatIds.remove(feat.id)
                         else if (draft.selectedFeatIds.size < featChoices) draft.selectedFeatIds += feat.id
                     },
-                    label = { Text(feat.name) },
                 )
-                feat.recommendedReason?.let {
-                    Text(state.t("Recommended · $it", "Empfohlen · $it"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-                }
             }
         }
         if (draft.ruleset == Ruleset.Pf2eRemaster && featOptions.isNotEmpty()) {
             Text(state.t("Approved private feats", "Freigegebene private Talente"), style = MaterialTheme.typography.titleMedium)
             featOptions.forEach { feat ->
-                FilterChip(
+                FeatSelectionCard(
+                    state = state,
+                    feat = feat,
                     selected = feat.id in draft.selectedFeatIds,
                     onClick = { if (feat.id in draft.selectedFeatIds) draft.selectedFeatIds.remove(feat.id) else draft.selectedFeatIds += feat.id },
-                    label = { Text(feat.name) },
                 )
             }
         }
@@ -641,7 +682,17 @@ private fun ReviewStep(state: DndAppState) {
                         alignmentDisplayName(draft.alignment, state.language),
                     )
                 }
-                ReviewRow(state.t("Ability method", "Attributsmethode"), draft.statMethod.name)
+                ReviewInfoRow(
+                    state = state,
+                    label = state.t("Ability method", "Attributsmethode"),
+                    value = draft.statMethod.name,
+                    onInfo = {
+                        state.showInfo(
+                            state.t("Ability method", "Attributsmethode"),
+                            state.creationAbilityMethodExplanation(),
+                        )
+                    },
+                )
                 ReviewRow(state.t("Ruleset", "Regelwerk"), draft.ruleset.longLabel)
                 ReviewRow(state.t("Required choices", "Erforderliche Wahlen"), state.t("Complete", "Vollständig"), good = true)
             }
@@ -655,6 +706,76 @@ private fun ReviewProfileField(label: String, value: String) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(value, style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+@Composable
+private fun FeatSelectionCard(
+    state: DndAppState,
+    feat: FeatOptionUi,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    OutlinedCard(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.outlinedCardColors(
+            containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f) else MaterialTheme.colorScheme.surface,
+        ),
+    ) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(checked = selected, onCheckedChange = null)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(feat.name, style = MaterialTheme.typography.titleSmall)
+                feat.recommendedReason?.let { reason ->
+                    Text(
+                        state.t("Recommended · $reason", "Empfohlen · $reason"),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            IconButton(
+                onClick = {
+                    val body = buildString {
+                        append(feat.summary.ifBlank { state.t("No additional details supplied.", "Keine weiteren Details angegeben.") })
+                        feat.recommendedReason?.let { reason ->
+                            append("\n\n")
+                            append(state.t("Why it may fit: $reason", "Warum es passen könnte: $reason"))
+                        }
+                    }
+                    state.showInfo(feat.name, body)
+                },
+            ) {
+                Icon(Icons.Rounded.Info, contentDescription = state.t("Explain ${feat.name}", "${feat.name} erklären"))
+            }
+        }
+    }
+}
+
+@Composable
+private fun EditableReviewRow(state: DndAppState, label: String, value: String, onClick: () -> Unit) {
+    Surface(onClick = onClick, color = androidx.compose.ui.graphics.Color.Transparent, shape = RoundedCornerShape(10.dp)) {
+        Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+            Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Spacer(Modifier.width(6.dp))
+            Icon(Icons.Rounded.Edit, contentDescription = state.t("Edit $label", "$label bearbeiten"), modifier = Modifier.size(19.dp), tint = MaterialTheme.colorScheme.primary)
+        }
+    }
+}
+
+@Composable
+private fun ReviewInfoRow(state: DndAppState, label: String, value: String, onInfo: () -> Unit) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+        Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+        IconButton(onClick = onInfo, modifier = Modifier.size(40.dp)) {
+            Icon(Icons.Rounded.Info, contentDescription = state.t("Explain $label", "$label erklären"), modifier = Modifier.size(19.dp))
+        }
     }
 }
 

@@ -18,6 +18,9 @@ SPEC.loader.exec_module(IMPORTER)
 
 
 class PrivateImporterTests(unittest.TestCase):
+    def test_recognizes_language_entries(self) -> None:
+        self.assertEqual("language", IMPORTER.guess_kind("Lunar Language", "A spoken language of moonfolk."))
+
     def test_rejects_urls(self) -> None:
         with self.assertRaises(SystemExit):
             IMPORTER.validate_paths(Path("https://example.invalid/book.pdf"), Path("private-local/out.dndpack"), False)

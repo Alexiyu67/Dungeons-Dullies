@@ -59,8 +59,10 @@ listed with byte sizes and SHA-256 digests, and no unlisted ZIP entry is allowed
   `distributionReady: false`.
 
 Android always asks the player to review and approve imported entries. Approved
-typed `ancestry`/`species`, `class`, `feat`, and `spell` entries become selectable
-in the matching creation or level-up flow and are recorded on the character.
+typed `ancestry`/`species`, `class`, `feat`, `spell`, `language`, `item`/`equipment`,
+and `weapon` entries become selectable in the matching creation, item, or level-up
+flow and are recorded on the character. Items and weapons with incomplete mechanics
+open a prefilled custom editor before they can be added.
 Generic `rule`, `content-pack`, generic PDF-derived, unreviewed, and unknown
 candidate kinds remain informational; they are never treated as character mechanics merely
 because a file or ZIP labels itself installable.
