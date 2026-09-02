@@ -156,19 +156,14 @@ internal fun DieFace(
                 8 -> drawPolygon(4, fill, outline, stroke, rotation = -PI / 2)
                 10 -> drawPolygon(5, fill, outline, stroke, rotation = -PI / 2)
                 12 -> drawPolygon(6, fill, outline, stroke, rotation = 0.0)
-                20 -> {
-                    drawPolygon(6, fill, outline, stroke, rotation = -PI / 2)
-                    drawLine(outline.copy(alpha = .55f), Offset(size.width * .18f, size.height * .66f), Offset(size.width * .5f, size.height * .18f), stroke / 1.6f)
-                    drawLine(outline.copy(alpha = .55f), Offset(size.width * .82f, size.height * .66f), Offset(size.width * .5f, size.height * .18f), stroke / 1.6f)
-                    drawLine(outline.copy(alpha = .55f), Offset(size.width * .18f, size.height * .66f), Offset(size.width * .82f, size.height * .66f), stroke / 1.6f)
-                }
+                20 -> drawPolygon(6, fill, outline, stroke, rotation = -PI / 2)
                 else -> drawPolygon(6, fill, outline, stroke, rotation = -PI / 2)
             }
         }
         value?.let {
             Text(
                 it.toString(),
-                style = MaterialTheme.typography.titleLarge,
+                style = if (sides == 20) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
