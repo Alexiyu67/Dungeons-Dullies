@@ -74,8 +74,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import app.dulliesanddungeons.domain.Recovery
 import app.dulliesanddungeons.domain.ActionCost
+import app.dulliesanddungeons.domain.Recovery
+import app.dulliesanddungeons.domain.RollMode
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -747,8 +748,8 @@ private fun AttackTurnSection(state: DndAppState, character: CharacterUi, sessio
             damage = session.lastDamageDetails,
             outcome = session.attackOutcome,
             canRoll = session.canAttack,
-            onRoll = { mode ->
-                state.rollAttack(selected, session, mode)
+            onRoll = {
+                state.rollAttack(selected, session, RollMode.NORMAL)
                 state.dicePresentation = null
                 session.markSuggestionComplete("attack")
             },
