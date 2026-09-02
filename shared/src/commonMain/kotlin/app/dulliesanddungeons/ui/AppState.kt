@@ -467,6 +467,7 @@ data class DicePresentationUi(
     val calculation: String = "",
     val context: String = "",
     val modifierLabel: String = "",
+    val inspirationEligible: Boolean = false,
 )
 
 data class InlineFeatureFeedbackUi(
@@ -500,6 +501,9 @@ data class ConditionUi(
     val level: Int = 1,
     val removable: Boolean = true,
 )
+
+internal fun ConditionUi.isInspiration(): Boolean =
+    name.equals("Inspiration", ignoreCase = true) || id.substringAfterLast('-').equals("inspiration", ignoreCase = true)
 
 enum class SearchResultKind { Roll, Action, Rule, Note, Navigate }
 
@@ -956,7 +960,7 @@ class DndAppState(
         private set
     var screen by mutableStateOf(AppScreen.Characters)
     val characters = mutableStateListOf<CharacterUi>().apply {
-        addAll(restored?.characters?.map { it.toCharacterUi() } ?: seedCharacters())
+        addAll((restored?.characters?.map { it.toCharacterUi() } ?: seedCharacters()).map(::withCompleteSkills))
     }
     var selectedCharacterId by mutableStateOf<String?>(null)
     val conditions = mutableStateListOf<ConditionUi>().apply {
@@ -1010,6 +1014,14 @@ class DndAppState(
         get() = characters.firstOrNull { it.id == selectedCharacterId }
     val selectedConditions: List<ConditionUi>
         get() = conditions.filter { it.characterId.isBlank() || it.characterId == selectedCharacterId }
+    val hasInspiration: Boolean
+        get() = selectedCharacter?.ruleset != Ruleset.Pf2eRemaster && conditions.any {
+            it.characterId == selectedCharacterId && it.isInspiration()
+        }
+    val canUseInspirationForCurrentRoll: Boolean
+        get() = hasInspiration && dicePresentation?.inspirationEligible == true && lastRollAction != null
+    val canUseInspirationForSheetAttack: Boolean
+        get() = hasInspiration && sheetAttackRoll != null && selectedCharacter?.ruleset != Ruleset.Pf2eRemaster
     val currentPlaySession: PlaySessionRecord?
         get() = selectedCharacter?.activePlaySession
     fun hasSavedTurnDraft(characterId: String = selectedCharacterId.orEmpty()): Boolean =
@@ -1299,9 +1311,10 @@ class DndAppState(
             proficiencyIds = proficiencyRanks.keys,
             proficiencyRanks = proficiencyRanks,
         )
-        characters += created
+        val completedCharacter = withCompleteSkills(created)
+        characters += completedCharacter
         if (!persist()) {
-            characters.remove(created)
+            characters.remove(completedCharacter)
             deletePortraitFileIfUnused(portraitAssets?.displayFileName)
             deletePortraitFileIfUnused(portraitAssets?.sourceFileName)
             showInfo(
@@ -1310,7 +1323,7 @@ class DndAppState(
             )
             return
         }
-        openCharacter(created.id)
+        openCharacter(completedCharacter.id)
         if (portraitSaveFailed) {
             showInfo(
                 t("Portrait not saved", "Porträt nicht gespeichert"),
@@ -1699,7 +1712,7 @@ class DndAppState(
                 newPortraitFiles += assets.displayFileName
                 newPortraitFiles += assets.sourceFileName
             }
-            characters += converted
+            characters += withCompleteSkills(converted)
             selectedCharacterId = converted.id
             parkLiveTurn(original.id)
         }
@@ -3298,10 +3311,50 @@ class DndAppState(
     fun portraitBytes(character: CharacterUi): ByteArray? =
         character.portraitFileName?.let(storage::readPortrait)
 
+    private fun withCompleteSkills(character: CharacterUi): CharacterUi {
+        val definitions = ProficiencyCatalog.skills(character.ruleset, character.backgroundId)
+        val sourceKeys = (character.skills.keys + character.derivation.skills.keys).toList()
+        val consumedKeys = mutableSetOf<String>()
+        val completedSkills = linkedMapOf<String, Int>()
+        val completedDerivations = linkedMapOf<String, DerivedModifierFormulaUi>()
+
+        definitions.forEach { skill ->
+            val sourceKey = sourceKeys.firstOrNull { key ->
+                key !in consumedKeys && ProficiencyCatalog.skillByDisplayName(character.ruleset, key)?.id == skill.id
+            }
+            if (sourceKey != null) consumedKeys += sourceKey
+            val existingValue = sourceKey?.let(character.skills::get)
+            val existingFormula = sourceKey?.let(character.derivation.skills::get)
+            val formula = existingFormula ?: DerivedModifierFormulaUi(skill.ability, proficiencyId = skill.id)
+            completedSkills[skill.englishName] = existingValue ?: formula.resolve(
+                character.abilities,
+                character.proficiency,
+                character.ruleset,
+                character.level,
+                character.proficiencyRanks,
+                character.proficiencyIds,
+            )
+            if (existingFormula != null || existingValue == null) {
+                completedDerivations[skill.englishName] = formula
+            }
+        }
+
+        character.skills.forEach { (name, value) ->
+            if (name !in consumedKeys) completedSkills[name] = value
+        }
+        character.derivation.skills.forEach { (name, formula) ->
+            if (name !in consumedKeys) completedDerivations[name] = formula
+        }
+        return character.copy(
+            skills = completedSkills,
+            derivation = character.derivation.copy(skills = completedDerivations),
+        )
+    }
+
     private fun updateSelectedCharacter(transform: (CharacterUi) -> CharacterUi): CharacterUi? {
         val characterIndex = characters.indexOfFirst { it.id == selectedCharacterId }
         if (characterIndex < 0) return null
-        val updated = transform(characters[characterIndex])
+        val updated = withCompleteSkills(transform(characters[characterIndex]))
         characters[characterIndex] = updated
         persist()
         return updated
@@ -3484,7 +3537,17 @@ class DndAppState(
             else -> t("Failed Death Save", "Todesrettungswurf fehlgeschlagen")
         }
         recordEvent(TurnEvent.RollRecorded(rolled), "Death Save")
-        dicePresentation = DicePresentationUi(++dicePresentationId, "Death Save", 20, rolled.dice, natural, total, formula, "DC 10 · $outcome")
+        dicePresentation = DicePresentationUi(
+            ++dicePresentationId,
+            "Death Save",
+            20,
+            rolled.dice,
+            natural,
+            total,
+            formula,
+            "DC 10 · $outcome",
+            inspirationEligible = true,
+        )
         lastRollAction = {
             updateSelectedCharacter { current ->
                 current.copy(
@@ -4065,6 +4128,7 @@ class DndAppState(
             rolled.total,
             "d$sides $die ${signed(modifier)} = ${rolled.total}",
             modifierLabel = modifierLabel,
+            inspirationEligible = sides == 20 && selectedCharacter?.ruleset != Ruleset.Pf2eRemaster,
         )
         recordEvent(TurnEvent.RollRecorded(rolled))
         lastRoll = result
@@ -4074,6 +4138,13 @@ class DndAppState(
 
     fun rerollDicePresentation() {
         lastRollAction?.invoke()
+    }
+
+    fun rerollDicePresentationWithInspiration(): Boolean {
+        val reroll = lastRollAction ?: return false
+        if (!canUseInspirationForCurrentRoll || !consumeInspiration()) return false
+        reroll()
+        return true
     }
 
     fun attackCalculation(character: CharacterUi, weapon: WeaponUi, multipleAttackPenalty: Int = 0): AttackCalculationUi {
@@ -4125,6 +4196,25 @@ class DndAppState(
         }
     }
 
+    fun rerollSheetAttackWithInspiration(): Boolean {
+        val character = selectedCharacter ?: return false
+        val weapon = character.weapons.firstOrNull { it.id == sheetAttackWeaponId } ?: return false
+        val previous = sheetAttackRoll ?: return false
+        if (!canUseInspirationForSheetAttack || !consumeInspiration()) return false
+
+        val details = performAttack(character, weapon, previous.mode)
+        sheetAttackRoll = details
+        val naturalCritical = details.natural >= character.criticalHitThreshold
+        sheetAttackOutcome = if (naturalCritical) AttackOutcome.Critical else AttackOutcome.Pending
+        sheetDamageRoll = if (naturalCritical) performDamage(weapon, critical = true) else null
+        recordEvent(TurnEvent.RollRecorded(details.toDiceRoll(weapon.name)))
+        if (naturalCritical) {
+            recordEvent(TurnEvent.AttackResolved(weapon.id, AttackOutcomeRecord.CRITICAL))
+            sheetDamageRoll?.takeIf { it.dice.isNotEmpty() }?.let { recordEvent(TurnEvent.RollRecorded(it.toDiceRoll(weapon.name))) }
+        }
+        return true
+    }
+
     fun resolveSheetAttack(outcome: AttackOutcome) {
         val weapon = selectedCharacter?.weapons?.firstOrNull { it.id == sheetAttackWeaponId } ?: return
         sheetAttackOutcome = outcome
@@ -4160,7 +4250,16 @@ class DndAppState(
         }
         val needsCommit = !session.unresolvedAttackCommitted
         session.lastAttackDetails = details
-        dicePresentation = DicePresentationUi(++dicePresentationId, weapon.name, 20, details.dice, details.kept, details.total, attackFormula(details))
+        dicePresentation = DicePresentationUi(
+            ++dicePresentationId,
+            weapon.name,
+            20,
+            details.dice,
+            details.kept,
+            details.total,
+            attackFormula(details),
+            inspirationEligible = character.ruleset != Ruleset.Pf2eRemaster,
+        )
         session.lastAttackRoll = "${details.total} · d20 ${details.kept} ${signed(details.calculation.total)}$qualifier"
         session.lastDamageDetails = null
         session.lastDamageRoll = null
@@ -4537,19 +4636,40 @@ class DndAppState(
         return "$base-$suffix"
     }
 
+    fun toggleInspiration(): Boolean {
+        val character = selectedCharacter ?: return false
+        if (character.ruleset == Ruleset.Pf2eRemaster) return false
+        val active = conditions.firstOrNull { it.characterId == character.id && it.isInspiration() }
+        if (active != null) removeCondition(active) else addCondition("Inspiration")
+        return true
+    }
+
+    private fun consumeInspiration(): Boolean {
+        val characterId = selectedCharacterId ?: return false
+        val active = conditions.firstOrNull { it.characterId == characterId && it.isInspiration() } ?: return false
+        removeCondition(active)
+        return true
+    }
+
     fun addCondition(name: String) {
+        val inspiration = name.equals("Inspiration", ignoreCase = true)
+        if (inspiration && (selectedCharacter == null || selectedCharacter?.ruleset == Ruleset.Pf2eRemaster)) return
         if (name == "Exhaustion") {
             setExhaustion((selectedCharacter?.exhaustionLevel ?: 0).coerceAtLeast(1))
             conditionsOpen = false
             return
         }
         val characterId = selectedCharacterId.orEmpty()
-        if (conditions.any { it.characterId == characterId && it.name == name }) return
+        if (conditions.any { it.characterId == characterId && (it.name == name || inspiration && it.isInspiration()) }) return
         val explanation = conditionExplanation(name)
         val condition = ConditionUi(
             name = name,
             source = t("DM / table", "SL / Spieltisch"),
-            duration = t("Until removed", "Bis entfernt"),
+            duration = if (inspiration) {
+                t("Until used or removed", "Bis verwendet oder entfernt")
+            } else {
+                t("Until removed", "Bis entfernt")
+            },
             explanation = explanation,
             characterId = characterId,
             id = "condition-$characterId-${slug(name)}",
@@ -4671,7 +4791,7 @@ class DndAppState(
                 ),
             ),
         )
-        characters += copy
+        characters += withCompleteSkills(copy)
         persist()
         selectedCharacterId = copy.id
         conversionOpen = false
@@ -4778,6 +4898,10 @@ class DndAppState(
     }
 
     private fun conditionExplanation(name: String): String = when (name) {
+        "Inspiration" -> t(
+            "After an eligible d20 roll, use Inspiration to roll it again. The new result replaces the previous result.",
+            "Verwende Inspiration nach einem passenden W20-Wurf, um ihn zu wiederholen. Das neue Ergebnis ersetzt das vorherige.",
+        )
         "Blinded" -> t("You cannot see. Your attacks have disadvantage, and attacks against you have advantage.", "Du kannst nicht sehen. Deine Angriffe haben Nachteil; Angriffe gegen dich haben Vorteil.")
         "Charmed" -> t("You cannot attack the charmer, and the charmer has an edge in social interaction with you.", "Du kannst den Bezaubernden nicht angreifen; er hat Vorteile bei sozialen Interaktionen mit dir.")
         "Deafened" -> t("You cannot hear and automatically fail checks that require hearing.", "Du kannst nicht hören und scheiterst automatisch an Würfen, die Gehör erfordern.")

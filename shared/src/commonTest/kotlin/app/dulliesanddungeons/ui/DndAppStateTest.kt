@@ -7,6 +7,7 @@ import app.dulliesanddungeons.domain.PortraitCrop
 import app.dulliesanddungeons.domain.Recovery
 import app.dulliesanddungeons.domain.RollMode
 import app.dulliesanddungeons.domain.RecoveryAmount
+import app.dulliesanddungeons.domain.TurnEvent
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
@@ -37,6 +38,75 @@ class DndAppStateTest {
         assertEquals("Elf", character.ancestry)
         assertEquals("Prone", restored.conditions.single().name)
         assertContentEquals(byteArrayOf(1, 2, 3, 4), assertNotNull(restored.portraitBytes(character)))
+    }
+
+    @Test
+    fun inspirationCanBeToggledPersistedAndIsUnavailableToPf2e() {
+        val store = FakeStore()
+        val state = DndAppState(store)
+
+        assertTrue(state.toggleInspiration())
+        assertTrue(state.hasInspiration)
+        assertEquals("Until used or removed", state.selectedConditions.single(ConditionUi::isInspiration).duration)
+
+        val restored = DndAppState(store)
+        assertTrue(restored.hasInspiration)
+        assertTrue(restored.toggleInspiration())
+        assertFalse(restored.hasInspiration)
+        assertFalse(DndAppState(store).hasInspiration)
+
+        restored.convert(Ruleset.Pf2eRemaster)
+        assertFalse(restored.toggleInspiration())
+        restored.addCondition("Inspiration")
+        assertFalse(restored.hasInspiration)
+        assertTrue(restored.selectedConditions.none(ConditionUi::isInspiration))
+    }
+
+    @Test
+    fun inspirationRerollsEligibleD20AndLeavesOrdinaryRerollsNonConsuming() {
+        val state = DndAppState(FakeStore())
+        assertTrue(state.toggleInspiration())
+        state.roll("Investigation", 0)
+        val firstPresentationId = assertNotNull(state.dicePresentation).id
+        val rollsBefore = state.currentPlaySession!!.activities.count { it.turnEvent is TurnEvent.RollRecorded }
+
+        assertTrue(state.canUseInspirationForCurrentRoll)
+        assertTrue(state.rerollDicePresentationWithInspiration())
+        assertFalse(state.hasInspiration)
+        assertFalse(state.canUseInspirationForCurrentRoll)
+        assertTrue(assertNotNull(state.dicePresentation).id > firstPresentationId)
+        assertEquals(
+            rollsBefore + 1,
+            state.currentPlaySession!!.activities.count { it.turnEvent is TurnEvent.RollRecorded },
+        )
+
+        assertTrue(state.toggleInspiration())
+        state.rerollDicePresentation()
+        assertTrue(state.hasInspiration)
+        state.roll("Damage", 0, sides = 8)
+        assertFalse(state.canUseInspirationForCurrentRoll)
+        assertFalse(state.rerollDicePresentationWithInspiration())
+        assertTrue(state.hasInspiration)
+    }
+
+    @Test
+    fun inspirationRerollsSheetAttackWithoutRecordingAnotherAttack() {
+        val state = DndAppState(FakeStore())
+        val weapon = assertNotNull(state.selectedCharacter).weapons.first()
+        state.toggleInspiration()
+        state.openSheetAttack(weapon.id)
+        state.rollSheetAttack(RollMode.ADVANTAGE)
+        val attacksBefore = state.currentPlaySession!!.activities.count { it.turnEvent is TurnEvent.AttackMade }
+        val rollsBefore = state.currentPlaySession!!.activities.count { it.turnEvent is TurnEvent.RollRecorded }
+
+        assertTrue(state.canUseInspirationForSheetAttack)
+        assertTrue(state.rerollSheetAttackWithInspiration())
+
+        assertFalse(state.hasInspiration)
+        assertFalse(state.canUseInspirationForSheetAttack)
+        assertEquals(RollMode.ADVANTAGE, state.sheetAttackRoll?.mode)
+        assertEquals(attacksBefore, state.currentPlaySession!!.activities.count { it.turnEvent is TurnEvent.AttackMade })
+        assertTrue(state.currentPlaySession!!.activities.count { it.turnEvent is TurnEvent.RollRecorded } > rollsBefore)
     }
 
     @Test
@@ -1250,7 +1320,11 @@ class DndAppStateTest {
         val edited = state.selectedCharacter!!
         assertEquals(20, edited.abilities["DEX"])
         assertEquals(5, edited.initiative)
-        assertEquals(original.skills, edited.skills)
+        assertEquals(5, edited.skills["Acrobatics"])
+        assertEquals(5, edited.skills["Sleight of Hand"])
+        assertEquals(5, edited.skills["Stealth"])
+        assertEquals(original.skills["Athletics"], edited.skills["Athletics"])
+        assertEquals(original.skills["Perception"], edited.skills["Perception"])
         assertEquals(9, edited.weapons.first { it.id == "longbow" }.attackBonus)
         assertEquals(original.armorClass, edited.armorClass)
         assertEquals(50, edited.hp)

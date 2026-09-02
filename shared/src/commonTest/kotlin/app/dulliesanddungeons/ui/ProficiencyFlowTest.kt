@@ -1,7 +1,9 @@
 package app.dulliesanddungeons.ui
 
 import app.dulliesanddungeons.data.LocalStateStore
+import app.dulliesanddungeons.data.PersistedAppState
 import app.dulliesanddungeons.domain.ProficiencyRank
+import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -58,6 +60,39 @@ class ProficiencyFlowTest {
     }
 
     @Test
+    fun incompletePersistedSkillMapsAreCompletedWithoutLosingAuthoredSkills() {
+        val source = assertNotNull(DndAppState(ProficiencyStore()).selectedCharacter)
+        val document = source.toDocument()
+        val athletics = document.sheet.combat.skills.getValue("Athletics")
+        val incomplete = document.copy(
+            sheet = document.sheet.copy(
+                combat = document.sheet.combat.copy(
+                    skills = linkedMapOf(
+                        "Athletics" to athletics,
+                        "Siege Lore" to athletics.copy(override = 6, storedValue = 6),
+                    ),
+                ),
+            ),
+        )
+        val store = ProficiencyStore(Json.encodeToString(PersistedAppState(characters = listOf(incomplete))))
+
+        val state = DndAppState(store)
+        val restored = assertNotNull(state.selectedCharacter)
+
+        assertEquals(ProficiencyCatalog.fiveESkills.map { it.englishName }, restored.skills.keys.take(18))
+        assertEquals(19, restored.skills.size)
+        assertEquals(8, restored.skills["Athletics"])
+        assertEquals(6, restored.skills["Siege Lore"])
+        assertTrue("Investigation" in restored.skills)
+        assertTrue("Persuasion" in restored.skills)
+        assertTrue(state.search("Persuasion").any { it.id == "skill-Persuasion" })
+
+        state.toggleLanguage()
+        val persisted = assertNotNull(DndAppState(store).selectedCharacter)
+        assertEquals(restored.skills, persisted.skills)
+    }
+
+    @Test
     fun pf2eHigherLevelCreationAssignsAllRanksAndLore() {
         val state = DndAppState(ProficiencyStore())
         state.beginCreate()
@@ -76,6 +111,7 @@ class ProficiencyFlowTest {
         state.finishCreate()
 
         val character = assertNotNull(state.selectedCharacter)
+        assertEquals(18, character.skills.size)
         assertTrue("Guild Lore" in character.skills)
         assertEquals(ProficiencyRank.TRAINED, character.proficiencyRanks["skill:lore:guild"])
         val legendary = character.proficiencyRanks.entries.first { it.value == ProficiencyRank.LEGENDARY }.key
@@ -154,8 +190,7 @@ class ProficiencyFlowTest {
     }
 }
 
-private class ProficiencyStore : LocalStateStore {
-    private var stored: String? = null
+private class ProficiencyStore(private var stored: String? = null) : LocalStateStore {
     override fun readState(): String? = stored
     override fun writeState(value: String) {
         stored = value

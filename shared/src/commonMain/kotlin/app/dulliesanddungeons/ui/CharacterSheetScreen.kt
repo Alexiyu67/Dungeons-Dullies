@@ -883,6 +883,7 @@ private fun SearchPrompt(state: DndAppState) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun HeroSummaryCard(
     state: DndAppState,
@@ -894,6 +895,8 @@ private fun HeroSummaryCard(
     onPortraitClick: (Boolean) -> Unit,
 ) {
     val portraitData = state.portraitBytes(character)
+    val supportsInspiration = character.ruleset != Ruleset.Pf2eRemaster
+    val inspirationActive = state.hasInspiration
     Card(
         onClick = onProfileClick,
         modifier = Modifier.fillMaxWidth(),
@@ -902,20 +905,72 @@ private fun HeroSummaryCard(
     ) {
         Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-                Surface(
-                    onClick = { onPortraitClick(portraitData != null) },
-                    modifier = Modifier.size(76.dp).semantics(mergeDescendants = true) {
-                        role = Role.Button
-                        contentDescription = if (portraitData == null) {
-                            state.t("Upload portrait", "Porträt hochladen")
-                        } else {
-                            state.t("View portrait", "Porträt ansehen")
+                Box(Modifier.size(76.dp)) {
+                    Surface(
+                        modifier = Modifier.fillMaxSize()
+                            .then(
+                                if (supportsInspiration) {
+                                    Modifier.combinedClickable(
+                                        onClick = { onPortraitClick(portraitData != null) },
+                                        onLongClick = { state.toggleInspiration() },
+                                        onLongClickLabel = if (inspirationActive) {
+                                            state.t("Remove Inspiration", "Inspiration entfernen")
+                                        } else {
+                                            state.t("Add Inspiration", "Inspiration hinzufügen")
+                                        },
+                                    )
+                                } else {
+                                    Modifier.clickable { onPortraitClick(portraitData != null) }
+                                },
+                            )
+                            .semantics(mergeDescendants = true) {
+                                role = Role.Button
+                                contentDescription = if (portraitData == null) {
+                                    state.t("Upload portrait", "Porträt hochladen")
+                                } else {
+                                    state.t("View portrait", "Porträt ansehen")
+                                }
+                                if (supportsInspiration) {
+                                    stateDescription = if (inspirationActive) {
+                                        state.t("Inspiration active", "Inspiration aktiv")
+                                    } else {
+                                        state.t("No Inspiration", "Keine Inspiration")
+                                    }
+                                    customActions = listOf(
+                                        CustomAccessibilityAction(
+                                            if (inspirationActive) {
+                                                state.t("Remove Inspiration", "Inspiration entfernen")
+                                            } else {
+                                                state.t("Add Inspiration", "Inspiration hinzufügen")
+                                            },
+                                        ) {
+                                            state.toggleInspiration()
+                                        },
+                                    )
+                                }
+                            },
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                        color = Color.Transparent,
+                    ) {
+                        CharacterPortrait(character.name, character.portraitSeed, Modifier.fillMaxSize(), portraitData)
+                    }
+                    if (inspirationActive) {
+                        Surface(
+                            modifier = Modifier.align(Alignment.BottomEnd).size(25.dp),
+                            shape = androidx.compose.foundation.shape.CircleShape,
+                            color = MaterialTheme.colorScheme.tertiary,
+                            border = BorderStroke(2.dp, MaterialTheme.colorScheme.primaryContainer),
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    Icons.Rounded.Stars,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(15.dp),
+                                    tint = MaterialTheme.colorScheme.onTertiary,
+                                )
+                            }
                         }
-                    },
-                    shape = androidx.compose.foundation.shape.CircleShape,
-                    color = Color.Transparent,
-                ) {
-                    CharacterPortrait(character.name, character.portraitSeed, Modifier.fillMaxSize(), portraitData)
+                    }
                 }
                 Spacer(Modifier.width(14.dp))
                 Column(Modifier.weight(1f)) {
@@ -953,10 +1008,15 @@ private fun HeroSummaryCard(
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     IconButton(onClick = { state.conditionsOpen = true }, modifier = Modifier.size(42.dp)) {
+                        val hasHarmfulCondition = state.selectedConditions.any { !it.isInspiration() }
                         Icon(
                             Icons.Rounded.PsychologyAlt,
                             contentDescription = state.t("Conditions (${state.selectedConditions.size})", "Zustände (${state.selectedConditions.size})"),
-                            tint = if (state.selectedConditions.isNotEmpty()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                            tint = when {
+                                hasHarmfulCondition -> MaterialTheme.colorScheme.error
+                                inspirationActive -> MaterialTheme.colorScheme.tertiary
+                                else -> MaterialTheme.colorScheme.primary
+                            },
                         )
                     }
                     if (character.level < 20) {
@@ -1447,6 +1507,7 @@ private fun DeathSaveMarks(label: String, count: Int, failed: Boolean, modifier:
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ConditionRow(state: DndAppState, condition: ConditionUi) {
+    val inspiration = condition.isInspiration()
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
             if (value == SwipeToDismissBoxValue.EndToStart) {
@@ -1481,7 +1542,13 @@ private fun ConditionRow(state: DndAppState, condition: ConditionUi) {
                 }
             },
             shape = RoundedCornerShape(15.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)),
+            colors = CardDefaults.cardColors(
+                containerColor = if (inspiration) {
+                    MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.55f)
+                } else {
+                    MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)
+                },
+            ),
         ) {
             Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 5.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
@@ -2267,6 +2334,10 @@ internal fun AttackCard(
                 }
             }
 
+            if (roll != null && state.canUseInspirationForSheetAttack) {
+                InspirationRerollHint(state, onClick = { state.rerollSheetAttackWithInspiration() })
+            }
+
             AnimatedVisibility(
                 visible = rollSettled && roll?.natural == 20 && outcome == AttackOutcome.Critical,
                 enter = fadeIn() + scaleIn(initialScale = .92f),
@@ -2297,7 +2368,12 @@ internal fun AttackCard(
                 enabled = canRoll,
                 modifier = Modifier.fillMaxWidth().height(46.dp),
                 shape = RoundedCornerShape(13.dp),
-            ) { Text(state.t("Roll attack", "Angriff würfeln")) }
+            ) {
+                Text(
+                    if (roll == null) state.t("Roll attack", "Angriff würfeln")
+                    else state.t("Roll again", "Erneut würfeln"),
+                )
+            }
 
             if (roll != null && rollSettled) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
