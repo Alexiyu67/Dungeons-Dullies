@@ -1,0 +1,27 @@
+{
+  "$schema": "../content/schema/localized-entries.schema.json",
+  "schemaVersion": 1,
+  "packId": "local.example.private-pack",
+  "locale": "en",
+  "entries": [
+    {
+      "id": "local.example.feature.steady-hand",
+      "kind": "feature",
+      "name": "Steady Hand",
+      "summary": "Fictional placeholder feature for testing the private-pack shape.",
+      "beginnerTip": "Replace this entire fictional entry with facts you are entitled to use.",
+      "keywords": ["example", "private", "feature"],
+      "automation": {
+        "level": "informational",
+        "command": null,
+        "actionCost": null,
+        "requiresTableInput": false
+      },
+      "source": {
+        "work": "Project-original template fixture",
+        "locator": "Private template",
+        "adaptation": "Fictional example; no external source used."
+      }
+    }
+  ]
+}

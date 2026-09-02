@@ -1,0 +1,68 @@
+{
+  "$schema": "../../schema/localized-entries.schema.json",
+  "schemaVersion": 1,
+  "packId": "srd-5.1-seed",
+  "locale": "en",
+  "entries": [
+    {
+      "id": "srd51.class.fighter",
+      "kind": "class",
+      "name": "Fighter",
+      "summary": "A martial class built around weapon skill, armor, and repeated attacks.",
+      "beginnerTip": "Start with the weapon shown on your sheet; the app tracks when class features add more choices.",
+      "keywords": ["fighter", "martial", "weapon", "armor", "class"],
+      "automation": { "level": "informational", "command": null, "actionCost": null, "requiresTableInput": false },
+      "source": { "work": "SRD 5.1", "locator": "Classes: Fighter", "adaptation": "Original short-form beginner summary; verify mechanics against the cited SRD." }
+    },
+    {
+      "id": "srd51.race.human",
+      "kind": "ancestry",
+      "name": "Human",
+      "summary": "A broadly adaptable race option for many classes and concepts.",
+      "beginnerTip": "This is a flexible choice; class and background will define much of your play style.",
+      "keywords": ["human", "race", "versatile", "character creation"],
+      "automation": { "level": "guided", "command": "open_creation_choice", "actionCost": null, "requiresTableInput": false },
+      "source": { "work": "SRD 5.1", "locator": "Races: Human", "adaptation": "Original short-form beginner summary; no source prose reproduced." }
+    },
+    {
+      "id": "srd51.action.attack",
+      "kind": "action",
+      "name": "Attack",
+      "summary": "Make one or more attacks as allowed by your current features.",
+      "beginnerTip": "Choose a listed weapon. The app rolls the attack first and waits for the DM's hit decision before damage.",
+      "keywords": ["attack", "weapon", "hit", "damage", "action"],
+      "automation": { "level": "guided", "command": "start_attack", "actionCost": "action", "requiresTableInput": true },
+      "source": { "work": "SRD 5.1", "locator": "Combat: Actions in Combat: Attack", "adaptation": "Original workflow-oriented summary." }
+    },
+    {
+      "id": "srd51.action.dash",
+      "kind": "action",
+      "name": "Dash",
+      "summary": "Spend your action to gain additional movement for the current turn.",
+      "beginnerTip": "Choose this when your normal movement is not enough to reach the place you want.",
+      "keywords": ["dash", "move", "speed", "run", "action"],
+      "automation": { "level": "automatic", "command": "use_dash", "actionCost": "action", "requiresTableInput": false },
+      "source": { "work": "SRD 5.1", "locator": "Combat: Actions in Combat: Dash", "adaptation": "Original beginner summary; exact calculation remains engine data." }
+    },
+    {
+      "id": "srd51.knowledge.saving-throw",
+      "kind": "knowledge",
+      "name": "Saving Throw",
+      "summary": "A defensive roll made when an effect tests one of your abilities.",
+      "beginnerTip": "The DM tells you which ability to use; tap that save on your sheet and report the total.",
+      "keywords": ["saving throw", "save", "resist", "roll", "defense"],
+      "automation": { "level": "guided", "command": "roll_saving_throw", "actionCost": null, "requiresTableInput": true },
+      "source": { "work": "SRD 5.1", "locator": "Using Ability Scores: Saving Throws", "adaptation": "Original search-oriented summary." }
+    },
+    {
+      "id": "srd51.condition.restrained",
+      "kind": "condition",
+      "name": "Restrained",
+      "summary": "A condition that sharply limits movement and affects attacks and defenses.",
+      "beginnerTip": "Apply the condition, then open Why? on any changed value to see the active modifiers.",
+      "keywords": ["restrained", "condition", "movement", "attack"],
+      "automation": { "level": "guided", "command": "apply_condition", "actionCost": null, "requiresTableInput": false },
+      "source": { "work": "SRD 5.1", "locator": "Appendix A: Conditions: Restrained", "adaptation": "Original beginner summary; exact modifiers remain engine data." }
+    }
+  ]
+}

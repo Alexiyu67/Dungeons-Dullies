@@ -1,0 +1,25 @@
+{
+  "$schema": "../../schema/content-pack-manifest.schema.json",
+  "schemaVersion": 1,
+  "id": "pf2e-remaster-sample",
+  "version": "0.1.0",
+  "ruleset": {
+    "id": "pf2e-remaster",
+    "revision": "remaster-sample-1"
+  },
+  "locales": ["en", "de"],
+  "entryFiles": {
+    "en": "entries.en.json",
+    "de": "entries.de.json"
+  },
+  "dependencies": [],
+  "license": {
+    "expression": "LicenseRef-ORC",
+    "noticeFile": "../../../licenses/ORC-NOTICE.template.md",
+    "sourceWorks": []
+  },
+  "contentStatus": "representative-seed",
+  "distributionReady": false,
+  "coverageReport": "../../reports/pf2e-remaster-sample.coverage.json",
+  "notes": "Project-original neutral placeholders. No Paizo/Foundry data, art, lore, or product identity is included. Replace the ORC notice placeholders before distribution."
+}

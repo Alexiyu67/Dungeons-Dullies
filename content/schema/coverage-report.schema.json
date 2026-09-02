@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dullies-and-dungeons.local/schema/coverage-report.schema.json",
+  "title": "Content ingestion coverage report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "packId",
+    "generatedAt",
+    "sourceSnapshot",
+    "summary",
+    "records"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "packId": { "type": "string" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "sourceSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "url", "revision"],
+      "properties": {
+        "name": { "type": "string" },
+        "url": { "type": "string" },
+        "revision": { "type": "string" },
+        "retrievedAt": { "type": ["string", "null"], "format": "date-time" },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["seen", "included", "excluded", "pendingReview"],
+      "properties": {
+        "seen": { "type": "integer", "minimum": 0 },
+        "included": { "type": "integer", "minimum": 0 },
+        "excluded": { "type": "integer", "minimum": 0 },
+        "pendingReview": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["sourceId", "category", "decision", "reason", "licenseEvidence"],
+        "properties": {
+          "sourceId": { "type": "string" },
+          "category": { "type": "string" },
+          "decision": { "enum": ["included", "excluded", "pending-review"] },
+          "reason": { "type": "string" },
+          "licenseEvidence": { "type": ["string", "null"] },
+          "outputId": { "type": ["string", "null"] }
+        }
+      }
+    }
+  }
+}

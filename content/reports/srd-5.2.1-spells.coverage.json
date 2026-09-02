@@ -1,0 +1,1821 @@
+{
+  "$schema": "../schema/coverage-report.schema.json",
+  "schemaVersion": 1,
+  "packId": "srd-5.2.1-spells",
+  "generatedAt": "2026-09-02T00:00:00.000Z",
+  "sourceSnapshot": {
+    "name": "System Reference Document 5.2.1",
+    "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf",
+    "revision": "2024-srd-5.2.1",
+    "retrievedAt": "2026-09-02T00:00:00.000Z",
+    "sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87"
+  },
+  "summary": {
+    "seen": 225,
+    "included": 225,
+    "excluded": 0,
+    "pendingReview": 0
+  },
+  "records": [
+    {
+      "sourceId": "spell.acid-splash",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.acid-splash"
+    },
+    {
+      "sourceId": "spell.chill-touch",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.chill-touch"
+    },
+    {
+      "sourceId": "spell.dancing-lights",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.dancing-lights"
+    },
+    {
+      "sourceId": "spell.elementalism",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.elementalism"
+    },
+    {
+      "sourceId": "spell.fire-bolt",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.fire-bolt"
+    },
+    {
+      "sourceId": "spell.light",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.light"
+    },
+    {
+      "sourceId": "spell.mage-hand",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.mage-hand"
+    },
+    {
+      "sourceId": "spell.mending",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.mending"
+    },
+    {
+      "sourceId": "spell.message",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.message"
+    },
+    {
+      "sourceId": "spell.minor",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.minor"
+    },
+    {
+      "sourceId": "spell.poison-spray",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.poison-spray"
+    },
+    {
+      "sourceId": "spell.prestidigitation",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.prestidigitation"
+    },
+    {
+      "sourceId": "spell.ray-of-frost",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.ray-of-frost"
+    },
+    {
+      "sourceId": "spell.shocking-grasp",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.shocking-grasp"
+    },
+    {
+      "sourceId": "spell.sorcerous-burst",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.sorcerous-burst"
+    },
+    {
+      "sourceId": "spell.true-strike",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.true-strike"
+    },
+    {
+      "sourceId": "spell.alarm",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.alarm"
+    },
+    {
+      "sourceId": "spell.burning-hands",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.burning-hands"
+    },
+    {
+      "sourceId": "spell.charm-person",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.charm-person"
+    },
+    {
+      "sourceId": "spell.chromatic-orb",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.chromatic-orb"
+    },
+    {
+      "sourceId": "spell.color-spray",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.color-spray"
+    },
+    {
+      "sourceId": "spell.comprehend-languages",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.comprehend-languages"
+    },
+    {
+      "sourceId": "spell.detect-magic",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.detect-magic"
+    },
+    {
+      "sourceId": "spell.disguise-self",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.disguise-self"
+    },
+    {
+      "sourceId": "spell.expeditious-retreat",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.expeditious-retreat"
+    },
+    {
+      "sourceId": "spell.false-life",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.false-life"
+    },
+    {
+      "sourceId": "spell.feather-fall",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.feather-fall"
+    },
+    {
+      "sourceId": "spell.find-familiar",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.find-familiar"
+    },
+    {
+      "sourceId": "spell.floating-disk",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.floating-disk"
+    },
+    {
+      "sourceId": "spell.fog-cloud",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.fog-cloud"
+    },
+    {
+      "sourceId": "spell.grease",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.grease"
+    },
+    {
+      "sourceId": "spell.hideous-laughter",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.hideous-laughter"
+    },
+    {
+      "sourceId": "spell.ice-knife",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.ice-knife"
+    },
+    {
+      "sourceId": "spell.identify",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.identify"
+    },
+    {
+      "sourceId": "spell.illusory-script",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.illusory-script"
+    },
+    {
+      "sourceId": "spell.jump",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.jump"
+    },
+    {
+      "sourceId": "spell.longstrider",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.longstrider"
+    },
+    {
+      "sourceId": "spell.mage-armor",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.mage-armor"
+    },
+    {
+      "sourceId": "spell.magic-missile",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.magic-missile"
+    },
+    {
+      "sourceId": "spell.protection-from-evil-and-good",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.protection-from-evil-and-good"
+    },
+    {
+      "sourceId": "spell.ray-of-sickness",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.ray-of-sickness"
+    },
+    {
+      "sourceId": "spell.shield",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.shield"
+    },
+    {
+      "sourceId": "spell.silent-image",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.silent-image"
+    },
+    {
+      "sourceId": "spell.sleep",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.sleep"
+    },
+    {
+      "sourceId": "spell.thunderwave",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.thunderwave"
+    },
+    {
+      "sourceId": "spell.unseen-servant",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.unseen-servant"
+    },
+    {
+      "sourceId": "spell.acid-arrow",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.acid-arrow"
+    },
+    {
+      "sourceId": "spell.alter-self",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.alter-self"
+    },
+    {
+      "sourceId": "spell.arcane-lock",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.arcane-lock"
+    },
+    {
+      "sourceId": "spell.arcanists-magic-aura",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.arcanists-magic-aura"
+    },
+    {
+      "sourceId": "spell.augury",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.augury"
+    },
+    {
+      "sourceId": "spell.blindness-deafness",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.blindness-deafness"
+    },
+    {
+      "sourceId": "spell.blur",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.blur"
+    },
+    {
+      "sourceId": "spell.continual-flame",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.continual-flame"
+    },
+    {
+      "sourceId": "spell.darkness",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.darkness"
+    },
+    {
+      "sourceId": "spell.darkvision",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.darkvision"
+    },
+    {
+      "sourceId": "spell.detect-thoughts",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.detect-thoughts"
+    },
+    {
+      "sourceId": "spell.dragons-breath",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.dragons-breath"
+    },
+    {
+      "sourceId": "spell.enhance-ability",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.enhance-ability"
+    },
+    {
+      "sourceId": "spell.enlarge-reduce",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.enlarge-reduce"
+    },
+    {
+      "sourceId": "spell.flame-blade",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.flame-blade"
+    },
+    {
+      "sourceId": "spell.flaming-sphere",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.flaming-sphere"
+    },
+    {
+      "sourceId": "spell.gentle-repose",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.gentle-repose"
+    },
+    {
+      "sourceId": "spell.gust-of-wind",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.gust-of-wind"
+    },
+    {
+      "sourceId": "spell.hold-person",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.hold-person"
+    },
+    {
+      "sourceId": "spell.invisibility",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.invisibility"
+    },
+    {
+      "sourceId": "spell.knock",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.knock"
+    },
+    {
+      "sourceId": "spell.levitate",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.levitate"
+    },
+    {
+      "sourceId": "spell.locate-object",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.locate-object"
+    },
+    {
+      "sourceId": "spell.magic-mouth",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.magic-mouth"
+    },
+    {
+      "sourceId": "spell.magic-weapon",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.magic-weapon"
+    },
+    {
+      "sourceId": "spell.mind-spike",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.mind-spike"
+    },
+    {
+      "sourceId": "spell.mirror-image",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.mirror-image"
+    },
+    {
+      "sourceId": "spell.misty-step",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.misty-step"
+    },
+    {
+      "sourceId": "spell.ray-of-enfeeblement",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.ray-of-enfeeblement"
+    },
+    {
+      "sourceId": "spell.rope-trick",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.rope-trick"
+    },
+    {
+      "sourceId": "spell.scorching-ray",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.scorching-ray"
+    },
+    {
+      "sourceId": "spell.see-invisibility",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.see-invisibility"
+    },
+    {
+      "sourceId": "spell.shatter",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.shatter"
+    },
+    {
+      "sourceId": "spell.spider-climb",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.spider-climb"
+    },
+    {
+      "sourceId": "spell.suggestion",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.suggestion"
+    },
+    {
+      "sourceId": "spell.web",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.web"
+    },
+    {
+      "sourceId": "spell.animate-dead",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.animate-dead"
+    },
+    {
+      "sourceId": "spell.bestow-curse",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.bestow-curse"
+    },
+    {
+      "sourceId": "spell.blink",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.blink"
+    },
+    {
+      "sourceId": "spell.clairvoyance",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.clairvoyance"
+    },
+    {
+      "sourceId": "spell.counterspell",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.counterspell"
+    },
+    {
+      "sourceId": "spell.daylight",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.daylight"
+    },
+    {
+      "sourceId": "spell.dispel-magic",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.dispel-magic"
+    },
+    {
+      "sourceId": "spell.fear",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.fear"
+    },
+    {
+      "sourceId": "spell.fireball",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.fireball"
+    },
+    {
+      "sourceId": "spell.fly",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.fly"
+    },
+    {
+      "sourceId": "spell.gaseous-form",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.gaseous-form"
+    },
+    {
+      "sourceId": "spell.glyph-of-warding",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.glyph-of-warding"
+    },
+    {
+      "sourceId": "spell.haste",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.haste"
+    },
+    {
+      "sourceId": "spell.hypnotic-pattern",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.hypnotic-pattern"
+    },
+    {
+      "sourceId": "spell.lightning-bolt",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.lightning-bolt"
+    },
+    {
+      "sourceId": "spell.magic-circle",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.magic-circle"
+    },
+    {
+      "sourceId": "spell.major-image",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.major-image"
+    },
+    {
+      "sourceId": "spell.nondetection",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.nondetection"
+    },
+    {
+      "sourceId": "spell.phantom-steed",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.phantom-steed"
+    },
+    {
+      "sourceId": "spell.protection-from-energy",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.protection-from-energy"
+    },
+    {
+      "sourceId": "spell.remove-curse",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.remove-curse"
+    },
+    {
+      "sourceId": "spell.sending",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.sending"
+    },
+    {
+      "sourceId": "spell.sleet-storm",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.sleet-storm"
+    },
+    {
+      "sourceId": "spell.slow",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.slow"
+    },
+    {
+      "sourceId": "spell.speak-with-dead",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.speak-with-dead"
+    },
+    {
+      "sourceId": "spell.stinking-cloud",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.stinking-cloud"
+    },
+    {
+      "sourceId": "spell.tiny-hut",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.tiny-hut"
+    },
+    {
+      "sourceId": "spell.tongues",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.tongues"
+    },
+    {
+      "sourceId": "spell.vampiric-touch",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.vampiric-touch"
+    },
+    {
+      "sourceId": "spell.water-breathing",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.water-breathing"
+    },
+    {
+      "sourceId": "spell.water-walk",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.water-walk"
+    },
+    {
+      "sourceId": "spell.arcane-eye",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.arcane-eye"
+    },
+    {
+      "sourceId": "spell.banishment",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.banishment"
+    },
+    {
+      "sourceId": "spell.black-tentacles",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.black-tentacles"
+    },
+    {
+      "sourceId": "spell.blight",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.blight"
+    },
+    {
+      "sourceId": "spell.charm-monster",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.charm-monster"
+    },
+    {
+      "sourceId": "spell.confusion",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.confusion"
+    },
+    {
+      "sourceId": "spell.conjure-minor-elementals",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.conjure-minor-elementals"
+    },
+    {
+      "sourceId": "spell.control-water",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.control-water"
+    },
+    {
+      "sourceId": "spell.dimension-door",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.dimension-door"
+    },
+    {
+      "sourceId": "spell.divination",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.divination"
+    },
+    {
+      "sourceId": "spell.dominate-beast",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.dominate-beast"
+    },
+    {
+      "sourceId": "spell.fabricate",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.fabricate"
+    },
+    {
+      "sourceId": "spell.faithful-hound",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.faithful-hound"
+    },
+    {
+      "sourceId": "spell.fire-shield",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.fire-shield"
+    },
+    {
+      "sourceId": "spell.greater-invisibility",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.greater-invisibility"
+    },
+    {
+      "sourceId": "spell.hallucinatory-terrain",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.hallucinatory-terrain"
+    },
+    {
+      "sourceId": "spell.ice-storm",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.ice-storm"
+    },
+    {
+      "sourceId": "spell.locate-creature",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.locate-creature"
+    },
+    {
+      "sourceId": "spell.phantasmal-killer",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.phantasmal-killer"
+    },
+    {
+      "sourceId": "spell.polymorph",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.polymorph"
+    },
+    {
+      "sourceId": "spell.private-sanctum",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.private-sanctum"
+    },
+    {
+      "sourceId": "spell.resilient-sphere",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.resilient-sphere"
+    },
+    {
+      "sourceId": "spell.secret-chest",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.secret-chest"
+    },
+    {
+      "sourceId": "spell.stone-shape",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.stone-shape"
+    },
+    {
+      "sourceId": "spell.stoneskin",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.stoneskin"
+    },
+    {
+      "sourceId": "spell.vitriolic-sphere",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.vitriolic-sphere"
+    },
+    {
+      "sourceId": "spell.wall-of-fire",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.wall-of-fire"
+    },
+    {
+      "sourceId": "spell.animate-objects",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.animate-objects"
+    },
+    {
+      "sourceId": "spell.arcane-hand",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.arcane-hand"
+    },
+    {
+      "sourceId": "spell.cloudkill",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.cloudkill"
+    },
+    {
+      "sourceId": "spell.cone-of-cold",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.cone-of-cold"
+    },
+    {
+      "sourceId": "spell.conjure-elemental",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.conjure-elemental"
+    },
+    {
+      "sourceId": "spell.contact-other-plane",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.contact-other-plane"
+    },
+    {
+      "sourceId": "spell.creation",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.creation"
+    },
+    {
+      "sourceId": "spell.dominate-person",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.dominate-person"
+    },
+    {
+      "sourceId": "spell.dream",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.dream"
+    },
+    {
+      "sourceId": "spell.geas",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.geas"
+    },
+    {
+      "sourceId": "spell.hold-monster",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.hold-monster"
+    },
+    {
+      "sourceId": "spell.insect-plague",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.insect-plague"
+    },
+    {
+      "sourceId": "spell.legend-lore",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.legend-lore"
+    },
+    {
+      "sourceId": "spell.mislead",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.mislead"
+    },
+    {
+      "sourceId": "spell.modify-memory",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.modify-memory"
+    },
+    {
+      "sourceId": "spell.passwall",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.passwall"
+    },
+    {
+      "sourceId": "spell.planar-binding",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.planar-binding"
+    },
+    {
+      "sourceId": "spell.scrying",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.scrying"
+    },
+    {
+      "sourceId": "spell.seeming",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.seeming"
+    },
+    {
+      "sourceId": "spell.summon-dragon",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.summon-dragon"
+    },
+    {
+      "sourceId": "spell.telekinesis",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.telekinesis"
+    },
+    {
+      "sourceId": "spell.telepathic-bond",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.telepathic-bond"
+    },
+    {
+      "sourceId": "spell.teleportation-circle",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.teleportation-circle"
+    },
+    {
+      "sourceId": "spell.wall-of-force",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.wall-of-force"
+    },
+    {
+      "sourceId": "spell.wall-of-stone",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.wall-of-stone"
+    },
+    {
+      "sourceId": "spell.chain-lightning",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.chain-lightning"
+    },
+    {
+      "sourceId": "spell.circle-of-death",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.circle-of-death"
+    },
+    {
+      "sourceId": "spell.contingency",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.contingency"
+    },
+    {
+      "sourceId": "spell.create-undead",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.create-undead"
+    },
+    {
+      "sourceId": "spell.disintegrate",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.disintegrate"
+    },
+    {
+      "sourceId": "spell.eyebite",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.eyebite"
+    },
+    {
+      "sourceId": "spell.flesh-to-stone",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.flesh-to-stone"
+    },
+    {
+      "sourceId": "spell.freezing-sphere",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.freezing-sphere"
+    },
+    {
+      "sourceId": "spell.globe-of-invulnerability",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.globe-of-invulnerability"
+    },
+    {
+      "sourceId": "spell.guards-and-wards",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.guards-and-wards"
+    },
+    {
+      "sourceId": "spell.instant-summons",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.instant-summons"
+    },
+    {
+      "sourceId": "spell.irresistible-dance",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.irresistible-dance"
+    },
+    {
+      "sourceId": "spell.magic-jar",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.magic-jar"
+    },
+    {
+      "sourceId": "spell.mass-suggestion",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.mass-suggestion"
+    },
+    {
+      "sourceId": "spell.move-earth",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.move-earth"
+    },
+    {
+      "sourceId": "spell.programmed",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.programmed"
+    },
+    {
+      "sourceId": "spell.sunbeam",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.sunbeam"
+    },
+    {
+      "sourceId": "spell.true-seeing",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.true-seeing"
+    },
+    {
+      "sourceId": "spell.wall-of-ice",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.wall-of-ice"
+    },
+    {
+      "sourceId": "spell.arcane-sword",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.arcane-sword"
+    },
+    {
+      "sourceId": "spell.delayed-blast-fireball",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.delayed-blast-fireball"
+    },
+    {
+      "sourceId": "spell.etherealness",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.etherealness"
+    },
+    {
+      "sourceId": "spell.finger-of-death",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.finger-of-death"
+    },
+    {
+      "sourceId": "spell.fire-storm",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.fire-storm"
+    },
+    {
+      "sourceId": "spell.forcecage",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.forcecage"
+    },
+    {
+      "sourceId": "spell.magnificent-mansion",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.magnificent-mansion"
+    },
+    {
+      "sourceId": "spell.mirage-arcane",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.mirage-arcane"
+    },
+    {
+      "sourceId": "spell.plane-shift",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.plane-shift"
+    },
+    {
+      "sourceId": "spell.prismatic-spray",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.prismatic-spray"
+    },
+    {
+      "sourceId": "spell.project-image",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.project-image"
+    },
+    {
+      "sourceId": "spell.reverse-gravity",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.reverse-gravity"
+    },
+    {
+      "sourceId": "spell.sequester",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.sequester"
+    },
+    {
+      "sourceId": "spell.simulacrum",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.simulacrum"
+    },
+    {
+      "sourceId": "spell.symbol",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.symbol"
+    },
+    {
+      "sourceId": "spell.teleport",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.teleport"
+    },
+    {
+      "sourceId": "spell.antimagic-field",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.antimagic-field"
+    },
+    {
+      "sourceId": "spell.antipathy-sympathy",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.antipathy-sympathy"
+    },
+    {
+      "sourceId": "spell.feeblemind",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.feeblemind"
+    },
+    {
+      "sourceId": "spell.clone",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.clone"
+    },
+    {
+      "sourceId": "spell.control-weather",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.control-weather"
+    },
+    {
+      "sourceId": "spell.demiplane",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.demiplane"
+    },
+    {
+      "sourceId": "spell.dominate-monster",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.dominate-monster"
+    },
+    {
+      "sourceId": "spell.earthquake",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.earthquake"
+    },
+    {
+      "sourceId": "spell.incendiary-cloud",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.incendiary-cloud"
+    },
+    {
+      "sourceId": "spell.maze",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.maze"
+    },
+    {
+      "sourceId": "spell.mind-blank",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.mind-blank"
+    },
+    {
+      "sourceId": "spell.power-word-stun",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.power-word-stun"
+    },
+    {
+      "sourceId": "spell.sunburst",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.sunburst"
+    },
+    {
+      "sourceId": "spell.astral-projection",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.astral-projection"
+    },
+    {
+      "sourceId": "spell.foresight",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.foresight"
+    },
+    {
+      "sourceId": "spell.gate",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.gate"
+    },
+    {
+      "sourceId": "spell.imprisonment",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.imprisonment"
+    },
+    {
+      "sourceId": "spell.meteor-swarm",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.meteor-swarm"
+    },
+    {
+      "sourceId": "spell.power-word-kill",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.power-word-kill"
+    },
+    {
+      "sourceId": "spell.prismatic-wall",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.prismatic-wall"
+    },
+    {
+      "sourceId": "spell.shapechange",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.shapechange"
+    },
+    {
+      "sourceId": "spell.time-stop",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.time-stop"
+    },
+    {
+      "sourceId": "spell.true-polymorph",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.true-polymorph"
+    },
+    {
+      "sourceId": "spell.weird",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.weird"
+    },
+    {
+      "sourceId": "spell.wish",
+      "category": "wizard-sorcerer-spell",
+      "decision": "included",
+      "reason": "Appears on the Sorcerer and Wizard class spell list.",
+      "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "outputId": "srd-5.2.1.spell.wish"
+    }
+  ]
+}

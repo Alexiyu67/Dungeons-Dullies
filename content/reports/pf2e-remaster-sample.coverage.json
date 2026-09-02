@@ -1,0 +1,68 @@
+{
+  "$schema": "../schema/coverage-report.schema.json",
+  "schemaVersion": 1,
+  "packId": "pf2e-remaster-sample",
+  "generatedAt": "2026-08-31T00:00:00Z",
+  "sourceSnapshot": {
+    "name": "Project-original engine fixtures",
+    "url": "https://example.invalid/no-upstream-source",
+    "revision": "sample-1",
+    "retrievedAt": null
+  },
+  "summary": {
+    "seen": 6,
+    "included": 6,
+    "excluded": 0,
+    "pendingReview": 0
+  },
+  "records": [
+    {
+      "sourceId": "local:stride",
+      "category": "action",
+      "decision": "included",
+      "reason": "Project-original neutral engine fixture.",
+      "licenseEvidence": "No upstream source used; distribution still requires a completed project ORC Notice.",
+      "outputId": "pf2esample.action.stride"
+    },
+    {
+      "sourceId": "local:step",
+      "category": "action",
+      "decision": "included",
+      "reason": "Project-original neutral engine fixture.",
+      "licenseEvidence": "No upstream source used; distribution still requires a completed project ORC Notice.",
+      "outputId": "pf2esample.action.step"
+    },
+    {
+      "sourceId": "local:strike",
+      "category": "action",
+      "decision": "included",
+      "reason": "Project-original neutral engine fixture.",
+      "licenseEvidence": "No upstream source used; distribution still requires a completed project ORC Notice.",
+      "outputId": "pf2esample.action.strike"
+    },
+    {
+      "sourceId": "local:three-actions",
+      "category": "knowledge",
+      "decision": "included",
+      "reason": "Project-original explanation of the app's generic action-token UI.",
+      "licenseEvidence": "No upstream source used.",
+      "outputId": "pf2esample.knowledge.three-actions"
+    },
+    {
+      "sourceId": "local:degrees",
+      "category": "knowledge",
+      "decision": "included",
+      "reason": "Project-original explanation of a generic four-outcome resolver.",
+      "licenseEvidence": "No upstream source used.",
+      "outputId": "pf2esample.knowledge.degrees"
+    },
+    {
+      "sourceId": "local:frightened",
+      "category": "condition",
+      "decision": "included",
+      "reason": "Project-original valued-condition fixture.",
+      "licenseEvidence": "No upstream source used.",
+      "outputId": "pf2esample.condition.frightened"
+    }
+  ]
+}

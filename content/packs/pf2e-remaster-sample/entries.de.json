@@ -1,0 +1,68 @@
+{
+  "$schema": "../../schema/localized-entries.schema.json",
+  "schemaVersion": 1,
+  "packId": "pf2e-remaster-sample",
+  "locale": "de",
+  "entries": [
+    {
+      "id": "pf2esample.action.stride",
+      "kind": "action",
+      "name": "Laufen",
+      "summary": "Gib eine Aktion aus, um dich bis zu deiner aktuellen Bewegungsrate zu bewegen.",
+      "beginnerTip": "Wähle Entfernung und Bewegungsart; die App gibt eine deiner drei Aktionen aus.",
+      "keywords": ["laufen", "bewegen", "bewegungsrate", "eine aktion"],
+      "automation": { "level": "automatic", "command": "start_stride", "actionCost": 1, "requiresTableInput": false },
+      "source": { "work": "Projekteigenes PF2e-Remaster-Engine-Beispiel", "locator": "Platzhalter für Bewegung mit drei Aktionen", "adaptation": "Neutrales Funktionsbeispiel; nicht aus einer externen Regelpublikation importiert." }
+    },
+    {
+      "id": "pf2esample.action.step",
+      "kind": "action",
+      "name": "Schritt",
+      "summary": "Gib eine Aktion für eine kurze, vorsichtige Bewegung aus.",
+      "beginnerTip": "Nutze dies, wenn sichere Positionierung wichtiger als Entfernung ist; frage die Spielleitung nach Geländeeinschränkungen.",
+      "keywords": ["schritt", "bewegen", "vorsichtig", "eine aktion"],
+      "automation": { "level": "guided", "command": "start_step", "actionCost": 1, "requiresTableInput": true },
+      "source": { "work": "Projekteigenes PF2e-Remaster-Engine-Beispiel", "locator": "Platzhalter für Bewegung mit drei Aktionen", "adaptation": "Neutrales Funktionsbeispiel; nicht aus einer externen Regelpublikation importiert." }
+    },
+    {
+      "id": "pf2esample.action.strike",
+      "kind": "action",
+      "name": "Angriff",
+      "summary": "Gib eine Aktion aus, um mit einer Waffe oder waffenlos anzugreifen.",
+      "beginnerTip": "Die App nutzt deinen aktuellen Angriffsmodifikator und zählt frühere Angriffe in diesem Zug.",
+      "keywords": ["angriff", "waffe", "mehrfachangriff", "eine aktion"],
+      "automation": { "level": "guided", "command": "start_strike", "actionCost": 1, "requiresTableInput": true },
+      "source": { "work": "Projekteigenes PF2e-Remaster-Engine-Beispiel", "locator": "Platzhalter für Angriff mit drei Aktionen", "adaptation": "Neutrales Funktionsbeispiel; nicht aus einer externen Regelpublikation importiert." }
+    },
+    {
+      "id": "pf2esample.knowledge.three-actions",
+      "kind": "knowledge",
+      "name": "Drei Aktionen",
+      "summary": "Wähle in einem typischen Zug Aktivitäten, deren Kosten in deine verbleibenden Aktionsmarker passen.",
+      "beginnerTip": "Viele Ein-Aktions-Optionen lassen sich wiederholen, doch wiederholte Angriffe können ungenauer werden.",
+      "keywords": ["drei aktionen", "aktionsökonomie", "zug", "marker"],
+      "automation": { "level": "informational", "command": null, "actionCost": null, "requiresTableInput": false },
+      "source": { "work": "Projekteigenes PF2e-Remaster-Engine-Beispiel", "locator": "Platzhalter für Zugmodell", "adaptation": "Eigene Erklärung des allgemeinen Drei-Aktionen-Modells der App." }
+    },
+    {
+      "id": "pf2esample.knowledge.degrees",
+      "kind": "knowledge",
+      "name": "Erfolgsgrade",
+      "summary": "Eine Probe kann statt nur Erfolg oder Fehlschlag vier Ergebnisstufen haben.",
+      "beginnerTip": "Trage den Zielwert ein, falls bekannt; sonst lass die Spielleitung die Ergebnisstufe nennen.",
+      "keywords": ["kritischer erfolg", "erfolg", "fehlschlag", "kritischer fehlschlag", "erfolgsgrad"],
+      "automation": { "level": "guided", "command": "resolve_degree", "actionCost": null, "requiresTableInput": true },
+      "source": { "work": "Projekteigenes PF2e-Remaster-Engine-Beispiel", "locator": "Platzhalter für Auflösungsmodell", "adaptation": "Eigene Erklärung eines allgemeinen Modells mit vier Ergebnissen." }
+    },
+    {
+      "id": "pf2esample.condition.frightened",
+      "kind": "condition",
+      "name": "Verängstigt",
+      "summary": "Ein abgestufter Beispielzustand für vorübergehende Abzüge und automatische Verringerung.",
+      "beginnerTip": "Trage Zustandswert und Quelle ein, damit die App jede betroffene Summe erklären kann.",
+      "keywords": ["verängstigt", "zustand", "wert", "abzug"],
+      "automation": { "level": "guided", "command": "apply_valued_condition", "actionCost": null, "requiresTableInput": false },
+      "source": { "work": "Projekteigenes PF2e-Remaster-Engine-Beispiel", "locator": "Platzhalter für abgestuften Zustand", "adaptation": "Neutrale Engine-Testdaten; kein verbindlicher Regeltext." }
+    }
+  ]
+}

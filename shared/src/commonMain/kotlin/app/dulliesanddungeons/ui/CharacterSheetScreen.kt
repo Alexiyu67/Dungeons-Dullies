@@ -1,6 +1,7 @@
 package app.dulliesanddungeons.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.expandVertically
@@ -38,6 +39,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Backpack
@@ -148,8 +150,9 @@ internal fun CharacterSheetScreen(
     var pendingNoteDeletion by remember(character.id) { mutableStateOf<CharacterNote?>(null) }
     var pendingQuickCastSpell by remember(character.id) { mutableStateOf<SpellUi?>(null) }
     var sorceryRecoveryOpen by remember(character.id) { mutableStateOf(false) }
+    var longRestDialogOpen by remember(character.id) { mutableStateOf(false) }
     val expandedSections = remember(character.id) { mutableStateMapOf<String, Boolean>() }
-    fun sectionExpanded(key: String): Boolean = expandedSections[key] != false
+    fun sectionExpanded(key: String): Boolean = expandedSections[key] ?: (key != "rests")
     fun toggleSection(key: String) { expandedSections[key] = !sectionExpanded(key) }
     val groupedFeatures = character.features.groupBy(::featureFamily)
 
@@ -173,6 +176,7 @@ internal fun CharacterSheetScreen(
                         character = character,
                         restsExpanded = sectionExpanded("rests"),
                         onRestsToggle = { toggleSection("rests") },
+                        onLongRest = { longRestDialogOpen = true },
                         onProfileClick = { profileViewerOpen = true },
                         onPortraitClick = { hasPortrait ->
                             if (hasPortrait) portraitViewerOpen = true
@@ -208,8 +212,12 @@ internal fun CharacterSheetScreen(
 
                 FeatureFamily.entries.filter { it != FeatureFamily.General }.forEach { family ->
                     val familyFeatures = groupedFeatures[family].orEmpty()
-                    val superiorityDice = familyFeatures.firstOrNull { it.id == "superiority-dice" }
-                    val features = if (family == FeatureFamily.Maneuvers) familyFeatures.filterNot { it.id == "superiority-dice" } else familyFeatures
+                    val sharedPool = when (family) {
+                        FeatureFamily.Maneuvers -> familyFeatures.firstOrNull { it.id == "superiority-dice" }
+                        FeatureFamily.Metamagic -> familyFeatures.firstOrNull { it.id == "sorcery-points" }
+                        else -> null
+                    }
+                    val features = familyFeatures.filterNot { it.id == sharedPool?.id }
                     val sectionKey = "feature-${family.name}"
                     if (familyFeatures.isNotEmpty()) {
                         item(key = "feature-family-${family.name}") {
@@ -219,8 +227,8 @@ internal fun CharacterSheetScreen(
                                 sectionExpanded(sectionKey),
                                 { toggleSection(sectionKey) },
                             ) {
-                                if (family == FeatureFamily.Maneuvers && superiorityDice != null) {
-                                    SuperiorityDiceStat(state, superiorityDice)
+                                if (sharedPool != null) {
+                                    SharedResourceStat(state, sharedPool)
                                 }
                             }
                         }
@@ -235,11 +243,13 @@ internal fun CharacterSheetScreen(
                     }
                 }
                 item(key = "feature-family-general") {
+                    val generalFeatures = groupedFeatures[FeatureFamily.General].orEmpty()
                     CollapsibleSectionHeader(
                         state,
                         featureFamilyLabel(state, FeatureFamily.General),
-                        sectionExpanded("feature-General"),
+                        generalFeatures.isNotEmpty() && sectionExpanded("feature-General"),
                         { toggleSection("feature-General") },
+                        enabled = generalFeatures.isNotEmpty(),
                     ) {
                         TextButton(onClick = { editingCustomFeature = null; customFeatureEditorOpen = true }) {
                             Icon(Icons.Rounded.Add, contentDescription = null, Modifier.size(18.dp))
@@ -248,7 +258,7 @@ internal fun CharacterSheetScreen(
                         }
                     }
                 }
-                if (sectionExpanded("feature-General")) {
+                if (groupedFeatures[FeatureFamily.General].orEmpty().isNotEmpty() && sectionExpanded("feature-General")) {
                     items(groupedFeatures[FeatureFamily.General].orEmpty(), key = { "general-${it.id}" }) { feature ->
                         FeatureCard(state, feature, onEdit = {
                             editingCustomFeature = feature
@@ -259,22 +269,38 @@ internal fun CharacterSheetScreen(
 
                 if (character.canCastSpells) {
                     item {
-                        CollapsibleSectionHeader(state, state.t("Spells", "Zauber"), sectionExpanded("spells"), { toggleSection("spells") })
+                        CollapsibleSectionHeader(state, state.t("Spells", "Zauber"), sectionExpanded("spells"), { toggleSection("spells") }) {
+                            IconButton(onClick = { state.beginEdit(section = EditorSection.Spells) }, modifier = Modifier.size(42.dp)) {
+                                Icon(Icons.Rounded.Edit, contentDescription = state.t("Edit spells", "Zauber bearbeiten"), Modifier.size(19.dp))
+                            }
+                        }
                     }
                     if (sectionExpanded("spells")) {
-                        if (character.resolvedSpellSlots.isNotEmpty()) {
+                        if (character.ruleset != Ruleset.Pf2eRemaster && character.fiveECasterLevel > 0) {
                             item { SpellSlotCounter(state, character, onRegain = { sorceryRecoveryOpen = true }) }
                         }
                         if (character.availableSpells.isEmpty()) {
                             item { ExplanationCard(state.t("Spellcasting available", "Zaubern verfügbar"), state.t("This character can cast spells, but none are currently prepared or granted.", "Dieser Charakter kann zaubern, aber derzeit ist kein Zauber vorbereitet oder gewährt.")) }
                         } else {
-                            items(character.availableSpells, key = { "${it.sourceKind}-${it.sourceName}-${it.id}" }) { spell ->
-                                SpellRow(state, spell) {
-                                    val slotLevels = state.availableSpellSlotLevels(spell)
-                                    when {
-                                        spell.level == 0 -> state.castSpell(spell, session = null)
-                                        slotLevels.size == 1 -> state.castSpell(spell, slotLevels.single(), session = null)
-                                        slotLevels.size > 1 -> pendingQuickCastSpell = spell
+                            character.availableSpells.groupBy { it.level }.toSortedMap().forEach { (level, levelSpells) ->
+                                item(key = "spell-level-$level") {
+                                    Text(
+                                        if (level == 0) state.t("Cantrips", "Zaubertricks") else state.t("Level $level", "Grad $level"),
+                                        style = MaterialTheme.typography.titleSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                items(
+                                    levelSpells.sortedForPicker(state.language, SpellUi::name, { "${it.sourceKind}-${it.sourceName}-${it.id}" }),
+                                    key = { "${it.sourceKind}-${it.sourceName}-${it.id}" },
+                                ) { spell ->
+                                    SpellRow(state, spell) {
+                                        val slotLevels = state.availableSpellSlotLevels(spell)
+                                        when {
+                                            spell.level == 0 -> state.castSpell(spell, session = null)
+                                            slotLevels.size == 1 -> state.castSpell(spell, slotLevels.single(), session = null)
+                                            slotLevels.size > 1 -> pendingQuickCastSpell = spell
+                                        }
                                     }
                                 }
                             }
@@ -465,6 +491,9 @@ internal fun CharacterSheetScreen(
     }
     if (sorceryRecoveryOpen) {
         SorcerySlotRecoveryDialog(state, character) { sorceryRecoveryOpen = false }
+    }
+    if (longRestDialogOpen) {
+        LongRestDialog(state, character) { longRestDialogOpen = false }
     }
 }
 
@@ -797,6 +826,7 @@ private fun HeroSummaryCard(
     character: CharacterUi,
     restsExpanded: Boolean,
     onRestsToggle: () -> Unit,
+    onLongRest: () -> Unit,
     onProfileClick: () -> Unit,
     onPortraitClick: (Boolean) -> Unit,
 ) {
@@ -906,6 +936,7 @@ private fun HeroSummaryCard(
                     character = character,
                     expanded = restsExpanded,
                     onToggle = onRestsToggle,
+                    onLongRest = onLongRest,
                 )
             }
         }
@@ -918,11 +949,12 @@ private fun RestQuickActions(
     character: CharacterUi,
     expanded: Boolean,
     onToggle: () -> Unit,
+    onLongRest: () -> Unit,
 ) {
     val enabled = state.canTakeRest(character.id)
     val unavailableState = when {
         character.isDead || character.hp == 0 -> state.t("Unavailable at 0 HP", "Bei 0 TP nicht verfügbar")
-        state.hasSavedTurnDraft(character.id) -> state.t("Finish the current turn first", "Beende zuerst den aktuellen Zug")
+        !character.hasPlayedSinceLongRest -> state.t("No play changes since the last Long Rest", "Keine Spieländerungen seit der letzten Langen Rast")
         else -> null
     }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -964,7 +996,7 @@ private fun RestQuickActions(
                     Text(state.t("Short Rest", "Kurze Rast"), maxLines = 1)
                 }
                 OutlinedButton(
-                    onClick = { state.takeRest(Recovery.LONG_REST) },
+                    onClick = onLongRest,
                     enabled = enabled,
                     modifier = Modifier.weight(1f).height(52.dp).then(
                         unavailableState?.let { reason -> Modifier.semantics { stateDescription = reason } } ?: Modifier
@@ -976,10 +1008,110 @@ private fun RestQuickActions(
                     Icon(Icons.Rounded.NightsStay, contentDescription = null, Modifier.size(19.dp), tint = MaterialTheme.colorScheme.tertiary)
                     Spacer(Modifier.width(7.dp))
                     Text(state.t("Long Rest", "Lange Rast"), maxLines = 1)
+                    if (character.ancestry.contains("elf", ignoreCase = true)) {
+                        Spacer(Modifier.width(3.dp))
+                        IconButton(
+                            onClick = {
+                                state.showInfo(
+                                    state.t("Elven Trance", "Elfische Trance"),
+                                    state.t(
+                                        "An elf can complete a Long Rest in 4 hours by meditating in a trance, if the character's traits grant Trance.",
+                                        "Ein Elf kann eine Lange Rast in 4 Stunden durch Trance abschließen, sofern seine Merkmale Trance gewähren.",
+                                    ),
+                                )
+                            },
+                            modifier = Modifier.size(26.dp),
+                        ) {
+                            Icon(Icons.Rounded.Info, contentDescription = state.t("Elven rest information", "Information zur Elfenrast"), Modifier.size(16.dp))
+                        }
+                    }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun LongRestDialog(
+    state: DndAppState,
+    character: CharacterUi,
+    onDismiss: () -> Unit,
+) {
+    val rations = state.availableRations(character)
+    var selectedRationId by remember(character.id, rations.map { it.id to it.quantity }) { mutableStateOf<String?>(null) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Rounded.NightsStay, contentDescription = null) },
+        title = { Text(state.t("Long Rest", "Lange Rast")) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    state.t(
+                        "Choose one ration to consume, or rest without one.",
+                        "Wähle eine Ration zum Verbrauchen oder raste ohne Ration.",
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                if (rations.isEmpty()) {
+                    Text(
+                        state.t("No rations in equipment.", "Keine Rationen in der Ausrüstung."),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    rations.forEach { ration ->
+                        val selected = selectedRationId == ration.id
+                        Surface(
+                            onClick = { selectedRationId = ration.id.takeUnless { selected } },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(13.dp),
+                            color = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                            border = BorderStroke(1.dp, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),
+                        ) {
+                            Row(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Text(ration.name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
+                                Text("×${ration.quantity}", style = MaterialTheme.typography.labelMedium)
+                                if (selected) {
+                                    Spacer(Modifier.width(7.dp))
+                                    Icon(Icons.Rounded.Check, contentDescription = null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+                                }
+                            }
+                        }
+                    }
+                }
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .55f),
+                    shape = RoundedCornerShape(12.dp),
+                ) {
+                    Row(Modifier.padding(10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
+                        Icon(Icons.Rounded.Info, contentDescription = null, Modifier.size(17.dp), tint = MaterialTheme.colorScheme.primary)
+                        Text(
+                            state.t(
+                                "Food and water are daily adventuring needs, not a formal Long Rest prerequisite. Skipping a ration does not add exhaustion automatically; track other food or water separately.",
+                                "Nahrung und Wasser sind tägliche Reisebedürfnisse, aber keine formale Voraussetzung für eine Lange Rast. Ohne Ration wird nicht automatisch Erschöpfung hinzugefügt; andere Nahrung oder Wasser werden separat verwaltet.",
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(state.t("Cancel", "Abbrechen")) } },
+        confirmButton = {
+            Column(horizontalAlignment = Alignment.End) {
+                Button(
+                    onClick = {
+                        val id = selectedRationId ?: return@Button
+                        if (state.takeRest(Recovery.LONG_REST, id)) onDismiss()
+                    },
+                    enabled = selectedRationId != null,
+                ) { Text(state.t("Use ration & rest", "Ration nutzen & rasten")) }
+                TextButton(onClick = { if (state.takeRest(Recovery.LONG_REST)) onDismiss() }) {
+                    Text(state.t("Rest without ration", "Ohne Ration rasten"))
+                }
+            }
+        },
+    )
 }
 
 @Composable
@@ -1000,16 +1132,13 @@ private fun TurnTrackerCard(state: DndAppState, character: CharacterUi) {
         .filter { it.turnNumber == playSession?.currentTurnNumber }
         .sortedBy { it.sequence }
     val legacyCount = (state.currentTurnRecordedCount(character.id) - activities.size).coerceAtLeast(0)
-    var expanded by remember(playSession?.id, playSession?.currentTurnNumber) { mutableStateOf(activities.isNotEmpty()) }
+    var expanded by remember(playSession?.id, playSession?.currentTurnNumber) { mutableStateOf(false) }
     var confirmEmptyTurn by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
     val containerColor by animateColorAsState(
         if (expanded) MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = .38f) else Color.Transparent,
     )
     val containerPadding by animateDpAsState(if (expanded) 12.dp else 0.dp)
-    LaunchedEffect(activities.isNotEmpty()) {
-        if (activities.isNotEmpty()) expanded = true
-    }
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(21.dp),
@@ -1041,19 +1170,27 @@ private fun TurnTrackerCard(state: DndAppState, character: CharacterUi) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     Column(
                         Modifier.fillMaxWidth()
-                            .heightIn(max = 210.dp)
+                            .heightIn(max = 144.dp)
                             .cleanVerticalScrollbar(scrollState)
                             .verticalScroll(scrollState),
-                        verticalArrangement = Arrangement.spacedBy(7.dp),
+                        verticalArrangement = Arrangement.spacedBy(5.dp),
                     ) {
                         if (activities.isEmpty()) {
                             Text(state.t("No activity yet.", "Noch keine Aktivität."), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         } else {
-                            activities.forEach { activity -> SessionActivityRow(state, activity) }
+                            activities.forEach { activity ->
+                                Text(
+                                    "• ${activity.label}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
                         }
                         if (legacyCount > 0) {
                             Text(
-                                state.t("$legacyCount earlier steps were recorded before detailed history was available.", "$legacyCount frühere Schritte wurden vor dem detaillierten Verlauf erfasst."),
+                                state.t("• $legacyCount earlier actions", "• $legacyCount frühere Aktionen"),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -1299,6 +1436,7 @@ private fun CollapsibleSectionHeader(
     title: String,
     expanded: Boolean,
     onToggle: () -> Unit,
+    enabled: Boolean = true,
     action: (@Composable () -> Unit)? = null,
 ) {
     Row(
@@ -1308,6 +1446,7 @@ private fun CollapsibleSectionHeader(
     ) {
         Surface(
             onClick = onToggle,
+            enabled = enabled,
             modifier = Modifier.weight(1f).semantics {
                 role = Role.Button
                 stateDescription = if (expanded) state.t("Expanded", "Ausgeklappt") else state.t("Collapsed", "Eingeklappt")
@@ -1319,10 +1458,16 @@ private fun CollapsibleSectionHeader(
                 Modifier.fillMaxWidth().padding(vertical = 7.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.weight(1f),
+                    color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .5f),
+                )
                 Icon(
                     if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
                     contentDescription = if (expanded) state.t("Collapse $title", "$title einklappen") else state.t("Expand $title", "$title ausklappen"),
+                    tint = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .4f),
                 )
             }
         }
@@ -1422,6 +1567,29 @@ private fun AbilityScores(state: DndAppState, character: CharacterUi, expanded: 
 }
 
 @Composable
+private fun Modifier.cleanHorizontalScrollbar(listState: androidx.compose.foundation.lazy.LazyListState): Modifier {
+    val color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .28f)
+    return drawWithContent {
+        drawContent()
+        val layout = listState.layoutInfo
+        val visible = layout.visibleItemsInfo
+        val total = layout.totalItemsCount
+        if (visible.isNotEmpty() && total > visible.size) {
+            val thumbWidth = (size.width * visible.size / total.toFloat()).coerceAtLeast(28.dp.toPx())
+            val maxIndex = (total - visible.size).coerceAtLeast(1)
+            val progress = visible.first().index.coerceAtMost(maxIndex) / maxIndex.toFloat()
+            val left = (size.width - thumbWidth) * progress
+            drawRoundRect(
+                color = color,
+                topLeft = Offset(left, size.height - 3.dp.toPx()),
+                size = Size(thumbWidth, 2.dp.toPx()),
+                cornerRadius = CornerRadius(2.dp.toPx()),
+            )
+        }
+    }
+}
+
+@Composable
 private fun RollGrid(
     state: DndAppState,
     title: String,
@@ -1465,6 +1633,7 @@ private fun RollGrid(
 
 @Composable
 private fun FeatureCard(state: DndAppState, feature: FeatureUi, onEdit: () -> Unit) {
+    val feedback = state.inlineFeatureFeedback?.takeIf { it.featureId == feature.id }
     Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))) {
         Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 5.dp, top = 9.dp, bottom = 9.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Rounded.Stars, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(21.dp))
@@ -1487,17 +1656,17 @@ private fun FeatureCard(state: DndAppState, feature: FeatureUi, onEdit: () -> Un
             }
             if (feature.remaining != null) {
                 FilledTonalButton(
-                    onClick = {
-                        if (feature.effect != FeatureEffect.RESOURCE_ONLY || feature.actionCost.hasCost) {
-                            state.openTurn(TurnSection.Other)
-                            state.turnSession?.selectedFeatureId = feature.id
-                        } else {
-                            state.useFeature(feature.id, null)
-                        }
-                    },
-                    enabled = feature.remaining > 0,
+                    onClick = { state.useFeature(feature.id, null) },
+                    enabled = feature.remaining >= feature.resourceCost,
                     contentPadding = PaddingValues(horizontal = 11.dp, vertical = 4.dp),
-                ) { Text(if (feature.remaining > 0) state.t("Use", "Nutzen") else state.t("Used", "Leer")) }
+                ) {
+                    Crossfade(targetState = feedback, label = "feature-feedback-${feature.id}") { activeFeedback ->
+                        Text(
+                            activeFeedback?.message
+                                ?: if (feature.remaining >= feature.resourceCost) state.t("Use", "Nutzen") else state.t("Used", "Leer"),
+                        )
+                    }
+                }
             }
             if (feature.custom) {
                 IconButton(onClick = onEdit) {
@@ -1512,8 +1681,9 @@ private fun FeatureCard(state: DndAppState, feature: FeatureUi, onEdit: () -> Un
 }
 
 @Composable
-private fun SuperiorityDiceStat(state: DndAppState, feature: FeatureUi) {
-    val die = Regex("d\\d+", RegexOption.IGNORE_CASE).find(feature.summary)?.value?.lowercase() ?: "d10"
+private fun SharedResourceStat(state: DndAppState, feature: FeatureUi) {
+    val die = feature.resourceDieSides?.let { "d$it" }
+        ?: Regex("d\\d+", RegexOption.IGNORE_CASE).find(feature.summary)?.value?.lowercase()
     Surface(
         onClick = { state.showInfo(feature.name, feature.summary) },
         shape = RoundedCornerShape(12.dp),
@@ -1524,8 +1694,8 @@ private fun SuperiorityDiceStat(state: DndAppState, feature: FeatureUi) {
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(Icons.Rounded.Casino, contentDescription = null, Modifier.size(17.dp))
-            Text("$die ${feature.remaining}/${feature.maximum}", style = MaterialTheme.typography.labelLarge)
+            Icon(if (die != null) Icons.Rounded.Casino else Icons.Rounded.AutoAwesome, contentDescription = null, Modifier.size(17.dp))
+            Text(listOfNotNull(die, "${feature.remaining}/${feature.maximum}").joinToString(" "), style = MaterialTheme.typography.labelLarge)
         }
     }
 }
@@ -1583,6 +1753,14 @@ private fun SpellRow(state: DndAppState, spell: SpellUi, onQuickCast: () -> Unit
                 val source = spell.sourceName.takeIf { it.isNotBlank() }?.let { " · $it" }.orEmpty()
                 Text("$level$source", style = MaterialTheme.typography.labelMedium, color = if (spell.sourceKind == SpellSourceKind.ITEM) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(spell.summary, style = MaterialTheme.typography.bodySmall)
+                if (spell.castPreviews.isNotEmpty()) {
+                    val levels = state.availableSpellSlotLevels(spell).ifEmpty { spell.castPreviews.keys.sorted() }
+                    Text(
+                        state.t("Cast levels ${levels.first()}–${levels.last()}", "Wirkgrade ${levels.first()}–${levels.last()}"),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
             }
             Spacer(Modifier.width(8.dp))
             FilledTonalButton(
@@ -1594,10 +1772,40 @@ private fun SpellRow(state: DndAppState, spell: SpellUi, onQuickCast: () -> Unit
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun SpellSlotCounter(state: DndAppState, character: CharacterUi, onRegain: () -> Unit) {
+    var expanded by remember(character.id) { mutableStateOf(true) }
+    var editingMaximums by remember(character.id) { mutableStateOf(false) }
+    var showTimingHint by remember(character.id) { mutableStateOf(false) }
+    val listState = rememberLazyListState()
+    val visibleSlots = if (editingMaximums) {
+        (1..9).map { level ->
+            character.resolvedSpellSlots.firstOrNull { it.level == level }
+                ?: SpellSlotUi(level, 0, character.spellSlotMaximumOverrides[level] ?: state.rulesSpellSlotMaximum(level, character))
+        }
+    } else {
+        character.resolvedSpellSlots
+    }
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth()
+            .combinedClickable(
+                onClick = { expanded = !expanded },
+                onLongClick = {
+                    editingMaximums = !editingMaximums
+                    if (editingMaximums && state.shouldWarnAboutSpellSlotEdit(character)) showTimingHint = true
+                },
+            )
+            .semantics {
+                stateDescription = if (expanded) state.t("Expanded", "Ausgeklappt") else state.t("Collapsed", "Eingeklappt")
+                customActions = listOf(
+                    CustomAccessibilityAction(state.t("Edit spell slot maximums", "Maximale Zauberplätze bearbeiten")) {
+                        editingMaximums = !editingMaximums
+                        if (editingMaximums && state.shouldWarnAboutSpellSlotEdit(character)) showTimingHint = true
+                        true
+                    },
+                )
+            },
         shape = RoundedCornerShape(17.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .5f),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
@@ -1605,34 +1813,84 @@ private fun SpellSlotCounter(state: DndAppState, character: CharacterUi, onRegai
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(state.t("Spell slots", "Zauberplätze"), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                if (editingMaximums) {
+                    Text(state.t("Edit maximums", "Maxima bearbeiten"), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(6.dp))
+                }
                 if (character.isSorcerer) {
-                    TextButton(onClick = onRegain) {
+                    TextButton(onClick = onRegain, enabled = expanded) {
                         Icon(Icons.Rounded.Refresh, contentDescription = null, Modifier.size(17.dp))
                         Spacer(Modifier.width(5.dp))
                         Text(state.t("Regain", "Herstellen"))
                     }
                 }
+                Icon(
+                    if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                )
             }
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(character.resolvedSpellSlots, key = { it.level }) { slot ->
-                    Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surface) {
-                        Column(Modifier.padding(horizontal = 10.dp, vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(state.t("Level ${slot.level}", "Grad ${slot.level}"), style = MaterialTheme.typography.labelSmall)
-                            Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                                repeat(slot.maximum) { index ->
-                                    Surface(
-                                        Modifier.size(8.dp),
-                                        shape = androidx.compose.foundation.shape.CircleShape,
-                                        color = if (index < slot.remaining) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
-                                    ) {}
+            AnimatedVisibility(visible = expanded, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
+                LazyRow(
+                    state = listState,
+                    modifier = Modifier.fillMaxWidth().cleanHorizontalScrollbar(listState).padding(bottom = 5.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(visibleSlots, key = { it.level }) { slot ->
+                        Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surface) {
+                            Column(
+                                Modifier.widthIn(min = 104.dp).padding(horizontal = 10.dp, vertical = 8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(5.dp),
+                            ) {
+                                Text(state.t("Level ${slot.level}", "Grad ${slot.level}"), style = MaterialTheme.typography.labelSmall)
+                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    repeat(slot.maximum) { index ->
+                                        Surface(
+                                            Modifier.width(3.dp).height(17.dp),
+                                            shape = RoundedCornerShape(99.dp),
+                                            color = if (index < slot.remaining) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                                        ) {}
+                                    }
+                                }
+                                Text("${slot.remaining}/${slot.maximum}", style = MaterialTheme.typography.labelMedium)
+                                if (editingMaximums) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        IconButton(
+                                            onClick = { state.updateSpellSlotMaximum(slot.level, (slot.maximum - 1).coerceAtLeast(0)) },
+                                            enabled = slot.maximum > 0,
+                                            modifier = Modifier.size(34.dp),
+                                        ) { Icon(Icons.Rounded.ArrowDownward, contentDescription = state.t("Decrease maximum", "Maximum verringern"), Modifier.size(17.dp)) }
+                                        Text(slot.maximum.toString(), style = MaterialTheme.typography.titleSmall)
+                                        IconButton(
+                                            onClick = { state.updateSpellSlotMaximum(slot.level, (slot.maximum + 1).coerceAtMost(10)) },
+                                            enabled = slot.maximum < 10,
+                                            modifier = Modifier.size(34.dp),
+                                        ) { Icon(Icons.Rounded.ArrowUpward, contentDescription = state.t("Increase maximum", "Maximum erhöhen"), Modifier.size(17.dp)) }
+                                    }
                                 }
                             }
-                            Text("${slot.remaining}/${slot.maximum}", style = MaterialTheme.typography.labelMedium)
                         }
                     }
                 }
             }
         }
+    }
+    if (showTimingHint) {
+        AlertDialog(
+            onDismissRequest = { showTimingHint = false },
+            icon = { Icon(Icons.Rounded.Info, contentDescription = null) },
+            title = { Text(state.t("Spell slot maximums", "Maximale Zauberplätze")) },
+            text = {
+                Text(
+                    state.t(
+                        "These values usually change when you level up. You can still edit them for table rulings, imports, or corrections.",
+                        "Diese Werte ändern sich normalerweise beim Stufenaufstieg. Für Hausregeln, Importe oder Korrekturen kannst du sie trotzdem bearbeiten.",
+                    ),
+                )
+            },
+            confirmButton = { TextButton(onClick = { showTimingHint = false }) { Text(state.t("Continue", "Weiter")) } },
+        )
     }
 }
 
@@ -1647,7 +1905,13 @@ private fun QuickCastSlotDialog(
     val scrollState = rememberScrollState()
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(spell.name) },
+        title = {
+            val levelsWithPreview = levels
+            Text(
+                if (levelsWithPreview.isEmpty()) spell.name
+                else state.t("${spell.name} · Levels ${levelsWithPreview.first()}–${levelsWithPreview.last()}", "${spell.name} · Grade ${levelsWithPreview.first()}–${levelsWithPreview.last()}"),
+            )
+        },
         text = {
             Column(
                 Modifier.heightIn(max = 420.dp)
@@ -1658,7 +1922,11 @@ private fun QuickCastSlotDialog(
                 Text(state.t("Choose a spell slot", "Zauberplatz wählen"))
                 levels.forEach { level ->
                     FilledTonalButton(onClick = { onCast(level) }, modifier = Modifier.fillMaxWidth()) {
-                        Text(state.t("Level $level slot", "Zauberplatz Grad $level"))
+                        val preview = spell.castPreviews[level]
+                        Text(
+                            if (preview == null) state.t("Level $level slot", "Zauberplatz Grad $level")
+                            else state.t("Level $level · $preview", "Grad $level · $preview"),
+                        )
                     }
                 }
             }
@@ -1922,6 +2190,27 @@ internal fun AttackCard(
             if (roll != null) {
                 AnimatedDiceRow(20, roll.dice, roll.kept, "${weapon.id}-${roll.dice}-${roll.total}", Modifier.align(Alignment.CenterHorizontally))
                 Text("${roll.total}", style = MaterialTheme.typography.displaySmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.align(Alignment.CenterHorizontally))
+            }
+
+            AnimatedVisibility(
+                visible = roll?.natural == 20 && outcome == AttackOutcome.Critical,
+                enter = fadeIn() + scaleIn(initialScale = .92f),
+                exit = fadeOut() + scaleOut(targetScale = .96f),
+            ) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    shape = RoundedCornerShape(14.dp),
+                ) {
+                    Row(Modifier.padding(horizontal = 13.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Rounded.AutoAwesome, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.width(8.dp))
+                        Column {
+                            Text(state.t("Natural 20 · Critical hit", "Natürliche 20 · Kritischer Treffer"), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+                            Text(state.t("Damage dice rolled twice automatically.", "Schadenswürfel wurden automatisch zweimal gewürfelt."), style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
             }
 
             Button(

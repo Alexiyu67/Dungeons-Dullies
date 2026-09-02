@@ -1,0 +1,68 @@
+{
+  "$schema": "../../schema/localized-entries.schema.json",
+  "schemaVersion": 1,
+  "packId": "pf2e-remaster-sample",
+  "locale": "en",
+  "entries": [
+    {
+      "id": "pf2esample.action.stride",
+      "kind": "action",
+      "name": "Stride",
+      "summary": "Spend one action to move up to your current Speed.",
+      "beginnerTip": "Choose a distance and movement mode; the app spends one of your three actions.",
+      "keywords": ["stride", "move", "speed", "one action"],
+      "automation": { "level": "automatic", "command": "start_stride", "actionCost": 1, "requiresTableInput": false },
+      "source": { "work": "Project-original PF2e Remaster engine sample", "locator": "Three-action movement placeholder", "adaptation": "Neutral functional sample; not imported from an upstream rules publication." }
+    },
+    {
+      "id": "pf2esample.action.step",
+      "kind": "action",
+      "name": "Step",
+      "summary": "Spend one action on a short, careful movement.",
+      "beginnerTip": "Use this when careful positioning matters more than distance; ask the GM about terrain restrictions.",
+      "keywords": ["step", "move", "careful", "one action"],
+      "automation": { "level": "guided", "command": "start_step", "actionCost": 1, "requiresTableInput": true },
+      "source": { "work": "Project-original PF2e Remaster engine sample", "locator": "Three-action movement placeholder", "adaptation": "Neutral functional sample; not imported from an upstream rules publication." }
+    },
+    {
+      "id": "pf2esample.action.strike",
+      "kind": "action",
+      "name": "Strike",
+      "summary": "Spend one action to attack with a weapon or unarmed option.",
+      "beginnerTip": "The app applies your current attack modifier and tracks earlier attacks in this turn.",
+      "keywords": ["strike", "attack", "weapon", "multiple attack", "one action"],
+      "automation": { "level": "guided", "command": "start_strike", "actionCost": 1, "requiresTableInput": true },
+      "source": { "work": "Project-original PF2e Remaster engine sample", "locator": "Three-action attack placeholder", "adaptation": "Neutral functional sample; not imported from an upstream rules publication." }
+    },
+    {
+      "id": "pf2esample.knowledge.three-actions",
+      "kind": "knowledge",
+      "name": "Three Actions",
+      "summary": "On a typical turn, choose activities whose total cost fits your remaining action tokens.",
+      "beginnerTip": "You can repeat many one-action choices, but repeated attacks may become less accurate.",
+      "keywords": ["three actions", "action economy", "turn", "tokens"],
+      "automation": { "level": "informational", "command": null, "actionCost": null, "requiresTableInput": false },
+      "source": { "work": "Project-original PF2e Remaster engine sample", "locator": "Turn-model placeholder", "adaptation": "Original explanation of the application's generic three-action model." }
+    },
+    {
+      "id": "pf2esample.knowledge.degrees",
+      "kind": "knowledge",
+      "name": "Degrees of Success",
+      "summary": "A check can produce one of four outcome bands instead of only success or failure.",
+      "beginnerTip": "Enter the GM's target when known; otherwise let the GM state the outcome band.",
+      "keywords": ["critical success", "success", "failure", "critical failure", "degree"],
+      "automation": { "level": "guided", "command": "resolve_degree", "actionCost": null, "requiresTableInput": true },
+      "source": { "work": "Project-original PF2e Remaster engine sample", "locator": "Resolution-model placeholder", "adaptation": "Original explanation of a generic four-outcome model." }
+    },
+    {
+      "id": "pf2esample.condition.frightened",
+      "kind": "condition",
+      "name": "Frightened",
+      "summary": "A valued condition used by this sample to demonstrate temporary penalties and automatic reduction.",
+      "beginnerTip": "Enter the condition value and its source so the app can explain every affected total.",
+      "keywords": ["frightened", "condition", "value", "penalty"],
+      "automation": { "level": "guided", "command": "apply_valued_condition", "actionCost": null, "requiresTableInput": false },
+      "source": { "work": "Project-original PF2e Remaster engine sample", "locator": "Valued-condition placeholder", "adaptation": "Neutral engine fixture; not authoritative rules text." }
+    }
+  ]
+}

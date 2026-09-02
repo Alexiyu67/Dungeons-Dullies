@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dullies-and-dungeons.local/schema/localized-entries.schema.json",
+  "title": "Localized offline knowledge and rules entries",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "packId", "locale", "entries"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "packId": { "type": "string", "minLength": 1 },
+    "locale": { "enum": ["en", "de"] },
+    "entries": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/entry" }
+    }
+  },
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "name",
+        "summary",
+        "beginnerTip",
+        "keywords",
+        "automation",
+        "source"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]+$" },
+        "kind": {
+          "enum": [
+            "action",
+            "ancestry",
+            "class",
+            "condition",
+            "equipment",
+            "feature",
+            "knowledge",
+            "language",
+            "spell"
+          ]
+        },
+        "name": { "type": "string", "minLength": 1 },
+        "summary": { "type": "string", "minLength": 1 },
+        "beginnerTip": { "type": "string", "minLength": 1 },
+        "keywords": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "automation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["level"],
+          "properties": {
+            "level": { "enum": ["automatic", "guided", "informational"] },
+            "command": { "type": ["string", "null"] },
+            "actionCost": { "type": ["integer", "string", "null"] },
+            "requiresTableInput": { "type": "boolean", "default": false }
+          }
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["work", "locator", "adaptation"],
+          "properties": {
+            "work": { "type": "string" },
+            "locator": { "type": "string" },
+            "adaptation": { "type": "string" }
+          }
+        },
+        "spell": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "stableId",
+            "revision",
+            "level",
+            "classes",
+            "school",
+            "concentration",
+            "ritual",
+            "specificMaterial",
+            "aliases",
+            "castPreviews"
+          ],
+          "properties": {
+            "stableId": { "type": "string", "pattern": "^spell\\.[a-z0-9][a-z0-9.-]+$" },
+            "revision": { "enum": ["2014-srd-5.1", "2024-srd-5.2.1"] },
+            "level": { "type": "integer", "minimum": 0, "maximum": 9 },
+            "classes": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": { "enum": ["sorcerer", "wizard"] }
+            },
+            "school": {
+              "enum": [
+                "abjuration",
+                "conjuration",
+                "divination",
+                "enchantment",
+                "evocation",
+                "illusion",
+                "necromancy",
+                "transmutation"
+              ]
+            },
+            "concentration": { "type": "boolean" },
+            "ritual": { "type": "boolean" },
+            "specificMaterial": { "type": "boolean" },
+            "aliases": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": { "type": "string", "minLength": 1 }
+            },
+            "castPreviews": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["slotLevel", "value"],
+                "properties": {
+                  "slotLevel": { "type": "integer", "minimum": 1, "maximum": 9 },
+                  "value": { "type": "string", "minLength": 1 }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

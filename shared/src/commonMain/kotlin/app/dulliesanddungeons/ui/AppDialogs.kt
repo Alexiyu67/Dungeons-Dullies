@@ -207,7 +207,12 @@ internal fun ConditionsDialog(state: DndAppState) {
     }
     val quickOptions = options.filter { option ->
         option == "Exhaustion" || option == "Custom effect" || state.selectedConditions.none { it.name.startsWith(option, ignoreCase = true) }
-    }
+    }.sortedForPicker(
+        language = state.language,
+        displayName = { option ->
+            if (option == "Custom effect") state.t("Custom effect…", "Eigener Effekt …") else option
+        },
+    ).sortedBy { it == "Custom effect" }
     var exhaustionLevel by remember { mutableStateOf<Int?>(null) }
     AlertDialog(
         onDismissRequest = { state.conditionsOpen = false },

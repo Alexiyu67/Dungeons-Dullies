@@ -1,0 +1,68 @@
+{
+  "$schema": "../../schema/localized-entries.schema.json",
+  "schemaVersion": 1,
+  "packId": "srd-5.1-seed",
+  "locale": "de",
+  "entries": [
+    {
+      "id": "srd51.class.fighter",
+      "kind": "class",
+      "name": "Kämpfer",
+      "summary": "Eine Kampfklasse rund um Waffenfertigkeit, Rüstung und wiederholte Angriffe.",
+      "beginnerTip": "Beginne mit der Waffe auf deinem Bogen; die App zeigt, wann Klassenmerkmale weitere Möglichkeiten geben.",
+      "keywords": ["kämpfer", "kampfklasse", "waffe", "rüstung", "klasse"],
+      "automation": { "level": "informational", "command": null, "actionCost": null, "requiresTableInput": false },
+      "source": { "work": "SRD 5.1", "locator": "Classes: Fighter", "adaptation": "Eigene kurze Einsteigerzusammenfassung; Mechanik anhand des genannten SRD prüfen." }
+    },
+    {
+      "id": "srd51.race.human",
+      "kind": "ancestry",
+      "name": "Mensch",
+      "summary": "Eine vielseitige Volksoption für viele Klassen und Charakterideen.",
+      "beginnerTip": "Dies ist eine flexible Wahl; Klasse und Hintergrund prägen einen großen Teil deines Spielstils.",
+      "keywords": ["mensch", "volk", "vielseitig", "charaktererstellung"],
+      "automation": { "level": "guided", "command": "open_creation_choice", "actionCost": null, "requiresTableInput": false },
+      "source": { "work": "SRD 5.1", "locator": "Races: Human", "adaptation": "Eigene kurze Einsteigerzusammenfassung; kein Quelltext übernommen." }
+    },
+    {
+      "id": "srd51.action.attack",
+      "kind": "action",
+      "name": "Angreifen",
+      "summary": "Führe so viele Angriffe aus, wie deine aktuellen Merkmale erlauben.",
+      "beginnerTip": "Wähle eine Waffe. Die App würfelt zuerst den Angriff und wartet vor dem Schaden auf die Trefferentscheidung der Spielleitung.",
+      "keywords": ["angriff", "waffe", "treffen", "schaden", "aktion"],
+      "automation": { "level": "guided", "command": "start_attack", "actionCost": "action", "requiresTableInput": true },
+      "source": { "work": "SRD 5.1", "locator": "Combat: Actions in Combat: Attack", "adaptation": "Eigene ablauforientierte Zusammenfassung." }
+    },
+    {
+      "id": "srd51.action.dash",
+      "kind": "action",
+      "name": "Spurt",
+      "summary": "Setze deine Aktion ein, um in diesem Zug zusätzliche Bewegung zu erhalten.",
+      "beginnerTip": "Nutze dies, wenn deine normale Bewegung nicht bis zum gewünschten Ort reicht.",
+      "keywords": ["spurt", "bewegung", "bewegungsrate", "rennen", "aktion"],
+      "automation": { "level": "automatic", "command": "use_dash", "actionCost": "action", "requiresTableInput": false },
+      "source": { "work": "SRD 5.1", "locator": "Combat: Actions in Combat: Dash", "adaptation": "Eigene Einsteigerzusammenfassung; die genaue Berechnung liegt in den Engine-Daten." }
+    },
+    {
+      "id": "srd51.knowledge.saving-throw",
+      "kind": "knowledge",
+      "name": "Rettungswurf",
+      "summary": "Ein defensiver Wurf, wenn ein Effekt eines deiner Attribute auf die Probe stellt.",
+      "beginnerTip": "Die Spielleitung nennt das Attribut; tippe den passenden Rettungswurf an und nenne das Ergebnis.",
+      "keywords": ["rettungswurf", "rettung", "widerstehen", "würfeln", "verteidigung"],
+      "automation": { "level": "guided", "command": "roll_saving_throw", "actionCost": null, "requiresTableInput": true },
+      "source": { "work": "SRD 5.1", "locator": "Using Ability Scores: Saving Throws", "adaptation": "Eigene suchorientierte Zusammenfassung." }
+    },
+    {
+      "id": "srd51.condition.restrained",
+      "kind": "condition",
+      "name": "Festgesetzt",
+      "summary": "Ein Zustand, der Bewegung stark einschränkt und Angriffe sowie Verteidigung beeinflusst.",
+      "beginnerTip": "Wende den Zustand an und öffne Warum? bei geänderten Werten, um die aktiven Modifikatoren zu sehen.",
+      "keywords": ["festgesetzt", "zustand", "bewegung", "angriff"],
+      "automation": { "level": "guided", "command": "apply_condition", "actionCost": null, "requiresTableInput": false },
+      "source": { "work": "SRD 5.1", "locator": "Appendix A: Conditions: Restrained", "adaptation": "Eigene Einsteigerzusammenfassung; genaue Modifikatoren stehen in den Engine-Daten." }
+    }
+  ]
+}

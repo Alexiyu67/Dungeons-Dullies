@@ -1,0 +1,304 @@
+name: Android APK
+
+on:
+  push:
+    branches:
+      - "**"
+    tags:
+      - "v*"
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: android-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  JAVA_VERSION: "17"
+  ANDROID_PLATFORM: "36"
+  ANDROID_BUILD_TOOLS: "36.0.0"
+
+jobs:
+  verify:
+    name: Verify and build debug APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Reject tracked private content
+        shell: bash
+        run: |
+          set -euo pipefail
+          tracked="$(git ls-files | grep -E '(^|/)(privateContent|private-local|local-content)/|\.dndpack$' || true)"
+          if [[ -n "$tracked" ]]; then
+            echo "Private content or a .dndpack is tracked; refusing to build."
+            printf '%s\n' "$tracked"
+            exit 1
+          fi
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          package-manager-cache: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Install Android platform
+        shell: bash
+        run: sdkmanager "platforms;android-${ANDROID_PLATFORM}" "build-tools;${ANDROID_BUILD_TOOLS}"
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v6
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+
+      - name: Validate content and importer
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/validate-content.mjs
+          node scripts/generate-logo-assets.mjs
+          git diff --exit-code -- androidApp/src/main/res
+          python -m unittest discover -s scripts -p 'test_private_importer.py'
+
+      - name: Run tests, lint, and debug build
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x gradlew
+          ./gradlew test :androidApp:lint :androidApp:assembleDebug --no-configuration-cache --stacktrace
+
+      - name: Verify debug APK boundary
+        id: debug_apk
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk="androidApp/build/outputs/apk/debug/androidApp-debug.apk"
+          test -f "$apk"
+          aapt_bin="${ANDROID_HOME}/build-tools/${ANDROID_BUILD_TOOLS}/aapt"
+          if "$aapt_bin" dump permissions "$apk" | grep -q 'android.permission.INTERNET'; then
+            echo "The offline APK unexpectedly requests INTERNET."
+            exit 1
+          fi
+          leaked="$(zipinfo -1 "$apk" | grep -Ei '(^|/)(privateContent|private-local|local-content)/|\.dndpack$' || true)"
+          if [[ -n "$leaked" ]]; then
+            echo "The APK unexpectedly contains private import material."
+            printf '%s\n' "$leaked"
+            exit 1
+          fi
+          short_sha="${GITHUB_SHA::7}"
+          mkdir -p dist
+          output="dist/DulliesAndDungeons-debug-${short_sha}.apk"
+          cp "$apk" "$output"
+          sha256sum "$output" > "${output}.sha256"
+          echo "path=$output" >> "$GITHUB_OUTPUT"
+          echo "checksum=${output}.sha256" >> "$GITHUB_OUTPUT"
+          echo "name=DulliesAndDungeons-debug-${short_sha}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.debug_apk.outputs.name }}
+          path: |
+            ${{ steps.debug_apk.outputs.path }}
+            ${{ steps.debug_apk.outputs.checksum }}
+          if-no-files-found: error
+          retention-days: 30
+
+  internal:
+    name: Build stable internal APK
+    needs: verify
+    if: github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    environment: internal
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      - uses: android-actions/setup-android@v4
+      - run: sdkmanager "platforms;android-${ANDROID_PLATFORM}" "build-tools;${ANDROID_BUILD_TOOLS}"
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Restore and verify stable app keystore
+        shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          EXPECTED_SHA256: ${{ secrets.ANDROID_KEYSTORE_SHA256 }}
+        run: |
+          set -euo pipefail
+          test -n "$KEYSTORE_BASE64"
+          test -n "$EXPECTED_SHA256"
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "${RUNNER_TEMP}/app.keystore"
+          printf '%s  %s\n' "$EXPECTED_SHA256" "${RUNNER_TEMP}/app.keystore" | sha256sum --check --strict
+
+      - name: Build signed internal APK
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/app.keystore
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          DND_REQUIRE_INTERNAL_SIGNING: "true"
+          DND_VERSION_CODE: ${{ github.run_number }}
+        run: |
+          set -euo pipefail
+          chmod +x gradlew
+          ./gradlew :androidApp:assembleInternal --stacktrace
+
+      - name: Verify and stage internal APK
+        id: internal_apk
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk="androidApp/build/outputs/apk/internal/androidApp-internal.apk"
+          test -f "$apk"
+          apksigner="${ANDROID_HOME}/build-tools/${ANDROID_BUILD_TOOLS}/apksigner"
+          aapt_bin="${ANDROID_HOME}/build-tools/${ANDROID_BUILD_TOOLS}/aapt"
+          "$apksigner" verify --verbose --print-certs "$apk"
+          if "$aapt_bin" dump permissions "$apk" | grep -q 'android.permission.INTERNET'; then exit 1; fi
+          if zipinfo -1 "$apk" | grep -Eqi '(^|/)(privateContent|private-local|local-content)/|\.dndpack$'; then exit 1; fi
+          short_sha="${GITHUB_SHA::7}"
+          mkdir -p dist
+          output="dist/DulliesAndDungeons-internal-${short_sha}.apk"
+          cp "$apk" "$output"
+          sha256sum "$output" > "${output}.sha256"
+          echo "path=$output" >> "$GITHUB_OUTPUT"
+          echo "checksum=${output}.sha256" >> "$GITHUB_OUTPUT"
+          echo "name=DulliesAndDungeons-internal-${short_sha}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.internal_apk.outputs.name }}
+          path: |
+            ${{ steps.internal_apk.outputs.path }}
+            ${{ steps.internal_apk.outputs.checksum }}
+          if-no-files-found: error
+          retention-days: 30
+
+  release:
+    name: Build and publish tagged release APK
+    needs: verify
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment: release
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      - uses: android-actions/setup-android@v4
+      - run: sdkmanager "platforms;android-${ANDROID_PLATFORM}" "build-tools;${ANDROID_BUILD_TOOLS}"
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Validate release tag and derive monotonic version code
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          if [[ ! "$version" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            echo "Release tags must use vMAJOR.MINOR.PATCH."
+            exit 1
+          fi
+          code="${GITHUB_RUN_NUMBER}"
+          if (( code < 1 || code > 2100000000 )); then exit 1; fi
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+
+      - name: Restore and verify release keystore
+        shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          EXPECTED_SHA256: ${{ secrets.ANDROID_KEYSTORE_SHA256 }}
+        run: |
+          set -euo pipefail
+          test -n "$KEYSTORE_BASE64"
+          test -n "$EXPECTED_SHA256"
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "${RUNNER_TEMP}/release.keystore"
+          printf '%s  %s\n' "$EXPECTED_SHA256" "${RUNNER_TEMP}/release.keystore" | sha256sum --check --strict
+
+      - name: Build signed release APK
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/release.keystore
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          DND_REQUIRE_RELEASE_SIGNING: "true"
+          DND_RELEASE_TAG: ${{ github.ref_name }}
+          DND_VERSION_CODE: ${{ steps.version.outputs.code }}
+        run: |
+          set -euo pipefail
+          chmod +x gradlew
+          ./gradlew :androidApp:verifyReleaseTag :androidApp:assembleRelease --stacktrace
+
+      - name: Verify and stage release APK
+        id: release_apk
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk="androidApp/build/outputs/apk/release/androidApp-release.apk"
+          test -f "$apk"
+          apksigner="${ANDROID_HOME}/build-tools/${ANDROID_BUILD_TOOLS}/apksigner"
+          aapt_bin="${ANDROID_HOME}/build-tools/${ANDROID_BUILD_TOOLS}/aapt"
+          "$apksigner" verify --verbose --print-certs "$apk"
+          if "$aapt_bin" dump permissions "$apk" | grep -q 'android.permission.INTERNET'; then exit 1; fi
+          if zipinfo -1 "$apk" | grep -Eqi '(^|/)(privateContent|private-local|local-content)/|\.dndpack$'; then exit 1; fi
+          mkdir -p dist
+          output="dist/DulliesAndDungeons.apk"
+          cp "$apk" "$output"
+          sha256sum "$output" > "${output}.sha256"
+          echo "path=$output" >> "$GITHUB_OUTPUT"
+          echo "checksum=${output}.sha256" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: DulliesAndDungeons-${{ github.ref_name }}
+          path: |
+            ${{ steps.release_apk.outputs.path }}
+            ${{ steps.release_apk.outputs.checksum }}
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Publish GitHub Release assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "${{ steps.release_apk.outputs.path }}" "${{ steps.release_apk.outputs.checksum }}" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "${{ steps.release_apk.outputs.path }}" "${{ steps.release_apk.outputs.checksum }}" --verify-tag --generate-notes --title "$GITHUB_REF_NAME"
+          fi

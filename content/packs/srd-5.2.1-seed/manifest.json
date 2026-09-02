@@ -1,0 +1,32 @@
+{
+  "$schema": "../../schema/content-pack-manifest.schema.json",
+  "schemaVersion": 1,
+  "id": "srd-5.2.1-seed",
+  "version": "0.1.0",
+  "ruleset": {
+    "id": "fifth-edition",
+    "revision": "2024-srd-5.2.1"
+  },
+  "locales": ["en", "de"],
+  "entryFiles": {
+    "en": "entries.en.json",
+    "de": "entries.de.json"
+  },
+  "dependencies": [],
+  "license": {
+    "expression": "CC-BY-4.0",
+    "noticeFile": "../../../licenses/NOTICE.md",
+    "sourceWorks": [
+      {
+        "title": "System Reference Document 5.2.1",
+        "url": "https://www.dndbeyond.com/srd",
+        "license": "CC-BY-4.0",
+        "snapshot": "5.2.1"
+      }
+    ]
+  },
+  "contentStatus": "representative-seed",
+  "distributionReady": false,
+  "coverageReport": null,
+  "notes": "Representative app-development data only; not the complete SRD 5.2.1."
+}

@@ -886,6 +886,59 @@ class DndAppStateTest {
     }
 
     @Test
+    fun recordedPlayEnablesRestAndLongRestCanConsumeOneRation() {
+        val store = FakeStore()
+        val state = DndAppState(store)
+        assertFalse(state.canTakeRest())
+        state.addEquipment(EquipmentUi("travel-ration", "Travel ration", EquipmentKind.RATIONS))
+
+        state.roll("Perception", 3)
+
+        assertTrue(state.canTakeRest())
+        assertEquals("travel-ration", state.availableRations().single().id)
+        assertTrue(state.takeRest(Recovery.LONG_REST, "travel-ration"))
+        assertFalse(state.selectedCharacter!!.hasPlayedSinceLongRest)
+        assertTrue(state.availableRations().isEmpty())
+
+        val restored = DndAppState(store)
+        assertFalse(restored.selectedCharacter!!.hasPlayedSinceLongRest)
+        assertTrue(restored.availableRations().isEmpty())
+    }
+
+    @Test
+    fun maneuverQuickUseSpendsAndRollsTheSharedSuperiorityDie() {
+        val state = DndAppState(FakeStore())
+        val before = state.selectedCharacter!!.features.first { it.id == "superiority-dice" }.remaining!!
+
+        assertTrue(state.useFeature("maneuver-trip-attack", session = null))
+
+        val fighter = state.selectedCharacter!!
+        assertEquals(before - 1, fighter.features.first { it.id == "superiority-dice" }.remaining)
+        assertEquals(before - 1, fighter.features.first { it.id == "maneuver-trip-attack" }.remaining)
+        assertTrue(assertNotNull(state.inlineFeatureFeedback).rolledValue in 1..10)
+    }
+
+    @Test
+    fun spellSlotMaximumOverridePreservesSpentSlotsWhenShrunkAndRestored() {
+        val store = FakeStore()
+        val state = DndAppState(store)
+        state.openCharacter("seed-wizard-5")
+        val spell = state.selectedCharacter!!.availableSpells.first { it.level == 1 }
+        assertTrue(state.castSpell(spell, 1, session = null))
+        assertTrue(state.castSpell(spell, 1, session = null))
+
+        assertTrue(state.updateSpellSlotMaximum(1, 1))
+        assertEquals(0, state.selectedCharacter!!.resolvedSpellSlots.first { it.level == 1 }.remaining)
+        val restarted = DndAppState(store)
+        restarted.openCharacter("seed-wizard-5")
+        assertTrue(restarted.updateSpellSlotMaximum(1, restarted.rulesSpellSlotMaximum(1)))
+
+        val restored = restarted.selectedCharacter!!.resolvedSpellSlots.first { it.level == 1 }
+        assertEquals(2, restored.remaining)
+        assertEquals(4, restored.maximum)
+    }
+
+    @Test
     fun obsoleteSchemaIsRejectedInsteadOfMigrated() {
         val obsolete = DndAppState(FakeStore()).selectedCharacter!!.copy(name = "Must not load")
         val payload = Json { encodeDefaults = false }.encodeToString(

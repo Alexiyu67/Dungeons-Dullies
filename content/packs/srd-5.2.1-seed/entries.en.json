@@ -1,0 +1,68 @@
+{
+  "$schema": "../../schema/localized-entries.schema.json",
+  "schemaVersion": 1,
+  "packId": "srd-5.2.1-seed",
+  "locale": "en",
+  "entries": [
+    {
+      "id": "srd52.class.fighter",
+      "kind": "class",
+      "name": "Fighter",
+      "summary": "A durable martial class focused on weapons, armor, and reliable combat choices.",
+      "beginnerTip": "A good first choice if you want a straightforward turn with room to learn tactical options later.",
+      "keywords": ["fighter", "martial", "weapon", "armor", "beginner"],
+      "automation": { "level": "informational", "command": null, "actionCost": null, "requiresTableInput": false },
+      "source": { "work": "SRD 5.2.1", "locator": "Character Classes: Fighter", "adaptation": "Original short-form beginner summary; verify mechanics against the cited SRD." }
+    },
+    {
+      "id": "srd52.species.human",
+      "kind": "ancestry",
+      "name": "Human",
+      "summary": "A flexible species choice that can support many character concepts.",
+      "beginnerTip": "Choose the options that reinforce what you want your character to be good at.",
+      "keywords": ["human", "species", "versatile", "character creation"],
+      "automation": { "level": "guided", "command": "open_creation_choice", "actionCost": null, "requiresTableInput": false },
+      "source": { "work": "SRD 5.2.1", "locator": "Character Origins: Human", "adaptation": "Original short-form beginner summary; no source prose reproduced." }
+    },
+    {
+      "id": "srd52.action.attack",
+      "kind": "action",
+      "name": "Attack",
+      "summary": "Use a weapon or another available attack during your turn.",
+      "beginnerTip": "Pick an attack, let the app roll it, then ask the DM whether it hits before rolling damage.",
+      "keywords": ["attack", "hit", "weapon", "damage", "roll"],
+      "automation": { "level": "guided", "command": "start_attack", "actionCost": "action", "requiresTableInput": true },
+      "source": { "work": "SRD 5.2.1", "locator": "Rules Glossary: Attack action", "adaptation": "Original workflow-oriented summary." }
+    },
+    {
+      "id": "srd52.action.dodge",
+      "kind": "action",
+      "name": "Dodge",
+      "summary": "Focus on defense until the start of your next turn.",
+      "beginnerTip": "Useful when surviving is more important than dealing damage this turn.",
+      "keywords": ["dodge", "defense", "avoid", "action"],
+      "automation": { "level": "automatic", "command": "use_dodge", "actionCost": "action", "requiresTableInput": false },
+      "source": { "work": "SRD 5.2.1", "locator": "Rules Glossary: Dodge action", "adaptation": "Original beginner summary; exact effects remain engine data." }
+    },
+    {
+      "id": "srd52.knowledge.initiative",
+      "kind": "knowledge",
+      "name": "Initiative",
+      "summary": "A roll used to determine when creatures act as combat begins.",
+      "beginnerTip": "Tap Roll Initiative on your sheet; tell the result to the DM.",
+      "keywords": ["initiative", "turn order", "combat", "dexterity"],
+      "automation": { "level": "automatic", "command": "roll_initiative", "actionCost": null, "requiresTableInput": false },
+      "source": { "work": "SRD 5.2.1", "locator": "Rules Glossary: Initiative", "adaptation": "Original search-oriented summary." }
+    },
+    {
+      "id": "srd52.condition.prone",
+      "kind": "condition",
+      "name": "Prone",
+      "summary": "A condition representing a creature being down on the ground.",
+      "beginnerTip": "Apply this condition and use the Why panel to see how it changes movement and attacks.",
+      "keywords": ["prone", "condition", "ground", "stand up"],
+      "automation": { "level": "guided", "command": "apply_condition", "actionCost": null, "requiresTableInput": false },
+      "source": { "work": "SRD 5.2.1", "locator": "Rules Glossary: Prone condition", "adaptation": "Original beginner summary; exact modifiers remain engine data." }
+    }
+  ]
+}

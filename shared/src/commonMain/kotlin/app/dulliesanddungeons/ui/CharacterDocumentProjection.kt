@@ -154,6 +154,7 @@ internal fun CharacterUi.toDocument(characterConditions: List<ConditionUi> = emp
             } else {
                 listOf(RecoveryRule(feature.recovery, RecoveryAmount.Full))
             },
+            dieSides = feature.resourceDieSides,
         )
     } + resolvedSpellSlots.map { slot ->
         ResourcePool(
@@ -182,6 +183,9 @@ internal fun CharacterUi.toDocument(characterConditions: List<ConditionUi> = emp
         quickRolls = resolvedQuickRolls.map { it.toDomain() },
         activePlaySession = activePlaySession,
         savedPlaySessions = savedPlaySessions,
+        spellSlotMaximumOverrides = spellSlotMaximumOverrides,
+        spellSlotSpentCounts = spellSlots.associate { it.level to (it.maximum - it.remaining).coerceAtLeast(0) }.filterValues { it > 0 },
+        hasPlayedSinceLongRest = hasPlayedSinceLongRest,
     )
     val combat = CombatProfile(
         baseSpeedsFeet = buildMap {
@@ -204,6 +208,7 @@ internal fun CharacterUi.toDocument(characterConditions: List<ConditionUi> = emp
             name = feature.name,
             summary = feature.summary,
             resourceId = feature.resourceId ?: feature.id.takeIf { feature.remaining != null && feature.maximum != null },
+            resourceCost = feature.resourceCost,
             actionCost = feature.actionCost,
             effectKey = feature.effect.name.lowercase(),
             custom = feature.custom,
@@ -279,6 +284,8 @@ internal fun CharacterDocument.toCharacterUi(): CharacterUi {
             custom = feature.custom,
             notes = feature.notes,
             resourceId = feature.resourceId?.takeIf { it != feature.id },
+            resourceCost = feature.resourceCost,
+            resourceDieSides = pool?.dieSides,
         )
     }
     return CharacterUi(
@@ -316,11 +323,14 @@ internal fun CharacterDocument.toCharacterUi(): CharacterUi {
         lockedLanguages = sheet.languages.filter { it.locked }.map { it.name },
         weapons = sheet.weapons.map { it.toUi() },
         spells = sheet.spells.map { it.toUi() },
-        spellSlots = resources.values.mapNotNull { pool ->
-            val level = pool.id.removePrefix("spell-slot-").takeIf { pool.id.startsWith("spell-slot-") }?.toIntOrNull()
-                ?: return@mapNotNull null
-            SpellSlotUi(level, pool.current, pool.maximum)
-        }.sortedBy { it.level },
+        spellSlots = (1..9).mapNotNull { level ->
+            val pool = resources["spell-slot-$level"]
+            val spent = state.spellSlotSpentCounts[level] ?: pool?.let { (it.maximum - it.current).coerceAtLeast(0) } ?: 0
+            if (pool == null && spent == 0) return@mapNotNull null
+            val storageMaximum = maxOf(pool?.maximum ?: 0, spent)
+            SpellSlotUi(level, (storageMaximum - spent).coerceAtLeast(0), storageMaximum)
+        },
+        spellSlotMaximumOverrides = state.spellSlotMaximumOverrides,
         features = featureUi,
         equipmentItems = state.equipment.map { it.toUi() },
         quickRolls = state.quickRolls.map { it.toUi() },
@@ -343,6 +353,11 @@ internal fun CharacterDocument.toCharacterUi(): CharacterUi {
         ),
         activePlaySession = state.activePlaySession,
         savedPlaySessions = state.savedPlaySessions,
+        hasPlayedSinceLongRest = state.hasPlayedSinceLongRest ||
+            state.currentHitPoints < state.maximumHitPoints ||
+            state.resources.any { pool ->
+                pool.current < pool.maximum && pool.recoveryRules.any { it.trigger == app.dulliesanddungeons.domain.Recovery.SHORT_REST || it.trigger == app.dulliesanddungeons.domain.Recovery.LONG_REST }
+            },
     )
 }
 
@@ -454,6 +469,9 @@ private fun CharacterDocument.toRollbackSnapshot() = CharacterRollbackSnapshot(
     conditions = state.conditions,
     equipment = state.equipment,
     quickRolls = state.quickRolls,
+    spellSlotMaximumOverrides = state.spellSlotMaximumOverrides,
+    spellSlotSpentCounts = state.spellSlotSpentCounts,
+    hasPlayedSinceLongRest = state.hasPlayedSinceLongRest,
 )
 
 private fun CharacterRollbackSnapshot.toDocument() = CharacterDocument(
@@ -470,6 +488,9 @@ private fun CharacterRollbackSnapshot.toDocument() = CharacterDocument(
         conditions = conditions,
         equipment = equipment,
         quickRolls = quickRolls,
+        spellSlotMaximumOverrides = spellSlotMaximumOverrides,
+        spellSlotSpentCounts = spellSlotSpentCounts,
+        hasPlayedSinceLongRest = hasPlayedSinceLongRest,
     ),
 )
 
@@ -510,6 +531,7 @@ private fun EquipmentUi.toDomain() = EquipmentItem(
         EquipmentKind.ARMOR -> EquipmentCategory.ARMOR
         EquipmentKind.TOOL -> EquipmentCategory.TOOL
         EquipmentKind.CONSUMABLE -> EquipmentCategory.CONSUMABLE
+        EquipmentKind.RATIONS -> EquipmentCategory.RATIONS
     },
     quantity = quantity,
     location = if (worn) EquipmentLocation.WORN else EquipmentLocation.CARRIED,
@@ -532,11 +554,15 @@ private fun EquipmentUi.toDomain() = EquipmentItem(
 private fun EquipmentItem.toUi() = EquipmentUi(
     id = id,
     name = name,
-    kind = when (category) {
+    kind = when {
+        category == EquipmentCategory.CONSUMABLE && definitionId == "rations" -> EquipmentKind.RATIONS
+        else -> when (category) {
         EquipmentCategory.GEAR -> EquipmentKind.GEAR
         EquipmentCategory.ARMOR -> EquipmentKind.ARMOR
         EquipmentCategory.TOOL -> EquipmentKind.TOOL
         EquipmentCategory.CONSUMABLE -> EquipmentKind.CONSUMABLE
+        EquipmentCategory.RATIONS -> EquipmentKind.RATIONS
+        }
     },
     quantity = quantity,
     details = details,
@@ -609,6 +635,7 @@ private fun SpellUi.toDomain() = SpellRecord(
     sourceName = sourceName,
     summary = summary,
     activationCost = activationCost,
+    castPreviews = castPreviews,
 )
 
 private fun SpellRecord.toUi() = SpellUi(
@@ -624,6 +651,7 @@ private fun SpellRecord.toUi() = SpellUi(
     },
     sourceName = sourceName,
     activationCost = activationCost,
+    castPreviews = castPreviews,
 )
 
 private fun QuickRollUi.toDomain() = QuickRollShortcut(

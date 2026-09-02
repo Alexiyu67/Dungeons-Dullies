@@ -1,0 +1,25 @@
+{
+  "$schema": "../content/schema/content-pack-manifest.schema.json",
+  "schemaVersion": 1,
+  "id": "local.example.private-pack",
+  "version": "0.0.1-local",
+  "ruleset": {
+    "id": "fifth-edition",
+    "revision": "2024-srd-5.2.1"
+  },
+  "locales": ["en", "de"],
+  "entryFiles": {
+    "en": "entries.en.json",
+    "de": "entries.de.json"
+  },
+  "dependencies": [],
+  "license": {
+    "expression": "LicenseRef-Private-Local-Only",
+    "noticeFile": "PRIVATE-NOTICE.md",
+    "sourceWorks": []
+  },
+  "contentStatus": "private-local",
+  "distributionReady": false,
+  "coverageReport": null,
+  "notes": "Personal local data. Do not distribute or commit."
+}

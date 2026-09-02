@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dullies-and-dungeons.local/schema/content-pack-manifest.schema.json",
+  "title": "Offline content pack manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "version",
+    "ruleset",
+    "locales",
+    "entryFiles",
+    "license",
+    "contentStatus",
+    "distributionReady"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]+$" },
+    "version": { "type": "string", "minLength": 1 },
+    "ruleset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "revision"],
+      "properties": {
+        "id": { "enum": ["fifth-edition", "pf2e-remaster"] },
+        "revision": { "type": "string", "minLength": 1 }
+      }
+    },
+    "locales": {
+      "type": "array",
+      "uniqueItems": true,
+      "minItems": 1,
+      "items": { "enum": ["en", "de"] }
+    },
+    "entryFiles": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": { "type": "string", "pattern": "^[^/\\\\]+\\.json$" }
+    },
+    "dependencies": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "versionRange"],
+        "properties": {
+          "id": { "type": "string" },
+          "versionRange": { "type": "string" }
+        }
+      }
+    },
+    "license": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["expression", "noticeFile", "sourceWorks"],
+      "properties": {
+        "expression": { "type": "string", "minLength": 1 },
+        "noticeFile": { "type": "string", "minLength": 1 },
+        "sourceWorks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["title", "url", "license"],
+            "properties": {
+              "title": { "type": "string" },
+              "url": { "type": "string", "format": "uri" },
+              "license": { "type": "string" },
+              "snapshot": { "type": "string" },
+              "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+            }
+          }
+        }
+      }
+    },
+    "contentStatus": {
+      "enum": ["representative-seed", "audited-snapshot", "private-local"]
+    },
+    "distributionReady": { "type": "boolean" },
+    "coverageReport": { "type": ["string", "null"] },
+    "notes": { "type": "string" }
+  }
+}

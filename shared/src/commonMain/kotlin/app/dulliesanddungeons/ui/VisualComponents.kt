@@ -1,6 +1,7 @@
 package app.dulliesanddungeons.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -30,10 +31,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -104,13 +105,19 @@ internal fun AnimatedDiceRow(
     dieSize: Dp = 50.dp,
     onAnimationFinished: () -> Unit = {},
 ) {
-    var shown by remember(animationKey) { mutableStateOf(values) }
+    var shown by remember(animationKey) {
+        mutableStateOf(
+            values.mapIndexed { index, value ->
+                if (sides > 1) 1 + ((value + index * 3) % sides) else value
+            },
+        )
+    }
     LaunchedEffect(animationKey) {
         val scale = coroutineContext[MotionDurationScale]?.scaleFactor ?: 1f
         if (scale > 0f && sides > 1 && values.isNotEmpty()) {
-            repeat(7) { frame ->
+            repeat(8) { frame ->
                 shown = values.mapIndexed { index, value -> 1 + ((value + frame * 7 + index * 3) % sides) }
-                delay((60L * scale).toLong().coerceAtLeast(1L))
+                delay((65L * scale).toLong().coerceAtLeast(1L))
             }
         }
         shown = values
@@ -161,7 +168,7 @@ internal fun DieFace(
         value?.let {
             Text(
                 it.toString(),
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
@@ -200,13 +207,17 @@ internal fun DicePresentationOverlay(state: DndAppState, modifier: Modifier = Mo
     ) {
         Box(Modifier.fillMaxSize().padding(14.dp), contentAlignment = Alignment.Center) {
             presentation?.let { roll ->
-            var settled by remember(roll.id) { mutableStateOf(false) }
-            var detailsVisible by remember(roll.id) { mutableStateOf(false) }
+                key(roll.id) {
+            var settled by remember { mutableStateOf(false) }
             val rolledSubtotal = roll.kept ?: roll.dice.sum()
             val modifierValue = roll.total - rolledSubtotal
             val diceOffset by animateDpAsState(
-                targetValue = if (settled) (-92).dp else 0.dp,
-                animationSpec = tween(420),
+                targetValue = when {
+                    !settled -> 0.dp
+                    roll.dice.size > 1 -> (-76).dp
+                    else -> (-110).dp
+                },
+                animationSpec = tween(460),
             )
             val equationAlpha by animateFloatAsState(if (settled) 1f else 0f, animationSpec = tween(280))
             val equationOffset by animateDpAsState(if (settled) 0.dp else 12.dp, animationSpec = tween(360))
@@ -218,7 +229,10 @@ internal fun DicePresentationOverlay(state: DndAppState, modifier: Modifier = Mo
                 shadowElevation = 10.dp,
                 ) {
                     Column(
-                    Modifier.fillMaxWidth().padding(18.dp).semantics { liveRegion = LiveRegionMode.Polite },
+                    Modifier.fillMaxWidth()
+                        .animateContentSize(animationSpec = tween(280))
+                        .padding(18.dp)
+                        .semantics { liveRegion = LiveRegionMode.Polite },
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                     Text(roll.label, style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
@@ -229,12 +243,12 @@ internal fun DicePresentationOverlay(state: DndAppState, modifier: Modifier = Mo
                             roll.kept,
                             roll.id,
                             Modifier.align(Alignment.Center).offset(x = diceOffset),
-                            dieSize = 76.dp,
+                            dieSize = if (roll.dice.size > 1) 66.dp else 76.dp,
                             onAnimationFinished = { settled = true },
                         )
                         Row(
-                            modifier = Modifier.align(Alignment.CenterEnd)
-                                .offset(y = equationOffset)
+                            modifier = Modifier.align(Alignment.Center)
+                                .offset(x = if (roll.dice.size > 1) 72.dp else 76.dp, y = equationOffset)
                                 .graphicsLayer { alpha = equationAlpha },
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(9.dp),
@@ -250,23 +264,13 @@ internal fun DicePresentationOverlay(state: DndAppState, modifier: Modifier = Mo
                                 Text("=", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Text(
                                     roll.total.toString(),
-                                    style = MaterialTheme.typography.headlineLarge,
+                                    style = MaterialTheme.typography.displaySmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF2E9D61),
+                                    color = MaterialTheme.colorScheme.primary,
                                 )
                         }
                     }
                     if (settled) {
-                        if (roll.context.isNotBlank()) {
-                            TextButton(onClick = { detailsVisible = !detailsVisible }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-                                Text(if (detailsVisible) state.t("Hide details", "Details ausblenden") else state.t("Details", "Details"))
-                            }
-                        }
-                        if (detailsVisible) {
-                            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                if (roll.context.isNotBlank()) Text(roll.context, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                            }
-                        }
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
                             OutlinedButton(
                                 onClick = state::rerollDicePresentation,
@@ -280,6 +284,7 @@ internal fun DicePresentationOverlay(state: DndAppState, modifier: Modifier = Mo
                     }
                     }
                 }
+            }
             }
         }
     }

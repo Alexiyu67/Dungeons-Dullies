@@ -1,0 +1,68 @@
+{
+  "$schema": "../../schema/localized-entries.schema.json",
+  "schemaVersion": 1,
+  "packId": "srd-5.2.1-seed",
+  "locale": "de",
+  "entries": [
+    {
+      "id": "srd52.class.fighter",
+      "kind": "class",
+      "name": "Kämpfer",
+      "summary": "Eine robuste Kampfklasse mit Schwerpunkt auf Waffen, Rüstung und verlässlichen Möglichkeiten im Kampf.",
+      "beginnerTip": "Eine gute erste Wahl, wenn dein Zug übersichtlich bleiben und später taktisch wachsen soll.",
+      "keywords": ["kämpfer", "kampfklasse", "waffe", "rüstung", "anfänger"],
+      "automation": { "level": "informational", "command": null, "actionCost": null, "requiresTableInput": false },
+      "source": { "work": "SRD 5.2.1", "locator": "Charakterklassen: Fighter", "adaptation": "Eigene kurze Einsteigerzusammenfassung; Mechanik anhand des genannten SRD prüfen." }
+    },
+    {
+      "id": "srd52.species.human",
+      "kind": "ancestry",
+      "name": "Mensch",
+      "summary": "Eine flexible Spezies, die zu vielen Charakterideen passt.",
+      "beginnerTip": "Wähle die Optionen, die das unterstützen, worin dein Charakter gut sein soll.",
+      "keywords": ["mensch", "spezies", "vielseitig", "charaktererstellung"],
+      "automation": { "level": "guided", "command": "open_creation_choice", "actionCost": null, "requiresTableInput": false },
+      "source": { "work": "SRD 5.2.1", "locator": "Character Origins: Human", "adaptation": "Eigene kurze Einsteigerzusammenfassung; kein Quelltext übernommen." }
+    },
+    {
+      "id": "srd52.action.attack",
+      "kind": "action",
+      "name": "Angreifen",
+      "summary": "Setze in deinem Zug eine Waffe oder einen anderen verfügbaren Angriff ein.",
+      "beginnerTip": "Wähle einen Angriff, lass die App würfeln und frage die Spielleitung, ob er trifft, bevor du Schaden würfelst.",
+      "keywords": ["angriff", "treffen", "waffe", "schaden", "würfeln"],
+      "automation": { "level": "guided", "command": "start_attack", "actionCost": "action", "requiresTableInput": true },
+      "source": { "work": "SRD 5.2.1", "locator": "Rules Glossary: Attack action", "adaptation": "Eigene ablauforientierte Zusammenfassung." }
+    },
+    {
+      "id": "srd52.action.dodge",
+      "kind": "action",
+      "name": "Ausweichen",
+      "summary": "Konzentriere dich bis zum Beginn deines nächsten Zuges auf die Verteidigung.",
+      "beginnerTip": "Nützlich, wenn Überleben in diesem Zug wichtiger als Schaden ist.",
+      "keywords": ["ausweichen", "verteidigung", "vermeiden", "aktion"],
+      "automation": { "level": "automatic", "command": "use_dodge", "actionCost": "action", "requiresTableInput": false },
+      "source": { "work": "SRD 5.2.1", "locator": "Rules Glossary: Dodge action", "adaptation": "Eigene Einsteigerzusammenfassung; genaue Effekte stehen in den Engine-Daten." }
+    },
+    {
+      "id": "srd52.knowledge.initiative",
+      "kind": "knowledge",
+      "name": "Initiative",
+      "summary": "Ein Wurf, der zu Kampfbeginn die Reihenfolge der Kreaturen bestimmt.",
+      "beginnerTip": "Tippe auf Initiative würfeln und nenne der Spielleitung das Ergebnis.",
+      "keywords": ["initiative", "zugreihenfolge", "kampf", "geschicklichkeit"],
+      "automation": { "level": "automatic", "command": "roll_initiative", "actionCost": null, "requiresTableInput": false },
+      "source": { "work": "SRD 5.2.1", "locator": "Rules Glossary: Initiative", "adaptation": "Eigene suchorientierte Zusammenfassung." }
+    },
+    {
+      "id": "srd52.condition.prone",
+      "kind": "condition",
+      "name": "Liegend",
+      "summary": "Ein Zustand für eine Kreatur, die sich am Boden befindet.",
+      "beginnerTip": "Wende den Zustand an und öffne Warum?, um Änderungen an Bewegung und Angriffen zu sehen.",
+      "keywords": ["liegend", "zustand", "boden", "aufstehen"],
+      "automation": { "level": "guided", "command": "apply_condition", "actionCost": null, "requiresTableInput": false },
+      "source": { "work": "SRD 5.2.1", "locator": "Rules Glossary: Prone condition", "adaptation": "Eigene Einsteigerzusammenfassung; genaue Modifikatoren stehen in den Engine-Daten." }
+    }
+  ]
+}

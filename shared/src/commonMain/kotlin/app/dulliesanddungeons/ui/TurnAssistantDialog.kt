@@ -861,15 +861,20 @@ private fun OtherTurnSection(
         val featureGroups = character.features.groupBy(::featureFamily)
         FeatureFamily.entries.filter { it != FeatureFamily.General }.forEach { family ->
             featureGroups[family].orEmpty().takeIf { it.isNotEmpty() }?.let { familyFeatures ->
-                val superiorityDice = familyFeatures.firstOrNull { it.id == "superiority-dice" }
+                val sharedPool = when (family) {
+                    FeatureFamily.Maneuvers -> familyFeatures.firstOrNull { it.id == "superiority-dice" }
+                    FeatureFamily.Metamagic -> familyFeatures.firstOrNull { it.id == "sorcery-points" }
+                    else -> null
+                }
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(featureFamilyLabel(state, family), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
-                    if (family == FeatureFamily.Maneuvers && superiorityDice != null) {
-                        val die = Regex("d\\d+", RegexOption.IGNORE_CASE).find(superiorityDice.summary)?.value?.lowercase() ?: "d10"
-                        Text("$die ${superiorityDice.remaining}/${superiorityDice.maximum}", style = MaterialTheme.typography.labelLarge)
+                    if (sharedPool != null) {
+                        val die = sharedPool.resourceDieSides?.let { "d$it" }
+                            ?: Regex("d\\d+", RegexOption.IGNORE_CASE).find(sharedPool.summary)?.value?.lowercase()
+                        Text(listOfNotNull(die, "${sharedPool.remaining}/${sharedPool.maximum}").joinToString(" "), style = MaterialTheme.typography.labelLarge)
                     }
                 }
-                familyFeatures.filterNot { family == FeatureFamily.Maneuvers && it.id == "superiority-dice" }
+                familyFeatures.filterNot { it.id == sharedPool?.id }
                     .forEach { feature -> TurnFeatureCard(state, session, feature) }
             }
         }
@@ -903,6 +908,7 @@ private fun OtherTurnSection(
 
 @Composable
 private fun TurnFeatureCard(state: DndAppState, session: TurnSession, feature: FeatureUi) {
+    val feedback = state.inlineFeatureFeedback?.takeIf { it.featureId == feature.id }
     Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
         Row(Modifier.fillMaxWidth().padding(start = 13.dp, end = 5.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
@@ -917,9 +923,9 @@ private fun TurnFeatureCard(state: DndAppState, session: TurnSession, feature: F
             if (feature.remaining != null) {
                 FilledTonalButton(
                     onClick = { if (state.useFeature(feature.id, session)) session.markSuggestionComplete("feature") },
-                    enabled = feature.remaining > 0,
+                    enabled = feature.remaining >= feature.resourceCost,
                     contentPadding = PaddingValues(horizontal = 11.dp),
-                ) { Text(state.t("Use", "Nutzen")) }
+                ) { Text(feedback?.message ?: state.t("Use", "Nutzen")) }
             }
             IconButton(onClick = { state.showInfo(feature.name, feature.summary, feature.toCostTokens()) }) {
                 Icon(Icons.Rounded.ViewAgenda, contentDescription = state.t("Details for ${feature.name}", "Details zu ${feature.name}"), Modifier.size(19.dp))

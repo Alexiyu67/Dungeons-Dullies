@@ -27,6 +27,9 @@ import app.dulliesanddungeons.rules.DiceRoller
 import app.dulliesanddungeons.rules.DiceSource
 import app.dulliesanddungeons.rules.DerivedStatRules
 import app.dulliesanddungeons.rules.CharacterDocumentValidator
+import app.dulliesanddungeons.rules.SrdSpellCatalog
+import app.dulliesanddungeons.rules.SrdSpellClass
+import app.dulliesanddungeons.rules.SrdSpellRevision
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlin.random.Random
@@ -72,7 +75,7 @@ data class QuickRollUi(
 enum class FeatureEffect { RESOURCE_ONLY, EXTRA_ACTION, SECOND_WIND, REROLL_SAVE, OPEN_HAND }
 
 @Serializable
-enum class EquipmentKind { GEAR, ARMOR, TOOL, CONSUMABLE }
+enum class EquipmentKind { GEAR, ARMOR, TOOL, CONSUMABLE, RATIONS }
 
 @Serializable
 data class LevelProgressionUi(
@@ -168,6 +171,7 @@ data class SpellUi(
     val sourceKind: SpellSourceKind = SpellSourceKind.CLASS,
     val sourceName: String = "",
     val activationCost: ActionCost = ActionCost(actions = 1),
+    val castPreviews: Map<Int, String> = emptyMap(),
 )
 
 @Serializable
@@ -206,6 +210,8 @@ data class FeatureUi(
     val notes: String = "",
     /** ID of the shared pool spent by this option, when the feature is not its own pool. */
     val resourceId: String? = null,
+    val resourceCost: Int = 1,
+    val resourceDieSides: Int? = null,
 )
 
 @Serializable
@@ -246,6 +252,7 @@ data class CharacterUi(
     val weapons: List<WeaponUi>,
     val spells: List<SpellUi>,
     val spellSlots: List<SpellSlotUi> = emptyList(),
+    val spellSlotMaximumOverrides: Map<Int, Int> = emptyMap(),
     val features: List<FeatureUi>,
     val equipmentItems: List<EquipmentUi> = emptyList(),
     val quickRolls: List<QuickRollUi> = emptyList(),
@@ -259,6 +266,7 @@ data class CharacterUi(
     val derivation: CharacterDerivationUi = CharacterDerivationUi(),
     val activePlaySession: PlaySessionRecord? = null,
     val savedPlaySessions: List<PlaySessionRecord> = emptyList(),
+    val hasPlayedSinceLongRest: Boolean = false,
 ) {
     val buildLabel: String get() = "$ancestry $className $level"
     val classLevelLabel: String
@@ -301,7 +309,7 @@ data class CharacterUi(
         )
 
     val availableSpells: List<SpellUi>
-        get() = (spells + resolvedEquipment.flatMap { item ->
+        get() = (spells.filter { it.sourceKind != SpellSourceKind.CLASS || it.prepared || it.level == 0 } + resolvedEquipment.flatMap { item ->
             if (!item.needsAttunement || item.attuned) item.grantedSpells.map { spell ->
                 spell.copy(sourceKind = SpellSourceKind.ITEM, sourceName = item.name)
             } else emptyList()
@@ -320,11 +328,15 @@ data class CharacterUi(
         }
 
     val resolvedSpellSlots: List<SpellSlotUi>
-        get() = DerivedStatRules.fiveESpellSlots(fiveECasterLevel).mapIndexedNotNull { index, maximum ->
-            if (maximum <= 0) return@mapIndexedNotNull null
-            val stored = spellSlots.firstOrNull { it.level == index + 1 }
-            val spent = stored?.let { (it.maximum - it.remaining).coerceAtLeast(0) } ?: 0
-            SpellSlotUi(index + 1, (maximum - spent).coerceIn(0, maximum), maximum)
+        get() {
+            val derived = DerivedStatRules.fiveESpellSlots(fiveECasterLevel)
+            return (1..9).mapNotNull { level ->
+                val maximum = spellSlotMaximumOverrides[level] ?: derived.getOrElse(level - 1) { 0 }
+                if (maximum <= 0) return@mapNotNull null
+                val stored = spellSlots.firstOrNull { it.level == level }
+                val spent = stored?.let { (it.maximum - it.remaining).coerceAtLeast(0) } ?: 0
+                SpellSlotUi(level, (maximum - spent).coerceIn(0, maximum), maximum)
+            }
         }
 
     val isSorcerer: Boolean
@@ -368,6 +380,13 @@ data class DicePresentationUi(
     val calculation: String = "",
     val context: String = "",
     val modifierLabel: String = "",
+)
+
+data class InlineFeatureFeedbackUi(
+    val id: Int,
+    val featureId: String,
+    val rolledValue: Int? = null,
+    val message: String,
 )
 
 data class SuggestedTurnStepUi(
@@ -769,7 +788,7 @@ class LevelUpDraft(character: CharacterUi, initialHitDieSides: Int) {
     val guidedSelections = mutableStateMapOf<String, Set<String>>()
 }
 
-enum class EditorSection { Hub, Identity, Build, Abilities, Combat, Review }
+enum class EditorSection { Hub, Identity, Build, Abilities, Combat, Spells, Review }
 
 class CharacterEditorDraft(character: CharacterUi, portrait: ByteArray?) {
     val original = character
@@ -794,6 +813,7 @@ class CharacterEditorDraft(character: CharacterUi, portrait: ByteArray?) {
     var portraitBytes by mutableStateOf(portrait)
     var portraitChanged by mutableStateOf(false)
     val abilities = mutableStateMapOf<String, Int>().apply { putAll(character.abilities) }
+    val spells = mutableStateListOf<SpellUi>().apply { addAll(character.spells) }
 
     val isValid: Boolean
         get() = name.isNotBlank() && level in 1..20 && maxHp > 0 && armorClass > 0 &&
@@ -863,6 +883,11 @@ class DndAppState(
     var dicePresentation by mutableStateOf<DicePresentationUi?>(null)
     private var dicePresentationId = 0
     private var lastRollAction: (() -> Unit)? = null
+    var inlineFeatureFeedback by mutableStateOf<InlineFeatureFeedbackUi?>(null)
+        private set
+    private var inlineFeatureFeedbackId = 0
+    var recentlyLevelledCharacterId by mutableStateOf<String?>(null)
+        private set
     var revivalConfirmationOpen by mutableStateOf(false)
     private var pendingRevivalHp by mutableIntStateOf(0)
 
@@ -916,6 +941,7 @@ class DndAppState(
 
     private fun recordActivity(event: TurnEvent, label: String = eventLabel(event), roll: DiceRoll? = null) {
         val character = selectedCharacter ?: return
+        inlineFeatureFeedback = null
         val active = character.activePlaySession ?: newPlaySession(character)
         val nextSequence = (active.activities.maxOfOrNull { it.sequence } ?: 0L) + 1L
         val belongsToTurn = turnSession?.characterId == character.id || character.id in savedTurnDrafts
@@ -927,8 +953,11 @@ class DndAppState(
             turnEvent = event,
             roll = roll,
         )
-        val updated = updateSelectedCharacter { current ->
-            current.copy(activePlaySession = active.copy(activities = active.activities + activity))
+        updateSelectedCharacter { current ->
+            current.copy(
+                activePlaySession = active.copy(activities = active.activities + activity),
+                hasPlayedSinceLongRest = true,
+            )
         }
     }
 
@@ -1230,6 +1259,7 @@ class DndAppState(
                     )
                 } else recalculateWeapon(weapon, newAbilities, proficiency)
             },
+            spells = draft.spells.toList(),
             derivation = original.derivation.copy(
                 proficiencyFromLevel = !draft.proficiencyManual,
                 initiative = if (draft.initiativeManual) null else original.derivation.initiative,
@@ -1328,6 +1358,34 @@ class DndAppState(
     }
 
     fun creationSpellOptions(): List<SpellUi> = approvedPrivateSpellOptions(null)
+
+    fun editableSpellCatalog(character: CharacterUi? = selectedCharacter): List<SpellUi> {
+        val active = character ?: return emptyList()
+        if (active.ruleset == Ruleset.Pf2eRemaster) return approvedPrivateSpellOptions(active)
+        val spellClass = when {
+            active.className.equals("Wizard", true) || active.progression.any { it.className.equals("Wizard", true) } -> SrdSpellClass.WIZARD
+            active.isSorcerer -> SrdSpellClass.SORCERER
+            else -> return approvedPrivateSpellOptions(active)
+        }
+        val revision = if (active.ruleset == Ruleset.Fifth2014) SrdSpellRevision.SRD_5_1 else SrdSpellRevision.SRD_5_2_1
+        val source = if (revision == SrdSpellRevision.SRD_5_1) "SRD 5.1" else "SRD 5.2.1"
+        val builtIn = SrdSpellCatalog.forClass(revision, spellClass).map { entry ->
+            val text = if (language == UiLanguage.German) entry.de else entry.en
+            SpellUi(
+                id = entry.id,
+                name = text.name,
+                level = entry.level,
+                summary = text.summary,
+                prepared = spellClass == SrdSpellClass.SORCERER,
+                sourceKind = SpellSourceKind.CLASS,
+                sourceName = source,
+                castPreviews = entry.castPreviews.associate { preview ->
+                    preview.slotLevel to if (language == UiLanguage.German) preview.de else preview.en
+                },
+            )
+        }
+        return (builtIn + approvedPrivateSpellOptions(active)).distinctBy { it.id }
+    }
 
     fun approvedPrivateSpellOptions(character: CharacterUi?): List<SpellUi> = approvedPrivateEntries(
         "spell",
@@ -1674,6 +1732,7 @@ class DndAppState(
             hasSpellcastingCapability = character.hasSpellcastingCapability || draft.className in setOf("Wizard", "Sorcerer"),
         )
         updateSelectedCharacter { updated }
+        recentlyLevelledCharacterId = updated.id
         levelUpOpen = false
         levelUpDraft = null
         lastRoll = t("Level $newLevel applied · +$gain maximum HP", "Stufe $newLevel angewendet · +$gain maximale TP")
@@ -1786,6 +1845,7 @@ class DndAppState(
                         remainingAfterMaximumChange("superiority-dice", dice),
                         dice,
                         Recovery.SHORT_REST,
+                        resourceDieSides = die.removePrefix("d").toInt(),
                     )
                 )
             }
@@ -2305,7 +2365,8 @@ class DndAppState(
         val feature = character.features.firstOrNull { it.id == featureId } ?: return false
         val pool = feature.resourceId?.let { poolId -> character.features.firstOrNull { it.id == poolId } } ?: feature
         val remaining = pool.remaining ?: return false
-        if (remaining <= 0) return false
+        val resourceCost = feature.resourceCost.coerceAtLeast(1)
+        if (remaining < resourceCost) return false
 
         if (session != null) {
             val costAccepted = session.commitCost(feature.actionCost, feature.id)
@@ -2317,11 +2378,18 @@ class DndAppState(
 
         updateSelectedCharacter { current ->
             current.copy(features = current.features.map {
-                if (it.id == pool.id || it.resourceId == pool.id) it.copy(remaining = remaining - 1) else it
+                if (it.id == pool.id || it.resourceId == pool.id) it.copy(remaining = remaining - resourceCost) else it
             })
         }
         recordEvent(TurnEvent.FeatureStarted(feature.id, feature.actionCost), feature.name, session)
-        recordEvent(TurnEvent.ResourceChanged(pool.id, -1), pool.name, session)
+        recordEvent(TurnEvent.ResourceChanged(pool.id, -resourceCost), pool.name, session)
+
+        val resourceDieSides = pool.resourceDieSides
+            ?: Regex("d(\\d+)", RegexOption.IGNORE_CASE).find(pool.summary)?.groupValues?.getOrNull(1)?.toIntOrNull()
+        val resourceRoll = resourceDieSides?.takeIf { feature.resourceId != null }?.let { sides ->
+            dice.roll(RollRequest(feature.name, DiceExpression(1, sides)))
+                .also { recordEvent(TurnEvent.RollRecorded(it), feature.name, session) }
+        }
 
         when (feature.effect) {
             FeatureEffect.EXTRA_ACTION -> session?.grantExtraAction()
@@ -2339,7 +2407,23 @@ class DndAppState(
             }
             else -> lastRoll = t("${feature.name} used · ${remaining - 1} remaining", "${feature.name} genutzt · noch ${remaining - 1}")
         }
+        if (feature.effect != FeatureEffect.SECOND_WIND) {
+            lastRoll = t(
+                "${feature.name} used · ${remaining - resourceCost} remaining",
+                "${feature.name} genutzt · noch ${remaining - resourceCost}",
+            )
+        }
+        inlineFeatureFeedback = InlineFeatureFeedbackUi(
+            id = ++inlineFeatureFeedbackId,
+            featureId = feature.id,
+            rolledValue = resourceRoll?.total,
+            message = resourceRoll?.let { "d${resourceDieSides}: ${it.total}" } ?: t("Used", "Genutzt"),
+        )
         return true
+    }
+
+    fun clearInlineFeatureFeedback() {
+        inlineFeatureFeedback = null
     }
 
     fun availableSpellSlotLevels(spell: SpellUi, character: CharacterUi? = selectedCharacter): List<Int> {
@@ -2348,6 +2432,38 @@ class DndAppState(
             .filter { it.level >= spell.level && it.remaining > 0 }
             .map { it.level }
     }
+
+    fun rulesSpellSlotMaximum(level: Int, character: CharacterUi? = selectedCharacter): Int {
+        if (level !in 1..9) return 0
+        val active = character ?: return 0
+        return DerivedStatRules.fiveESpellSlots(active.fiveECasterLevel).getOrElse(level - 1) { 0 }
+    }
+
+    fun updateSpellSlotMaximum(level: Int, maximum: Int): Boolean {
+        if (level !in 1..9 || maximum !in 0..10) return false
+        val character = selectedCharacter ?: return false
+        val current = character.resolvedSpellSlots.firstOrNull { it.level == level }
+        val stored = character.spellSlots.firstOrNull { it.level == level }
+        val oldMaximum = current?.maximum ?: stored?.maximum ?: rulesSpellSlotMaximum(level, character)
+        val oldRemaining = current?.remaining ?: stored?.remaining ?: oldMaximum
+        val spent = ((stored?.maximum ?: oldMaximum) - (stored?.remaining ?: oldRemaining)).coerceAtLeast(0)
+        val ruleMaximum = rulesSpellSlotMaximum(level, character)
+        val overrides = character.spellSlotMaximumOverrides.toMutableMap().apply {
+            if (maximum == ruleMaximum) remove(level) else put(level, maximum)
+        }
+        val storageMaximum = maximum.coerceAtLeast(spent)
+        val slot = SpellSlotUi(level, (maximum - spent).coerceIn(0, maximum), storageMaximum)
+        updateSelectedCharacter { currentCharacter ->
+            currentCharacter.copy(
+                spellSlotMaximumOverrides = overrides,
+                spellSlots = (currentCharacter.spellSlots.filterNot { it.level == level } + slot).sortedBy { it.level },
+            )
+        }
+        return true
+    }
+
+    fun shouldWarnAboutSpellSlotEdit(character: CharacterUi? = selectedCharacter): Boolean =
+        character != null && recentlyLevelledCharacterId != character.id
 
     fun canCastSpell(
         spell: SpellUi,
@@ -2465,15 +2581,36 @@ class DndAppState(
         return character.ruleset != Ruleset.Pf2eRemaster &&
             character.hp > 0 &&
             !character.isDead &&
-            !hasSavedTurnDraft(character.id)
+            character.hasPlayedSinceLongRest
     }
 
-    fun takeRest(recovery: Recovery): Boolean {
+    fun availableRations(character: CharacterUi? = selectedCharacter): List<EquipmentUi> =
+        character?.resolvedEquipment.orEmpty()
+            .filter { it.kind == EquipmentKind.RATIONS && it.quantity > 0 }
+            .sortedForPicker(language, EquipmentUi::name, EquipmentUi::id)
+
+    fun takeRest(recovery: Recovery, rationItemId: String? = null): Boolean {
         if (recovery != Recovery.SHORT_REST && recovery != Recovery.LONG_REST) return false
         val before = selectedCharacter ?: return false
         if (!canTakeRest(before.id)) return false
+        val ration = rationItemId?.let { id ->
+            before.resolvedEquipment.firstOrNull { it.id == id && it.kind == EquipmentKind.RATIONS && it.quantity > 0 }
+                ?: return false
+        }
+        if (recovery != Recovery.LONG_REST && ration != null) return false
         val updated = updateSelectedCharacter { current ->
-            val withRecoveredFeatures = current.copy(features = recoveredFeatures(current, recovery))
+            val equipmentAfterRation = if (ration == null) {
+                current.equipmentItems
+            } else {
+                current.equipmentItems.mapNotNull { item ->
+                    if (item.id != ration.id) item else item.copy(quantity = item.quantity - 1).takeIf { it.quantity > 0 }
+                }
+            }
+            val withRecoveredFeatures = current.copy(
+                features = recoveredFeatures(current, recovery),
+                equipmentItems = equipmentAfterRation,
+                hasPlayedSinceLongRest = recovery != Recovery.LONG_REST,
+            )
             if (recovery == Recovery.SHORT_REST) {
                 withRecoveredFeatures
             } else {
@@ -2497,6 +2634,12 @@ class DndAppState(
                 hitPointEvent(before, updated, HitPointChangeKind.HEALING, restoredHitPoints),
                 t("Long Rest", "Lange Rast"),
             )
+        }
+        ration?.let {
+            recordEvent(TurnEvent.ResourceChanged("ration:${it.id}", -1), it.name)
+        }
+        if (recovery == Recovery.LONG_REST) {
+            updateSelectedCharacter { it.copy(hasPlayedSinceLongRest = false) }
         }
         lastRoll = when (recovery) {
             Recovery.SHORT_REST -> t("Short Rest completed", "Kurze Rast abgeschlossen")
@@ -2696,10 +2839,15 @@ class DndAppState(
         val weapon = character.weapons.firstOrNull { it.id == sheetAttackWeaponId } ?: return
         val details = performAttack(character, weapon, mode)
         sheetAttackRoll = details
-        sheetAttackOutcome = AttackOutcome.Pending
-        sheetDamageRoll = null
+        val naturalTwenty = character.ruleset != Ruleset.Pf2eRemaster && details.natural == 20
+        sheetAttackOutcome = if (naturalTwenty) AttackOutcome.Critical else AttackOutcome.Pending
+        sheetDamageRoll = if (naturalTwenty) performDamage(weapon, critical = true) else null
         recordEvent(TurnEvent.AttackMade(weapon.id))
         recordEvent(TurnEvent.RollRecorded(details.toDiceRoll(weapon.name)))
+        if (naturalTwenty) {
+            recordEvent(TurnEvent.AttackResolved(weapon.id, AttackOutcomeRecord.CRITICAL))
+            sheetDamageRoll?.takeIf { it.dice.isNotEmpty() }?.let { recordEvent(TurnEvent.RollRecorded(it.toDiceRoll(weapon.name))) }
+        }
     }
 
     fun resolveSheetAttack(outcome: AttackOutcome) {
@@ -2741,12 +2889,17 @@ class DndAppState(
         session.lastAttackRoll = "${details.total} · d20 ${details.kept} ${signed(details.calculation.total)}$qualifier"
         session.lastDamageDetails = null
         session.lastDamageRoll = null
-        session.attackOutcome = AttackOutcome.Pending
+        val naturalTwenty = character.ruleset != Ruleset.Pf2eRemaster && details.natural == 20
+        session.attackOutcome = if (naturalTwenty) AttackOutcome.Critical else AttackOutcome.Pending
         if (needsCommit) {
             session.commitAttack(weapon.id)
             session.unresolvedAttackCommitted = true
         }
         if (details.dice.isNotEmpty()) session.record(TurnEvent.RollRecorded(details.toDiceRoll(weapon.name)))
+        if (naturalTwenty) {
+            recordAttackOutcome(weapon, AttackOutcome.Critical, session)
+            rollDamage(weapon, session, critical = true)
+        }
         lastRollAction = { rollAttack(weapon, session, mode) }
     }
 
@@ -3459,7 +3612,7 @@ private fun seedCharacters(): List<CharacterUi> = listOf(
             FeatureUi("action-surge", "Action Surge", "Take one additional action this turn.", 1, 1, Recovery.SHORT_REST, FeatureEffect.EXTRA_ACTION),
             FeatureUi("extra-attack", "Extra Attack", "Attack twice when you take the Attack action."),
             FeatureUi("indomitable", "Indomitable", "Reroll a failed saving throw.", 1, 1, Recovery.LONG_REST, FeatureEffect.REROLL_SAVE),
-            FeatureUi("superiority-dice", "Superiority Dice", "Five d10 dice fuel your Battle Master maneuvers.", 5, 5, Recovery.SHORT_REST),
+            FeatureUi("superiority-dice", "Superiority Dice", "Five d10 dice fuel your Battle Master maneuvers.", 5, 5, Recovery.SHORT_REST, resourceDieSides = 10),
             FeatureUi("maneuver-precision-attack", "Precision Attack", "Spend a Superiority Die after an attack roll to add it to the roll.", 5, 5, Recovery.SHORT_REST, resourceId = "superiority-dice"),
             FeatureUi("maneuver-trip-attack", "Trip Attack", "After a weapon hit, spend a Superiority Die to add damage and possibly knock the target Prone.", 5, 5, Recovery.SHORT_REST, resourceId = "superiority-dice"),
             FeatureUi("maneuver-riposte", "Riposte", "When a creature misses you in melee, spend a Superiority Die and your Reaction to attack it.", 5, 5, Recovery.SHORT_REST, actionCost = ActionCost(reactions = 1), resourceId = "superiority-dice"),
@@ -3499,7 +3652,13 @@ private fun seedCharacters(): List<CharacterUi> = listOf(
             SpellUi("fire-bolt", "Fire Bolt", 0, "Ranged spell attack · 120 ft"),
             SpellUi("magic-missile", "Magic Missile", 1, "Automatic force darts"),
             SpellUi("shield", "Shield", 1, "+5 AC until your next turn", activationCost = ActionCost(reactions = 1)),
-            SpellUi("fireball", "Fireball", 3, "Dexterity save · area fire damage"),
+            SpellUi(
+                "fireball",
+                "Fireball",
+                3,
+                "Dexterity save · area fire damage",
+                castPreviews = (3..9).associateWith { level -> "${8 + level - 3}d6 fire" },
+            ),
         ),
         features = listOf(FeatureUi("arcane-recovery", "Arcane Recovery", "Recover expended spell slots after a Short Rest.", 1, 1, Recovery.LONG_REST)),
         equipmentItems = listOf(EquipmentUi("spellbook", "Spellbook"), EquipmentUi("component-pouch", "Component Pouch")),
@@ -3532,7 +3691,13 @@ private fun seedCharacters(): List<CharacterUi> = listOf(
         weapons = listOf(WeaponUi("light-crossbow", "Light Crossbow", 5, "1d8 + 2", "Piercing", "Ammunition, loading, two-handed", ability = "DEX", range = "80/320 ft", damageAbility = "DEX")),
         spells = listOf(
             SpellUi("ray-of-frost", "Ray of Frost", 0, "Ranged spell attack · cold damage"),
-            SpellUi("burning-hands", "Burning Hands", 1, "Dexterity save · cone fire damage"),
+            SpellUi(
+                "burning-hands",
+                "Burning Hands",
+                1,
+                "Dexterity save · cone fire damage",
+                castPreviews = (1..9).associateWith { level -> "${level + 2}d6 fire" },
+            ),
             SpellUi("misty-step", "Misty Step", 2, "Bonus-action teleport", activationCost = ActionCost(bonusActions = 1)),
         ),
         features = listOf(

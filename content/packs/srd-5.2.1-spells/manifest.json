@@ -1,0 +1,36 @@
+{
+  "$schema": "../../schema/content-pack-manifest.schema.json",
+  "schemaVersion": 1,
+  "id": "srd-5.2.1-spells",
+  "version": "1.0.0",
+  "ruleset": {
+    "id": "fifth-edition",
+    "revision": "2024-srd-5.2.1"
+  },
+  "locales": [
+    "en",
+    "de"
+  ],
+  "entryFiles": {
+    "en": "entries.en.json",
+    "de": "entries.de.json"
+  },
+  "dependencies": [],
+  "license": {
+    "expression": "CC-BY-4.0",
+    "noticeFile": "../../../licenses/NOTICE.md",
+    "sourceWorks": [
+      {
+        "title": "System Reference Document 5.2.1",
+        "url": "https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf",
+        "license": "CC-BY-4.0",
+        "snapshot": "2024-srd-5.2.1",
+        "sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87"
+      }
+    ]
+  },
+  "contentStatus": "audited-snapshot",
+  "distributionReady": true,
+  "coverageReport": "../../reports/srd-5.2.1-spells.coverage.json",
+  "notes": "Complete Sorcerer and Wizard class-list spell index for this SRD revision; summaries are original compact catalog copy, not replacement rules text."
+}
