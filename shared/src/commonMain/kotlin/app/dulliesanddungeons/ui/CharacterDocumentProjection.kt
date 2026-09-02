@@ -62,7 +62,8 @@ import app.dulliesanddungeons.rules.effectiveMaximumHitPoints
 
 internal fun CharacterUi.toDocument(characterConditions: List<ConditionUi> = emptyList()): CharacterDocument {
     val rulesetId = ruleset.toDomain()
-    val abilitiesByType = abilities.mapNotNull { (key, value) -> ability(key)?.let { it to value } }.toMap()
+    val storedAbilities = baseAbilities.ifEmpty { abilities }
+    val abilitiesByType = storedAbilities.mapNotNull { (key, value) -> ability(key)?.let { it to value } }.toMap()
     val classNames = progression.map { it.className }.ifEmpty { List(level) { className } }
     val classIdsByName = classNames.distinct().associateWith { "class:${slug(it)}" }
     val classes = classNames.groupingBy { it }.eachCount().map { (name, levels) ->
@@ -207,10 +208,10 @@ internal fun CharacterUi.toDocument(characterConditions: List<ConditionUi> = emp
     )
     val combat = CombatProfile(
         baseSpeedsFeet = buildMap {
-            put(MovementMode.WALK, speedFeet)
-            flySpeedFeet?.let { put(MovementMode.FLY, it) }
+            put(MovementMode.WALK, baseSpeedFeet ?: speedFeet)
+            (baseFlySpeedFeet ?: flySpeedFeet)?.let { put(MovementMode.FLY, it) }
         },
-        armorClassMethod = ArmorClassMethod.Manual(armorClass),
+        armorClassMethod = ArmorClassMethod.Manual(baseArmorClass ?: armorClass),
         unarmoredArmorClass = unarmoredArmorClass,
         proficiencyBonusOverride = proficiency.takeUnless { derivation.proficiencyFromLevel },
         storedProficiencyBonus = proficiency,
@@ -218,9 +219,12 @@ internal fun CharacterUi.toDocument(characterConditions: List<ConditionUi> = emp
         initiativeRollMode = initiativeRollMode,
         initiative = derivation.initiative.toDomainFormula(initiative),
         savingThrows = saves.mapNotNull { (name, value) ->
-            ability(name)?.let { it to derivation.saves[name].toDomainFormula(value) }
+            ability(name)?.let { it to derivation.saves[name].toDomainFormula(baseSaves[name] ?: value) }
         }.toMap(),
         skills = skills.mapValues { (name, value) -> derivation.skills[name].toDomainFormula(value) },
+        storedBaseArmorClass = baseArmorClass ?: armorClass,
+        storedBaseSavingThrows = baseSaves.mapNotNull { (name, value) -> ability(name)?.let { it to value } }.toMap(),
+        passiveArmorClassBonus = passiveArmorClassBonus,
     )
     val featureRecords = features.map { feature ->
         FeatureRecord(
@@ -234,6 +238,7 @@ internal fun CharacterUi.toDocument(characterConditions: List<ConditionUi> = emp
             custom = feature.custom,
             notes = feature.notes,
             turnGuideEligible = feature.turnGuideEligible,
+            effects = feature.effects,
         )
     }
     return CharacterDocument(
@@ -316,9 +321,10 @@ internal fun CharacterDocument.toCharacterUi(): CharacterUi {
             resourceCost = feature.resourceCost,
             resourceDieSides = pool?.dieSides,
             turnGuideEligible = feature.turnGuideEligible,
+            effects = feature.effects,
         )
     }
-    return CharacterUi(
+    val raw = CharacterUi(
         id = build.id,
         name = build.name,
         ruleset = rulesetUi,
@@ -405,7 +411,18 @@ internal fun CharacterDocument.toCharacterUi(): CharacterUi {
             state.resources.any { pool ->
                 pool.current < pool.maximum && pool.recoveryRules.any { it.trigger == app.dulliesanddungeons.domain.Recovery.SHORT_REST || it.trigger == app.dulliesanddungeons.domain.Recovery.LONG_REST }
             },
+        baseAbilities = abilitiesUi,
+        baseSaves = combat.storedBaseSavingThrows.takeIf { it.isNotEmpty() }
+            ?.mapKeys { (ability, _) -> ability.displayName }
+            ?: combat.savingThrows.map { (ability, formula) ->
+                ability.displayName to formula.value(build, resolvedProficiency, 0)
+            }.toMap(),
+        baseArmorClass = combat.storedBaseArmorClass ?: armorClass,
+        baseSpeedFeet = combat.baseSpeedsFeet[MovementMode.WALK] ?: 0,
+        baseFlySpeedFeet = combat.baseSpeedsFeet[MovementMode.FLY],
+        passiveArmorClassBonus = combat.passiveArmorClassBonus,
     )
+    return CharacterStatEngine.resolve(raw)
 }
 
 internal fun CharacterDocument.toConditionUi(): List<ConditionUi> = state.conditions.map { condition ->
@@ -421,6 +438,7 @@ internal fun CharacterDocument.toConditionUi(): List<ConditionUi> = state.condit
         id = condition.instanceId,
         level = condition.intensity,
         removable = condition.removable,
+        effects = condition.effects,
     )
 }
 
@@ -569,11 +587,12 @@ private fun ConditionUi.toDomain() = ActiveCondition(
     removable = removable,
     durationLabel = duration,
     note = explanation,
+    effects = effects,
 )
 
 private fun EquipmentUi.toDomain() = EquipmentItem(
     id = id,
-    definitionId = id,
+    definitionId = definitionId,
     name = name,
     category = when (kind) {
         EquipmentKind.GEAR -> EquipmentCategory.GEAR
@@ -583,7 +602,7 @@ private fun EquipmentUi.toDomain() = EquipmentItem(
         EquipmentKind.RATIONS -> EquipmentCategory.RATIONS
     },
     quantity = quantity,
-    location = if (worn) EquipmentLocation.WORN else EquipmentLocation.CARRIED,
+    location = if (worn) activeLocation else EquipmentLocation.CARRIED,
     slot = when {
         shieldBonus > 0 -> EquipmentSlot.SHIELD
         kind == EquipmentKind.ARMOR -> EquipmentSlot.ARMOR
@@ -598,6 +617,10 @@ private fun EquipmentUi.toDomain() = EquipmentItem(
     armorClass = armorClass,
     shieldBonus = shieldBonus,
     grantedSpells = grantedSpells.map { it.toDomain() },
+    activeLocation = activeLocation,
+    effects = effects,
+    savingThrows = savingThrows,
+    useCase = useCase,
 )
 
 private fun EquipmentItem.toUi() = EquipmentUi(
@@ -617,10 +640,15 @@ private fun EquipmentItem.toUi() = EquipmentUi(
     details = details,
     needsAttunement = attunement != AttunementState.NOT_REQUIRED,
     attuned = attunement == AttunementState.ATTUNED || attunement == AttunementState.INVESTED,
-    worn = location == EquipmentLocation.WORN,
+    worn = equipped,
     armorClass = armorClass,
     shieldBonus = shieldBonus,
     grantedSpells = grantedSpells.map { it.toUi() },
+    definitionId = definitionId,
+    activeLocation = activeLocation,
+    effects = effects,
+    savingThrows = savingThrows,
+    useCase = useCase,
 )
 
 private fun WeaponUi.toDomain(): WeaponRecord {
@@ -649,6 +677,14 @@ private fun WeaponUi.toDomain(): WeaponRecord {
             else -> AttunementState.UNATTUNED
         },
         custom = custom,
+        definitionId = definitionId,
+        reachFeet = reachFeet,
+        normalRangeFeet = normalRangeFeet,
+        longRangeFeet = longRangeFeet,
+        equipped = equipped,
+        effects = effects,
+        savingThrows = savingThrows,
+        useCase = useCase,
     )
 }
 
@@ -674,6 +710,14 @@ private fun WeaponRecord.toUi(build: CharacterBuild, proficiency: Int): WeaponUi
     attuned = attunement == AttunementState.ATTUNED || attunement == AttunementState.INVESTED,
     custom = custom,
     damageAbility = damageAbility?.shortName,
+    definitionId = definitionId,
+    reachFeet = reachFeet,
+    normalRangeFeet = normalRangeFeet,
+    longRangeFeet = longRangeFeet,
+    equipped = equipped,
+    effects = effects,
+    savingThrows = savingThrows,
+    useCase = useCase,
 )
 }
 
@@ -691,6 +735,9 @@ private fun SpellUi.toDomain() = SpellRecord(
     summary = summary,
     activationCost = activationCost,
     castPreviews = castPreviews,
+    savingThrows = savingThrows,
+    spellAttack = spellAttack,
+    spellcastingAbility = spellcastingAbility,
 )
 
 private fun SpellRecord.toUi() = SpellUi(
@@ -707,6 +754,9 @@ private fun SpellRecord.toUi() = SpellUi(
     sourceName = sourceName,
     activationCost = activationCost,
     castPreviews = castPreviews,
+    savingThrows = savingThrows,
+    spellAttack = spellAttack,
+    spellcastingAbility = spellcastingAbility,
 )
 
 private fun QuickRollUi.toDomain() = QuickRollShortcut(

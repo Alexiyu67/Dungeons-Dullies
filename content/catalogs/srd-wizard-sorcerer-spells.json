@@ -5693,7 +5693,7 @@
       "castPreviews": []
     },
     {
-      "id": "spell.minor",
+      "id": "spell.minor-illusion",
       "revision": "2024-srd-5.2.1",
       "level": 0,
       "classes": [
@@ -5705,14 +5705,14 @@
       "ritual": false,
       "specificMaterial": false,
       "aliases": [
-        "minor"
+        "minor illusion"
       ],
       "en": {
-        "name": "Minor",
+        "name": "Minor Illusion",
         "summary": "Illusion cantrip."
       },
       "de": {
-        "name": "Minor",
+        "name": "Minor Illusion",
         "summary": "Zaubertrick der Schule Illusion."
       },
       "castPreviews": []
@@ -10257,7 +10257,7 @@
       "castPreviews": []
     },
     {
-      "id": "spell.programmed",
+      "id": "spell.programmed-illusion",
       "revision": "2024-srd-5.2.1",
       "level": 6,
       "classes": [
@@ -10266,17 +10266,17 @@
       "school": "Illusion",
       "concentration": false,
       "ritual": false,
-      "specificMaterial": false,
+      "specificMaterial": true,
       "aliases": [
-        "programmed"
+        "programmed illusion"
       ],
       "en": {
-        "name": "Programmed",
-        "summary": "Level 6 Illusion spell."
+        "name": "Programmed Illusion",
+        "summary": "Level 6 Illusion spell; specific material."
       },
       "de": {
-        "name": "Programmed",
-        "summary": "Grad-6-Zauber der Schule Illusion."
+        "name": "Programmed Illusion",
+        "summary": "Grad-6-Zauber der Schule Illusion; besondere Materialkomponente."
       },
       "castPreviews": []
     },

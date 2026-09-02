@@ -1,5 +1,14 @@
 package app.dulliesanddungeons.ui
 
+import app.dulliesanddungeons.domain.Ability
+import app.dulliesanddungeons.domain.CoreModifier
+import app.dulliesanddungeons.domain.CoreStatistic
+import app.dulliesanddungeons.domain.DifficultyClass
+import app.dulliesanddungeons.domain.EffectActivation
+import app.dulliesanddungeons.domain.EquipmentLocation
+import app.dulliesanddungeons.domain.ModifierOperation
+import app.dulliesanddungeons.domain.SavingThrowPrompt
+
 enum class KnownItemType { Weapon, Armor, Gear, Tool, Consumable, Rations }
 
 enum class ItemRarity {
@@ -18,7 +27,7 @@ enum class KnownItemSource { BuiltIn, Local }
 
 enum class KnownItemSort { Name, Type, Rarity }
 
-enum class ItemBrowserTarget { Inventory, StartingArmor }
+enum class ItemBrowserTarget { Inventory, StartingArmor, StartingGear }
 
 data class KnownItemUi(
     val id: String,
@@ -49,6 +58,9 @@ data class StandardWeaponTemplate(
     val itemBonus: Int = 0,
     val needsAttunement: Boolean = false,
     val custom: Boolean = false,
+    val supportedRulesets: Set<Ruleset> = setOf(Ruleset.Fifth2014, Ruleset.Fifth2024),
+    val useCase: String = "",
+    val savingThrows: List<SavingThrowPrompt> = emptyList(),
 )
 
 val standardWeaponCatalog = listOf(
@@ -88,8 +100,13 @@ val standardWeaponCatalog = listOf(
     StandardWeaponTemplate("hand-crossbow", "Hand Crossbow", "1d6", "Piercing", "DEX", "Ammunition, light, loading", "30/120 ft", "Vex"),
     StandardWeaponTemplate("heavy-crossbow", "Heavy Crossbow", "1d10", "Piercing", "DEX", "Ammunition, heavy, loading, two-handed", "100/400 ft", "Push"),
     StandardWeaponTemplate("longbow", "Longbow", "1d8", "Piercing", "DEX", "Ammunition, heavy, two-handed", "150/600 ft", "Slow"),
-    StandardWeaponTemplate("musket", "Musket", "1d12", "Piercing", "DEX", "Ammunition, loading, two-handed", "40/120 ft", "Slow"),
-    StandardWeaponTemplate("pistol", "Pistol", "1d10", "Piercing", "DEX", "Ammunition, loading", "30/90 ft", "Vex"),
+    StandardWeaponTemplate("musket", "Musket", "1d12", "Piercing", "DEX", "Ammunition, loading, two-handed", "40/120 ft", "Slow", supportedRulesets = setOf(Ruleset.Fifth2024)),
+    StandardWeaponTemplate("pistol", "Pistol", "1d10", "Piercing", "DEX", "Ammunition, loading", "30/90 ft", "Vex", supportedRulesets = setOf(Ruleset.Fifth2024)),
+    StandardWeaponTemplate(
+        "net", "Net", "—", "", "DEX", "Special, thrown", "5/15 ft",
+        supportedRulesets = setOf(Ruleset.Fifth2014),
+        useCase = "Restrains a Large or smaller creature on a hit; useful for control rather than damage.",
+    ),
 )
 
 val standardEquipmentCatalog = listOf(
@@ -99,7 +116,7 @@ val standardEquipmentCatalog = listOf(
     EquipmentUi("blanket", "Blanket"),
     EquipmentUi("block-and-tackle", "Block and Tackle"),
     EquipmentUi("book", "Book"),
-    EquipmentUi("caltrops", "Caltrops", EquipmentKind.CONSUMABLE),
+    EquipmentUi("caltrops", "Caltrops", EquipmentKind.CONSUMABLE, savingThrows = listOf(SavingThrowPrompt(Ability.DEXTERITY, DifficultyClass(fixed = 15)))),
     EquipmentUi("candle", "Candle", EquipmentKind.CONSUMABLE),
     EquipmentUi("case-map", "Map or Scroll Case"),
     EquipmentUi("chain", "Chain (10 ft)"),
@@ -153,6 +170,72 @@ val standardEquipmentCatalog = listOf(
     EquipmentUi("chain-mail", "Chain Mail", EquipmentKind.ARMOR, details = "AC 16"),
     EquipmentUi("splint-armor", "Splint Armor", EquipmentKind.ARMOR, details = "AC 17"),
     EquipmentUi("plate-armor", "Plate Armor", EquipmentKind.ARMOR, details = "AC 18"),
+    EquipmentUi("padded-armor", "Padded Armor", EquipmentKind.ARMOR, details = "AC 11 + DEX"),
+    EquipmentUi("hide-armor", "Hide Armor", EquipmentKind.ARMOR, details = "AC 12 + DEX (max 2)"),
+    EquipmentUi("acid", "Acid", EquipmentKind.CONSUMABLE, savingThrows = listOf(SavingThrowPrompt(Ability.DEXTERITY, DifficultyClass(ability = Ability.DEXTERITY, addProficiency = true)))),
+    EquipmentUi("alchemists-fire", "Alchemist's Fire", EquipmentKind.CONSUMABLE, savingThrows = listOf(SavingThrowPrompt(Ability.DEXTERITY, DifficultyClass(ability = Ability.DEXTERITY, addProficiency = true)))),
+    EquipmentUi("ammunition", "Ammunition"),
+    EquipmentUi("antitoxin", "Antitoxin", EquipmentKind.CONSUMABLE),
+    EquipmentUi("arcane-focus", "Arcane Focus"),
+    EquipmentUi("ball-bearings", "Ball Bearings", EquipmentKind.CONSUMABLE, savingThrows = listOf(SavingThrowPrompt(Ability.DEXTERITY, DifficultyClass(fixed = 10)))),
+    EquipmentUi("barrel", "Barrel"),
+    EquipmentUi("basket", "Basket"),
+    EquipmentUi("bottle-glass", "Glass Bottle"),
+    EquipmentUi("bucket", "Bucket"),
+    EquipmentUi("burglars-pack", "Burglar's Pack"),
+    EquipmentUi("case-crossbow-bolt", "Crossbow Bolt Case"),
+    EquipmentUi("chest", "Chest"),
+    EquipmentUi("clothes-fine", "Fine Clothes"),
+    EquipmentUi("clothes-travelers", "Traveler's Clothes"),
+    EquipmentUi("costume", "Costume"),
+    EquipmentUi("diplomats-pack", "Diplomat's Pack"),
+    EquipmentUi("druidic-focus", "Druidic Focus"),
+    EquipmentUi("dungeoneers-pack", "Dungeoneer's Pack"),
+    EquipmentUi("entertainers-pack", "Entertainer's Pack"),
+    EquipmentUi("flask", "Flask"),
+    EquipmentUi("holy-water", "Holy Water", EquipmentKind.CONSUMABLE),
+    EquipmentUi("ink-pen", "Ink Pen"),
+    EquipmentUi("jug", "Jug"),
+    EquipmentUi("map", "Map"),
+    EquipmentUi("mirror", "Mirror"),
+    EquipmentUi("net-gear", "Net"),
+    EquipmentUi("perfume", "Perfume"),
+    EquipmentUi("poison-basic", "Basic Poison", EquipmentKind.CONSUMABLE, savingThrows = listOf(SavingThrowPrompt(Ability.CONSTITUTION, DifficultyClass(fixed = 15)))),
+    EquipmentUi("pot-iron", "Iron Pot"),
+    EquipmentUi("pouch", "Pouch"),
+    EquipmentUi("priests-pack", "Priest's Pack"),
+    EquipmentUi("quiver", "Quiver"),
+    EquipmentUi("ram-portable", "Portable Ram"),
+    EquipmentUi("robe", "Robe"),
+    EquipmentUi("sack", "Sack"),
+    EquipmentUi("scholars-pack", "Scholar's Pack"),
+    EquipmentUi("spell-scroll-cantrip", "Spell Scroll (Cantrip)", EquipmentKind.CONSUMABLE),
+    EquipmentUi("spell-scroll-level-1", "Spell Scroll (Level 1)", EquipmentKind.CONSUMABLE),
+    EquipmentUi("string", "String"),
+    EquipmentUi("vial", "Vial"),
+    EquipmentUi("alchemists-supplies", "Alchemist's Supplies", EquipmentKind.TOOL),
+    EquipmentUi("artisans-tools", "Artisan's Tools", EquipmentKind.TOOL),
+    EquipmentUi("brewers-supplies", "Brewer's Supplies", EquipmentKind.TOOL),
+    EquipmentUi("calligraphers-supplies", "Calligrapher's Supplies", EquipmentKind.TOOL),
+    EquipmentUi("carpenters-tools", "Carpenter's Tools", EquipmentKind.TOOL),
+    EquipmentUi("cartographers-tools", "Cartographer's Tools", EquipmentKind.TOOL),
+    EquipmentUi("cobblers-tools", "Cobbler's Tools", EquipmentKind.TOOL),
+    EquipmentUi("cooks-utensils", "Cook's Utensils", EquipmentKind.TOOL),
+    EquipmentUi("glassblowers-tools", "Glassblower's Tools", EquipmentKind.TOOL),
+    EquipmentUi("jewelers-tools", "Jeweler's Tools", EquipmentKind.TOOL),
+    EquipmentUi("leatherworkers-tools", "Leatherworker's Tools", EquipmentKind.TOOL),
+    EquipmentUi("masons-tools", "Mason's Tools", EquipmentKind.TOOL),
+    EquipmentUi("painters-supplies", "Painter's Supplies", EquipmentKind.TOOL),
+    EquipmentUi("potters-tools", "Potter's Tools", EquipmentKind.TOOL),
+    EquipmentUi("smiths-tools", "Smith's Tools", EquipmentKind.TOOL),
+    EquipmentUi("tinkers-tools", "Tinker's Tools", EquipmentKind.TOOL),
+    EquipmentUi("weavers-tools", "Weaver's Tools", EquipmentKind.TOOL),
+    EquipmentUi("woodcarvers-tools", "Woodcarver's Tools", EquipmentKind.TOOL),
+    EquipmentUi("forgery-kit", "Forgery Kit", EquipmentKind.TOOL),
+    EquipmentUi("gaming-set", "Gaming Set", EquipmentKind.TOOL),
+    EquipmentUi("musical-instrument", "Musical Instrument", EquipmentKind.TOOL),
+    EquipmentUi("navigators-tools", "Navigator's Tools", EquipmentKind.TOOL),
+    EquipmentUi("poisoners-kit", "Poisoner's Kit", EquipmentKind.TOOL),
 )
 
 private val fifthEditionRulesets = setOf(Ruleset.Fifth2014, Ruleset.Fifth2024)
@@ -160,18 +243,23 @@ private val everyRuleset = Ruleset.entries.toSet()
 
 internal fun builtInKnownItemCatalog(): List<KnownItemUi> = buildList {
     standardWeaponCatalog.forEach { weapon ->
-        add(
-            KnownItemUi(
-                id = "weapon:${weapon.id}",
+        weapon.supportedRulesets.forEach { ruleset ->
+            val revision = if (ruleset == Ruleset.Fifth2014) "srd-5-1" else "srd-5-2-1"
+            val revisionWeapon = weapon.copy(
+                mastery = if (ruleset == Ruleset.Fifth2014) "" else weapon.mastery,
+                savingThrows = standardWeaponSavingThrows(weapon, ruleset),
+            )
+            add(KnownItemUi(
+                id = "weapon:$revision:${weapon.id}",
                 name = weapon.name,
                 type = KnownItemType.Weapon,
                 rarity = ItemRarity.Mundane,
                 details = listOf(weapon.damage, weapon.damageType, weapon.properties).filter(String::isNotBlank).joinToString(" · "),
                 source = KnownItemSource.BuiltIn,
-                supportedRulesets = fifthEditionRulesets,
-                weapon = weapon,
-            ),
-        )
+                supportedRulesets = setOf(ruleset),
+                weapon = revisionWeapon,
+            ))
+        }
     }
     standardEquipmentCatalog.forEach { equipment ->
         add(
@@ -183,6 +271,26 @@ internal fun builtInKnownItemCatalog(): List<KnownItemUi> = buildList {
                 details = equipment.details,
                 source = KnownItemSource.BuiltIn,
                 supportedRulesets = fifthEditionRulesets,
+                equipment = equipment,
+            ),
+        )
+    }
+
+    srdMagicItemCatalog.forEach { entry ->
+        val ruleset = when (entry.revision) {
+            SrdItemRevision.SRD_5_1 -> Ruleset.Fifth2014
+            SrdItemRevision.SRD_5_2_1 -> Ruleset.Fifth2024
+        }
+        val equipment = entry.toEquipmentUi()
+        add(
+            KnownItemUi(
+                id = "magic:${entry.id}",
+                name = entry.name,
+                type = equipment.kind.toKnownItemType(),
+                rarity = entry.rarity,
+                details = entry.category,
+                source = KnownItemSource.BuiltIn,
+                supportedRulesets = setOf(ruleset),
                 equipment = equipment,
             ),
         )
@@ -208,6 +316,89 @@ internal fun builtInKnownItemCatalog(): List<KnownItemUi> = buildList {
             ),
         )
     }
+}
+
+internal fun standardWeaponSavingThrows(
+    weapon: StandardWeaponTemplate,
+    ruleset: Ruleset,
+): List<SavingThrowPrompt> = when {
+    ruleset == Ruleset.Fifth2024 && weapon.mastery.equals("Topple", ignoreCase = true) -> listOf(
+        SavingThrowPrompt(
+            ability = Ability.CONSTITUTION,
+            difficultyClass = DifficultyClass(
+                ability = if (weapon.ability == "DEX") Ability.DEXTERITY else Ability.STRENGTH,
+                addProficiency = true,
+            ),
+            label = "Topple",
+        ),
+    )
+    else -> weapon.savingThrows
+}
+
+private fun SrdMagicItemCatalogEntry.toEquipmentUi(): EquipmentUi {
+    val normalizedCategory = category.lowercase()
+    val kind = when {
+        normalizedCategory.startsWith("armor") -> EquipmentKind.ARMOR
+        normalizedCategory.startsWith("potion") || normalizedCategory.startsWith("scroll") -> EquipmentKind.CONSUMABLE
+        else -> EquipmentKind.GEAR
+    }
+    val activeLocation = when {
+        normalizedCategory.startsWith("weapon") || normalizedCategory.startsWith("staff") ||
+            normalizedCategory.startsWith("rod") || normalizedCategory.startsWith("wand") -> EquipmentLocation.HELD
+        else -> EquipmentLocation.WORN
+    }
+    return EquipmentUi(
+        id = id,
+        definitionId = id,
+        name = name,
+        kind = kind,
+        details = category,
+        needsAttunement = requiresAttunement,
+        activeLocation = activeLocation,
+        effects = automaticMagicItemEffects(name),
+        savingThrows = savingThrows,
+        useCase = magicItemUseCase(name),
+    )
+}
+
+private fun automaticMagicItemEffects(name: String): List<CoreModifier> {
+    fun add(statistic: CoreStatistic, amount: Int, activation: EffectActivation) =
+        CoreModifier(statistic, amount, activation = activation)
+    val wornAttuned = EffectActivation.WORN_AND_ATTUNED
+    val heldAttuned = EffectActivation.HELD_AND_ATTUNED
+    return when (name.lowercase()) {
+        "cloak of protection", "ring of protection" -> listOf(
+            add(CoreStatistic.ARMOR_CLASS, 1, wornAttuned),
+            add(CoreStatistic.SAVING_THROW, 1, wornAttuned),
+        )
+        "staff of power" -> listOf(
+            add(CoreStatistic.ARMOR_CLASS, 2, heldAttuned),
+            add(CoreStatistic.SAVING_THROW, 2, heldAttuned),
+            add(CoreStatistic.SPELL_ATTACK, 2, heldAttuned),
+        )
+        "luck blade" -> listOf(add(CoreStatistic.SAVING_THROW, 1, EffectActivation.CARRIED_AND_ATTUNED))
+        "stone of good luck (luckstone)", "stone of good luck" ->
+            listOf(add(CoreStatistic.SAVING_THROW, 1, EffectActivation.CARRIED_AND_ATTUNED))
+        "amulet of health" -> listOf(
+            CoreModifier(
+                statistic = CoreStatistic.ABILITY_SCORE,
+                amount = 19,
+                operation = ModifierOperation.MINIMUM,
+                ability = Ability.CONSTITUTION,
+                activation = wornAttuned,
+            ),
+        )
+        else -> emptyList()
+    }
+}
+
+private fun magicItemUseCase(name: String): String = when (name.lowercase()) {
+    "cloak of protection", "ring of protection" -> "+1 AC and all saving throws while worn and attuned."
+    "staff of power" -> "+2 AC, saving throws, and spell attacks while held and attuned."
+    "luck blade" -> "+1 to saving throws while carried and attuned; its other properties remain table-facing."
+    "stone of good luck (luckstone)", "stone of good luck" -> "+1 to ability checks and saving throws while carried and attuned."
+    "amulet of health" -> "Raises Constitution to at least 19 while worn and attuned."
+    else -> "See the item details for its table-facing or conditional rules."
 }
 
 internal fun privateKnownItem(entry: PrivateEntryUi): KnownItemUi? {

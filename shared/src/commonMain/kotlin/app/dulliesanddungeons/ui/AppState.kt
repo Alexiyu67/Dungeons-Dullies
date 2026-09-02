@@ -9,12 +9,16 @@ import androidx.compose.runtime.setValue
 import app.dulliesanddungeons.data.LocalStateStore
 import app.dulliesanddungeons.data.PersistedAppState
 import app.dulliesanddungeons.domain.ActionCost
+import app.dulliesanddungeons.domain.Ability
 import app.dulliesanddungeons.domain.ActivityRecord
 import app.dulliesanddungeons.domain.AttackOutcomeRecord
 import app.dulliesanddungeons.domain.CharacterNote
 import app.dulliesanddungeons.domain.CharacterProfile
 import app.dulliesanddungeons.domain.DiceExpression
 import app.dulliesanddungeons.domain.DiceRoll
+import app.dulliesanddungeons.domain.CoreModifier
+import app.dulliesanddungeons.domain.DifficultyClass
+import app.dulliesanddungeons.domain.EquipmentLocation
 import app.dulliesanddungeons.domain.HitPointChangeKind
 import app.dulliesanddungeons.domain.MovementMode
 import app.dulliesanddungeons.domain.PlaySessionRecord
@@ -23,6 +27,7 @@ import app.dulliesanddungeons.domain.ProficiencyRank
 import app.dulliesanddungeons.domain.Recovery
 import app.dulliesanddungeons.domain.RollMode
 import app.dulliesanddungeons.domain.RollRequest
+import app.dulliesanddungeons.domain.SavingThrowPrompt
 import app.dulliesanddungeons.domain.TurnEvent
 import app.dulliesanddungeons.rules.DiceNotation
 import app.dulliesanddungeons.rules.DiceRoller
@@ -30,6 +35,7 @@ import app.dulliesanddungeons.rules.DiceSource
 import app.dulliesanddungeons.rules.DerivedStatRules
 import app.dulliesanddungeons.rules.CharacterDocumentValidator
 import app.dulliesanddungeons.rules.SrdSpellCatalog
+import app.dulliesanddungeons.rules.SrdSpellCombatCatalog
 import app.dulliesanddungeons.rules.SrdSpellClass
 import app.dulliesanddungeons.rules.SrdSpellRevision
 import kotlinx.serialization.Serializable
@@ -180,6 +186,11 @@ data class EquipmentUi(
     val armorClass: Int? = null,
     val shieldBonus: Int = 0,
     val grantedSpells: List<SpellUi> = emptyList(),
+    val definitionId: String = id,
+    val activeLocation: EquipmentLocation = EquipmentLocation.WORN,
+    val effects: List<CoreModifier> = emptyList(),
+    val savingThrows: List<SavingThrowPrompt> = emptyList(),
+    val useCase: String = "",
 )
 
 @Serializable
@@ -222,6 +233,14 @@ data class WeaponUi(
     val attuned: Boolean = false,
     val custom: Boolean = false,
     val damageAbility: String? = null,
+    val definitionId: String = id,
+    val reachFeet: Int = 5,
+    val normalRangeFeet: Int? = null,
+    val longRangeFeet: Int? = null,
+    val equipped: Boolean = false,
+    val effects: List<CoreModifier> = emptyList(),
+    val savingThrows: List<SavingThrowPrompt> = emptyList(),
+    val useCase: String = "",
 )
 
 @Serializable
@@ -238,6 +257,9 @@ data class SpellUi(
     val sourceName: String = "",
     val activationCost: ActionCost = ActionCost(actions = 1),
     val castPreviews: Map<Int, String> = emptyMap(),
+    val savingThrows: List<SavingThrowPrompt> = emptyList(),
+    val spellAttack: Boolean = false,
+    val spellcastingAbility: Ability? = null,
 )
 
 @Serializable
@@ -281,6 +303,7 @@ data class FeatureUi(
     val resourceDieSides: Int? = null,
     /** Passive, reaction-only, and table-facing features stay on the sheet without cluttering suggestions. */
     val turnGuideEligible: Boolean = true,
+    val effects: List<CoreModifier> = emptyList(),
 )
 
 internal fun FeatureUi.isActivatable(): Boolean = remaining != null || actionCost != ActionCost()
@@ -351,6 +374,13 @@ data class CharacterUi(
     val activePlaySession: PlaySessionRecord? = null,
     val savedPlaySessions: List<PlaySessionRecord> = emptyList(),
     val hasPlayedSinceLongRest: Boolean = false,
+    /** Stable values before active item/weapon/condition effects are applied. */
+    val baseAbilities: Map<String, Int> = emptyMap(),
+    val baseSaves: Map<String, Int> = emptyMap(),
+    val baseArmorClass: Int? = null,
+    val baseSpeedFeet: Int? = null,
+    val baseFlySpeedFeet: Int? = null,
+    val passiveArmorClassBonus: Int = 0,
 ) {
     val buildLabel: String get() = "$ancestry $className $level"
     val classLevelLabel: String
@@ -500,6 +530,7 @@ data class ConditionUi(
     val id: String = "",
     val level: Int = 1,
     val removable: Boolean = true,
+    val effects: List<CoreModifier> = emptyList(),
 )
 
 internal fun ConditionUi.isInspiration(): Boolean =
@@ -842,6 +873,10 @@ class CreationDraft {
     val selectedSpellIds = mutableStateListOf<String>()
     val languages = mutableStateListOf("Common")
     var startingArmorChoice by mutableStateOf<StartingArmorChoice>(StartingArmorChoice.Recommended)
+    var selectedStartingGearPackageId by mutableStateOf<String?>(null)
+    val startingEquipment = mutableStateListOf<EquipmentUi>()
+    val startingWeapons = mutableStateListOf<WeaponUi>()
+    var startingGoldPieces by mutableIntStateOf(0)
     var portraitBytes by mutableStateOf<ByteArray?>(null)
     var portraitSourceBytes by mutableStateOf<ByteArray?>(null)
     var portraitCrop by mutableStateOf<PortraitCrop?>(null)
@@ -879,6 +914,10 @@ class CreationDraft {
         languages.clear()
         languages += "Common"
         startingArmorChoice = StartingArmorChoice.Recommended
+        selectedStartingGearPackageId = null
+        startingEquipment.clear()
+        startingWeapons.clear()
+        startingGoldPieces = 0
         portraitBytes = null
         portraitSourceBytes = null
         portraitCrop = null
@@ -918,9 +957,9 @@ class CharacterEditorDraft(character: CharacterUi, portrait: ByteArray?, portrai
     var className by mutableStateOf(character.className)
     var subclass by mutableStateOf(character.subclass)
     var maxHp by mutableIntStateOf(character.maxHp)
-    var armorClass by mutableIntStateOf(character.armorClass)
-    var speedFeet by mutableIntStateOf(character.speedFeet)
-    var flySpeedFeet by mutableStateOf(character.flySpeedFeet)
+    var armorClass by mutableIntStateOf(character.baseArmorClass ?: character.armorClass)
+    var speedFeet by mutableIntStateOf(character.baseSpeedFeet ?: character.speedFeet)
+    var flySpeedFeet by mutableStateOf(character.baseFlySpeedFeet ?: character.flySpeedFeet)
     var initiative by mutableIntStateOf(character.initiative)
     var proficiency by mutableIntStateOf(character.proficiency)
     var initiativeManual by mutableStateOf(character.derivation.initiative == null)
@@ -929,12 +968,28 @@ class CharacterEditorDraft(character: CharacterUi, portrait: ByteArray?, portrai
     var portraitSourceBytes by mutableStateOf(portraitSource?.sourceBytes)
     var portraitCrop by mutableStateOf(portraitSource?.crop)
     var portraitChanged by mutableStateOf(false)
-    val abilities = mutableStateMapOf<String, Int>().apply { putAll(character.abilities) }
+    val abilities = mutableStateMapOf<String, Int>().apply { putAll(character.baseAbilities.ifEmpty { character.abilities }) }
     val spells = mutableStateListOf<SpellUi>().apply { addAll(character.spells) }
 
     val isValid: Boolean
         get() = name.isNotBlank() && level in 1..20 && maxHp > 0 && armorClass > 0 &&
             speedFeet >= 0 && abilities.values.all { it in 1..30 }
+}
+
+private sealed interface InventoryRemovalUi {
+    val characterId: String
+
+    data class Equipment(
+        override val characterId: String,
+        val index: Int,
+        val item: EquipmentUi,
+    ) : InventoryRemovalUi
+
+    data class Weapon(
+        override val characterId: String,
+        val index: Int,
+        val item: WeaponUi,
+    ) : InventoryRemovalUi
 }
 
 /**
@@ -951,7 +1006,7 @@ class DndAppState(
     private val restored = runCatching {
         initialStateJson?.let { json.decodeFromString<PersistedAppState>(it) }
     }.getOrNull()?.takeIf { persisted ->
-        persisted.schemaVersion == 2 && persisted.characters.all {
+        persisted.schemaVersion in 2..3 && persisted.characters.all {
             CharacterDocumentValidator.validate(it).isEmpty()
         }
     }
@@ -980,6 +1035,14 @@ class DndAppState(
     var equipmentAddOpen by mutableStateOf(false)
     var itemBrowserTarget by mutableStateOf(ItemBrowserTarget.Inventory)
     var itemBrowserFeedback by mutableStateOf<String?>(null)
+    var itemBrowserEditingEquipment by mutableStateOf<EquipmentUi?>(null)
+        private set
+    var itemBrowserEditingWeapon by mutableStateOf<WeaponUi?>(null)
+        private set
+    var inventoryFeedback by mutableStateOf<String?>(null)
+        private set
+    private var pendingInventoryRemoval: InventoryRemovalUi? = null
+    val inventoryFeedbackCanUndo: Boolean get() = pendingInventoryRemoval != null
     var privateContentOpen by mutableStateOf(false)
     var turnOpen by mutableStateOf(false)
     var sessionHistoryOpen by mutableStateOf(false)
@@ -1112,6 +1175,13 @@ class DndAppState(
     )
 
     init {
+        characters.indices.forEach { index ->
+            val character = characters[index]
+            characters[index] = CharacterStatEngine.resolve(
+                character,
+                conditions.filter { it.characterId.isBlank() || it.characterId == character.id },
+            )
+        }
         selectedCharacterId = characters.firstOrNull()?.id
     }
 
@@ -1205,7 +1275,10 @@ class DndAppState(
         val startingArmor = resolvedCreationArmor(dexterityModifier, armorProficiency)
         val armorClass = (startingArmor?.armorClass?.plus(subclassStats.armorClassBonus) ?: unarmoredArmorClass) +
             (startingArmor?.shieldBonus ?: 0)
-        val weapons = creationWeapons(abilities, proficiencyRanks).map { weapon ->
+        val selectedGearWeapons = if (
+            creation.selectedStartingGearPackageId != null || creation.startingWeapons.isNotEmpty() || creation.startingEquipment.isNotEmpty()
+        ) creation.startingWeapons.toList() else creationWeapons(abilities, proficiencyRanks)
+        val weapons = selectedGearWeapons.map { weapon ->
             weapon.copy(
                 attackBonus = weapon.attackBonus + subclassStats.attackBonus,
                 itemBonus = weapon.itemBonus + subclassStats.attackBonus,
@@ -1235,7 +1308,7 @@ class DndAppState(
             subclassOption?.let { addAll(it.resolveFeatures(creation.level, proficiency, abilities = abilities)) }
             if (isEmpty()) add(FeatureUi("class-feature", creation.className, "Your level ${creation.level} class features are filtered by the selected content pack."))
         }
-        val created = CharacterUi(
+        val created = CharacterStatEngine.resolve(CharacterUi(
             id = id,
             name = creation.name.trim().ifEmpty { t("Unnamed hero", "Namenlose Heldin") },
             ruleset = creation.ruleset,
@@ -1277,8 +1350,13 @@ class DndAppState(
                 creation.selectedSpellIds.mapNotNull(::privateSpellById) +
                 subclassOption?.resolveSpells(creation.level).orEmpty()).distinctBy { it.id },
             features = features,
-            equipmentItems = listOfNotNull(
-                startingArmor,
+            equipmentItems = listOfNotNull(startingArmor) + if (
+                creation.selectedStartingGearPackageId != null || creation.startingEquipment.isNotEmpty()
+            ) creation.startingEquipment + listOfNotNull(
+                creation.startingGoldPieces.takeIf { it > 0 }?.let { amount ->
+                    EquipmentUi("gold-pieces", "Gold Pieces", quantity = amount)
+                },
+            ) else listOf(
                 EquipmentUi("explorers-pack", "Explorer's pack"),
                 EquipmentUi("bedroll", "Bedroll"),
                 EquipmentUi("hempen-rope", "Rope (50 ft)"),
@@ -1310,7 +1388,13 @@ class DndAppState(
             backgroundName = requireNotNull(selectedCreationBackground()).name(language),
             proficiencyIds = proficiencyRanks.keys,
             proficiencyRanks = proficiencyRanks,
-        )
+            baseAbilities = abilities,
+            baseSaves = saves,
+            baseArmorClass = armorClass,
+            baseSpeedFeet = speedFor(creation.ruleset, creation.ancestry) + subclassStats.speedBonusFeet,
+            baseFlySpeedFeet = if (creation.ancestry == "Aarakocra") 50 else null,
+            passiveArmorClassBonus = subclassStats.armorClassBonus,
+        ))
         val completedCharacter = withCompleteSkills(created)
         characters += completedCharacter
         if (!persist()) {
@@ -1507,6 +1591,12 @@ class DndAppState(
             weapons = edited.weapons,
             spells = edited.spells,
             derivation = edited.derivation,
+            baseAbilities = edited.baseAbilities,
+            baseSaves = edited.baseSaves,
+            baseArmorClass = edited.baseArmorClass,
+            baseSpeedFeet = edited.baseSpeedFeet,
+            baseFlySpeedFeet = edited.baseFlySpeedFeet,
+            passiveArmorClassBonus = edited.passiveArmorClassBonus,
             portraitFileName = edited.portraitFileName,
             portraitSourceFileName = edited.portraitSourceFileName,
             portraitCrop = edited.portraitCrop,
@@ -1638,6 +1728,11 @@ class DndAppState(
                 proficiencyFromLevel = !draft.proficiencyManual,
                 initiative = if (draft.initiativeManual) null else original.derivation.initiative,
             ),
+            baseAbilities = newAbilities,
+            baseSaves = saves,
+            baseArmorClass = draft.armorClass,
+            baseSpeedFeet = draft.speedFeet,
+            baseFlySpeedFeet = draft.flySpeedFeet?.takeIf { it > 0 },
         )
         val existingIndex = characters.indexOfFirst { it.id == original.id }
         if (existingIndex < 0) return false
@@ -1666,10 +1761,15 @@ class DndAppState(
                 )
                 return false
             }
-            val edited = if (assets == null) base else base.copy(
-                portraitFileName = assets.displayFileName,
-                portraitSourceFileName = assets.sourceFileName,
-                portraitCrop = assets.crop,
+            val edited = withCompleteSkills(
+                CharacterStatEngine.resolve(
+                    if (assets == null) base else base.copy(
+                        portraitFileName = assets.displayFileName,
+                        portraitSourceFileName = assets.sourceFileName,
+                        portraitCrop = assets.crop,
+                    ),
+                    conditions.filter { it.characterId.isBlank() || it.characterId == original.id },
+                ),
             )
             characters[existingIndex] = edited
             if (assets != null) {
@@ -1703,11 +1803,11 @@ class DndAppState(
                     ),
                 ),
             )
-            val converted = if (assets == null) convertedBase else convertedBase.copy(
+            val converted = CharacterStatEngine.resolve(if (assets == null) convertedBase else convertedBase.copy(
                 portraitFileName = assets.displayFileName,
                 portraitSourceFileName = assets.sourceFileName,
                 portraitCrop = assets.crop,
-            )
+            ), conditions.filter { it.characterId.isBlank() || it.characterId == convertedId })
             if (assets != null) {
                 newPortraitFiles += assets.displayFileName
                 newPortraitFiles += assets.sourceFileName
@@ -1780,6 +1880,7 @@ class DndAppState(
         creation.classSkillIds.clear()
         creation.featSkillIds.clear()
         creation.skillRankChoices.clear()
+        clearCreationStartingGear()
         creation.proficiencyAdvisory = t(
             "Choose a background and skills for the new ruleset.",
             "Wähle Hintergrund und Fertigkeiten für das neue Regelwerk.",
@@ -1796,6 +1897,7 @@ class DndAppState(
         creation.classSkillIds.clear()
         creation.featSkillIds.clear()
         creation.skillRankChoices.clear()
+        clearCreationStartingGear()
         creation.proficiencyAdvisory = t(
             "Choose the skills granted by the new class.",
             "Wähle die Fertigkeiten der neuen Klasse.",
@@ -2135,6 +2237,106 @@ class DndAppState(
 
     fun creationSpellOptions(): List<SpellUi> = approvedPrivateSpellOptions(null)
 
+    fun creationGearPackages(): List<StartingGearPackageUi> = startingGearPackages(creation.ruleset, creation.className)
+
+    internal fun creationAbilityScore(ability: String): Int = abilityScoresForDraft()[ability] ?: 10
+
+    internal fun creationTrainedProficiency(): Int = proficiencyModifier(
+        creation.ruleset,
+        creation.level,
+        ProficiencyRank.TRAINED,
+    )
+
+    fun creationGearSelectionValid(): Boolean = creation.selectedStartingGearPackageId != null ||
+        creation.startingEquipment.isNotEmpty() || creation.startingWeapons.isNotEmpty() ||
+        creation.startingArmorChoice != StartingArmorChoice.Recommended
+
+    fun selectCreationGearPackage(packageId: String) {
+        val selected = creationGearPackages().firstOrNull { it.id == packageId } ?: return
+        clearCreationStartingGear()
+        creation.selectedStartingGearPackageId = selected.id
+        creation.startingGoldPieces = selected.goldPieces
+        if (selected.goldOnly) return
+        selected.armorId?.let { armorId -> creation.startingArmorChoice = StartingArmorChoice.Known("equipment:$armorId") }
+        selected.equipmentIds.forEachIndexed { index, equipmentId ->
+            standardEquipmentCatalog.firstOrNull { it.id == equipmentId }?.let { template ->
+                creation.startingEquipment += template.copy(id = "starting-$equipmentId-$index", definitionId = equipmentId)
+            }
+        }
+        val abilities = abilityScoresForDraft()
+        val ranks = creationProficiencyRanks()
+        selected.weaponIds.forEachIndexed { index, weaponId ->
+            standardWeaponCatalog.firstOrNull { it.id == weaponId }?.let { template ->
+                creation.startingWeapons += creationWeapon(template, abilities, ranks, index)
+            }
+        }
+    }
+
+    fun addCreationGear(item: KnownItemUi): Boolean {
+        if (!item.complete) return false
+        val equipment = item.equipment
+        if (equipment != null) {
+            if (equipment.kind == EquipmentKind.ARMOR) {
+                creation.selectedStartingGearPackageId = null
+                creation.startingArmorChoice = StartingArmorChoice.Known(item.id)
+                return true
+            }
+            creation.selectedStartingGearPackageId = null
+            creation.startingEquipment += equipment.copy(
+                id = uniqueId(equipment.id.ifBlank { slug(equipment.name) }, creation.startingEquipment.map { it.id }),
+                worn = false,
+                attuned = false,
+            )
+            return true
+        }
+        val weapon = item.weapon ?: return false
+        return addCreationWeapon(weapon, weapon.itemBonus)
+    }
+
+    fun addCreationWeapon(template: StandardWeaponTemplate, magicBonus: Int): Boolean {
+        creation.selectedStartingGearPackageId = null
+        creation.startingWeapons += creationWeapon(
+            template.copy(itemBonus = magicBonus),
+            abilityScoresForDraft(),
+            creationProficiencyRanks(),
+            creation.startingWeapons.size,
+        )
+        return true
+    }
+
+    fun removeCreationEquipment(itemId: String) {
+        creation.selectedStartingGearPackageId = null
+        creation.startingEquipment.removeAll { it.id == itemId }
+    }
+
+    fun addCustomCreationEquipment(item: EquipmentUi) {
+        creation.selectedStartingGearPackageId = null
+        creation.startingEquipment += item.copy(
+            id = uniqueId(item.id.ifBlank { slug(item.name) }, creation.startingEquipment.map { it.id }),
+        )
+    }
+
+    fun addCustomCreationWeapon(item: WeaponUi) {
+        creation.selectedStartingGearPackageId = null
+        creation.startingWeapons += item.copy(
+            id = uniqueId(item.id.ifBlank { slug(item.name) }, creation.startingWeapons.map { it.id }),
+            custom = true,
+        )
+    }
+
+    fun removeCreationWeapon(itemId: String) {
+        creation.selectedStartingGearPackageId = null
+        creation.startingWeapons.removeAll { it.id == itemId }
+    }
+
+    private fun clearCreationStartingGear() {
+        creation.selectedStartingGearPackageId = null
+        creation.startingEquipment.clear()
+        creation.startingWeapons.clear()
+        creation.startingGoldPieces = 0
+        creation.startingArmorChoice = StartingArmorChoice.Recommended
+    }
+
     fun creationLanguageOptions(): List<String> {
         val builtIn = standardLanguageCatalog
             .filter { creation.ruleset in it.rulesets }
@@ -2151,27 +2353,50 @@ class DndAppState(
     fun openItemBrowser(target: ItemBrowserTarget = ItemBrowserTarget.Inventory) {
         itemBrowserTarget = target
         itemBrowserFeedback = null
+        itemBrowserEditingEquipment = null
+        itemBrowserEditingWeapon = null
+        equipmentAddOpen = true
+    }
+
+    fun editEquipment(item: EquipmentUi) {
+        itemBrowserTarget = ItemBrowserTarget.Inventory
+        itemBrowserEditingEquipment = item
+        itemBrowserEditingWeapon = null
+        itemBrowserFeedback = null
+        equipmentAddOpen = true
+    }
+
+    fun editWeapon(item: WeaponUi) {
+        itemBrowserTarget = ItemBrowserTarget.Inventory
+        itemBrowserEditingEquipment = null
+        itemBrowserEditingWeapon = item
+        itemBrowserFeedback = null
         equipmentAddOpen = true
     }
 
     fun closeItemBrowser() {
         equipmentAddOpen = false
         itemBrowserFeedback = null
+        itemBrowserEditingEquipment = null
+        itemBrowserEditingWeapon = null
     }
 
     fun selectCreationArmor(item: KnownItemUi) {
         if (item.type != KnownItemType.Armor) return
+        creation.selectedStartingGearPackageId = null
         creation.startingArmorChoice = StartingArmorChoice.Known(item.id)
         closeItemBrowser()
     }
 
     fun selectCreationUnarmored() {
+        creation.selectedStartingGearPackageId = null
         creation.startingArmorChoice = StartingArmorChoice.Unarmored
         closeItemBrowser()
     }
 
     fun setCustomCreationArmor(item: EquipmentUi) {
         if (item.kind != EquipmentKind.ARMOR) return
+        creation.selectedStartingGearPackageId = null
         creation.startingArmorChoice = StartingArmorChoice.Custom(item.copy(id = "starting-armor", worn = true))
         closeItemBrowser()
     }
@@ -2233,6 +2458,7 @@ class DndAppState(
         val source = if (revision == SrdSpellRevision.SRD_5_1) "SRD 5.1" else "SRD 5.2.1"
         val builtIn = SrdSpellCatalog.forClass(revision, spellClass).map { entry ->
             val text = if (language == UiLanguage.German) entry.de else entry.en
+            val combat = SrdSpellCombatCatalog.find(revision, entry.id)
             SpellUi(
                 id = entry.id,
                 name = text.name,
@@ -2244,6 +2470,10 @@ class DndAppState(
                 castPreviews = entry.castPreviews.associate { preview ->
                     preview.slotLevel to if (language == UiLanguage.German) preview.de else preview.en
                 },
+                savingThrows = combat.savingThrowAbilities.map { ability ->
+                    SavingThrowPrompt(Ability.valueOf(ability), DifficultyClass(useSpellcasting = true))
+                },
+                spellAttack = combat.spellAttack,
             )
         }
         return (builtIn + approvedPrivateSpellOptions(active)).distinctBy { it.id }
@@ -2694,7 +2924,7 @@ class DndAppState(
         val character = selectedCharacter?.takeIf { it.id == draft.characterId } ?: return false
         if (draft.toLevel > 20) return false
         if (!levelUpFeatSelectionValid(draft) || !levelUpGuidedChoicesValid(draft)) return false
-        val newAbilities = character.abilities.toMutableMap().apply {
+        val newAbilities = character.baseAbilities.ifEmpty { character.abilities }.toMutableMap().apply {
             if (draft.selectedFeatId == "ability-score-improvement") {
                 draft.abilityIncreases.forEach { (ability, increase) ->
                     this[ability] = ((this[ability] ?: 10) + increase).coerceAtMost(20)
@@ -2840,7 +3070,7 @@ class DndAppState(
             },
             maxHp = newMax,
             maxHpReduction = updatedReduction,
-            armorClass = character.armorClass + if (wearingBodyArmor) {
+            armorClass = (character.baseArmorClass ?: character.armorClass) + if (wearingBodyArmor) {
                 armorBonusIncrease + pf2eBodyArmorIncrease
             } else unarmoredIncrease + pf2eUnarmoredIncrease,
             unarmoredArmorClass = character.unarmoredArmorClass + unarmoredIncrease + pf2eUnarmoredIncrease,
@@ -2851,7 +3081,7 @@ class DndAppState(
             initiative = newInitiative,
             initiativeRollMode = if (newSubclassStats.initiativeRollMode != RollMode.NORMAL) newSubclassStats.initiativeRollMode else character.initiativeRollMode,
             criticalHitThreshold = minOf(character.criticalHitThreshold, newSubclassStats.criticalThreshold),
-            speedFeet = character.speedFeet + (newSubclassStats.speedBonusFeet - oldSubclassStats.speedBonusFeet),
+            speedFeet = (character.baseSpeedFeet ?: character.speedFeet) + (newSubclassStats.speedBonusFeet - oldSubclassStats.speedBonusFeet),
             abilities = newAbilities,
             saves = newSaves,
             skills = newSkills,
@@ -2888,6 +3118,14 @@ class DndAppState(
                 },
                 skills = skillDerivations,
             ),
+            baseAbilities = newAbilities,
+            baseSaves = newSaves,
+            baseArmorClass = (character.baseArmorClass ?: character.armorClass) + if (wearingBodyArmor) {
+                armorBonusIncrease + pf2eBodyArmorIncrease
+            } else unarmoredIncrease + pf2eUnarmoredIncrease,
+            baseSpeedFeet = (character.baseSpeedFeet ?: character.speedFeet) +
+                (newSubclassStats.speedBonusFeet - oldSubclassStats.speedBonusFeet),
+            passiveArmorClassBonus = character.passiveArmorClassBonus + armorBonusIncrease,
         )
         updateSelectedCharacter { updated }
         recentlyLevelledCharacterId = updated.id
@@ -3115,8 +3353,9 @@ class DndAppState(
     private fun resolveKnownEquipment(item: KnownItemUi, dexterityModifier: Int, proficiency: Int): EquipmentUi? {
         val equipment = item.equipment ?: return null
         val armorClass = when (equipment.id) {
-            "leather-armor" -> 11 + dexterityModifier
+            "leather-armor", "padded-armor" -> 11 + dexterityModifier
             "studded-leather" -> 12 + dexterityModifier
+            "hide-armor" -> 12 + dexterityModifier.coerceAtMost(2)
             "chain-shirt" -> 13 + dexterityModifier.coerceAtMost(2)
             "scale-mail", "breastplate" -> 14 + dexterityModifier.coerceAtMost(2)
             "half-plate" -> 15 + dexterityModifier.coerceAtMost(2)
@@ -3241,12 +3480,12 @@ class DndAppState(
         if (!caster) return emptyList()
         return if (ruleset == Ruleset.Pf2eRemaster) {
             listOf(
-                SpellUi("ignition", "Ignition", 0, "Cantrip · fire spell attack", activationCost = ActionCost(pf2eActions = 2)),
+                SpellUi("ignition", "Ignition", 0, "Cantrip · fire spell attack", activationCost = ActionCost(pf2eActions = 2), spellAttack = true),
                 SpellUi("shield-cantrip", "Shield", 0, "Cantrip · raise a magical shield", activationCost = ActionCost(pf2eActions = 1)),
             )
         } else {
             listOf(
-                SpellUi("firebolt", "Fire Bolt", 0, "Ranged spell attack · 120 ft"),
+                SpellUi("firebolt", "Fire Bolt", 0, "Ranged spell attack · 120 ft", spellAttack = true),
                 SpellUi("shield", "Shield", 1, "+5 AC until your next turn", activationCost = ActionCost(reactions = 1)),
             )
         }
@@ -3354,7 +3593,13 @@ class DndAppState(
     private fun updateSelectedCharacter(transform: (CharacterUi) -> CharacterUi): CharacterUi? {
         val characterIndex = characters.indexOfFirst { it.id == selectedCharacterId }
         if (characterIndex < 0) return null
-        val updated = withCompleteSkills(transform(characters[characterIndex]))
+        val transformed = transform(characters[characterIndex])
+        val updated = withCompleteSkills(
+            CharacterStatEngine.resolve(
+                transformed,
+                conditions.filter { it.characterId.isBlank() || it.characterId == transformed.id },
+            ),
+        )
         characters[characterIndex] = updated
         persist()
         return updated
@@ -4423,7 +4668,7 @@ class DndAppState(
         }
     }
 
-    fun addStandardWeapon(template: StandardWeaponTemplate) {
+    fun addStandardWeapon(template: StandardWeaponTemplate, magicBonus: Int = template.itemBonus) {
         val character = selectedCharacter ?: return
         val abilityBonus = abilityModifier(character.abilities[template.ability] ?: 10)
         val simpleWeaponIds = setOf("club", "dagger", "greatclub", "handaxe", "javelin", "light-hammer", "mace", "quarterstaff", "sickle", "spear", "light-crossbow", "dart", "shortbow", "sling")
@@ -4434,8 +4679,8 @@ class DndAppState(
         val proficiency = proficiencyModifier(character.ruleset, character.level, rank)
         val weapon = WeaponUi(
             id = uniqueId(template.id, character.weapons.map { it.id }),
-            name = template.name,
-            attackBonus = abilityBonus + proficiency + template.itemBonus,
+            name = if (magicBonus > 0) "+$magicBonus ${template.name}" else template.name,
+            attackBonus = abilityBonus + proficiency + magicBonus,
             damage = withAbilityDamage(template.damage, abilityBonus),
             damageType = template.damageType,
             properties = template.properties,
@@ -4444,10 +4689,16 @@ class DndAppState(
             proficiencyId = proficiencyId,
             range = template.range,
             mastery = template.mastery,
-            itemBonus = template.itemBonus,
+            itemBonus = magicBonus,
             needsAttunement = template.needsAttunement,
             custom = template.custom,
             damageAbility = template.ability,
+            definitionId = template.id,
+            reachFeet = if ("reach" in template.properties.lowercase()) 10 else 5,
+            normalRangeFeet = template.range.substringBefore('/').filter(Char::isDigit).toIntOrNull(),
+            longRangeFeet = template.range.substringAfter('/', "").filter(Char::isDigit).toIntOrNull(),
+            savingThrows = standardWeaponSavingThrows(template, character.ruleset),
+            useCase = template.useCase.ifBlank { weaponUseCase(template) },
         )
         updateSelectedCharacter { it.copy(weapons = it.weapons + weapon) }
     }
@@ -4460,7 +4711,9 @@ class DndAppState(
 
     fun addEquipment(item: EquipmentUi) {
         val character = selectedCharacter ?: return
-        val existing = character.resolvedEquipment.firstOrNull { it.id == item.id && !it.needsAttunement }
+        val existing = character.resolvedEquipment.firstOrNull {
+            it.definitionId == item.definitionId && !it.needsAttunement && it.effects.isEmpty() && item.effects.isEmpty()
+        }
         val updatedItems = if (existing != null) {
             character.resolvedEquipment.map { if (it.id == existing.id) it.copy(quantity = it.quantity + item.quantity) else it }
         } else {
@@ -4469,38 +4722,77 @@ class DndAppState(
         updateSelectedCharacter { it.copy(equipmentItems = updatedItems) }
     }
 
-    fun toggleEquipmentWorn(itemId: String) {
+    fun toggleEquipmentWorn(itemId: String) = toggleEquipmentEquipped(itemId)
+
+    fun toggleEquipmentEquipped(itemId: String) {
         updateSelectedCharacter { character ->
             val selected = character.resolvedEquipment.firstOrNull { it.id == itemId } ?: return@updateSelectedCharacter character
-            if (selected.kind != EquipmentKind.ARMOR) return@updateSelectedCharacter character
             val wear = !selected.worn
-            if (wear && selected.needsAttunement && !selected.attuned) return@updateSelectedCharacter character
             val updatedItems = character.resolvedEquipment.map { item ->
                 when {
                     item.id == itemId -> item.copy(worn = wear)
-                    wear && item.kind == EquipmentKind.ARMOR && selected.shieldBonus == 0 && item.shieldBonus == 0 -> item.copy(worn = false)
+                    wear && selected.kind == EquipmentKind.ARMOR && selected.shieldBonus == 0 &&
+                        item.kind == EquipmentKind.ARMOR && item.shieldBonus == 0 -> item.copy(worn = false)
                     else -> item
                 }
             }
             val armor = updatedItems.firstOrNull { it.worn && it.armorClass != null }
-            val shield = updatedItems.filter { it.worn && (!it.needsAttunement || it.attuned) }.sumOf { it.shieldBonus }
+            val shield = updatedItems.filter { it.worn }.sumOf { it.shieldBonus }
             character.copy(
                 equipmentItems = updatedItems,
-                armorClass = (armor?.armorClass?.plus(subclassArmorClassBonus(character))
+                baseArmorClass = (armor?.armorClass?.plus(character.passiveArmorClassBonus)
                     ?: character.unarmoredArmorClass) + shield,
             )
         }
     }
 
+    private fun creationWeapon(
+        template: StandardWeaponTemplate,
+        abilities: Map<String, Int>,
+        proficiencyRanks: Map<String, ProficiencyRank>,
+        index: Int,
+    ): WeaponUi {
+        val simpleWeaponIds = setOf("club", "dagger", "greatclub", "handaxe", "javelin", "light-hammer", "mace", "quarterstaff", "sickle", "spear", "light-crossbow", "dart", "shortbow", "sling")
+        val categoryId = if (template.id in simpleWeaponIds) "weapon:simple" else "weapon:martial"
+        val specificId = "weapon:${template.id}"
+        val proficiencyId = categoryId.takeIf { it in proficiencyRanks } ?: specificId
+        val trained = proficiencyId in proficiencyRanks
+        val proficiency = proficiencyModifier(creation.ruleset, creation.level, proficiencyRanks[proficiencyId])
+        val abilityBonus = abilityModifier(abilities[template.ability] ?: 10)
+        return WeaponUi(
+            id = "starting-${template.id}-$index",
+            definitionId = template.id,
+            name = if (template.itemBonus > 0) "+${template.itemBonus} ${template.name}" else template.name,
+            attackBonus = abilityBonus + proficiency + template.itemBonus,
+            damage = withAbilityDamage(template.damage, abilityBonus + template.itemBonus),
+            damageType = template.damageType,
+            properties = template.properties,
+            ability = template.ability,
+            proficient = trained,
+            proficiencyId = proficiencyId,
+            itemBonus = template.itemBonus,
+            range = template.range,
+            mastery = if (creation.ruleset == Ruleset.Fifth2014) "" else template.mastery,
+            damageAbility = template.ability,
+            reachFeet = if ("reach" in template.properties.lowercase()) 10 else 5,
+            normalRangeFeet = template.range.substringBefore('/').filter(Char::isDigit).toIntOrNull(),
+            longRangeFeet = template.range.substringAfter('/', "").filter(Char::isDigit).toIntOrNull(),
+            savingThrows = standardWeaponSavingThrows(template, creation.ruleset),
+            useCase = template.useCase.ifBlank { weaponUseCase(template) },
+        )
+    }
+
     fun toggleEquipmentAttunement(itemId: String) {
+        val current = selectedCharacter ?: return
+        val selected = current.resolvedEquipment.firstOrNull { it.id == itemId } ?: return
+        val attunedCount = current.resolvedEquipment.count { it.attuned } + current.weapons.count { it.attuned }
+        if (selected.needsAttunement && !selected.attuned && attunedCount >= 3) {
+            inventoryFeedback = t(
+                "Attuned. Your character now exceeds the usual limit of 3.",
+                "Eingestimmt. Dein Charakter überschreitet jetzt das übliche Limit von 3.",
+            )
+        }
         updateSelectedCharacter { character ->
-            val selected = character.resolvedEquipment.firstOrNull { it.id == itemId }
-                ?: return@updateSelectedCharacter character
-            val attunedCount = character.resolvedEquipment.count { it.attuned } + character.weapons.count { it.attuned }
-            if (selected.needsAttunement && !selected.attuned && attunedCount >= 3) {
-                lastRoll = t("Attunement limit reached (3).", "Einstimmungsgrenze erreicht (3).")
-                return@updateSelectedCharacter character
-            }
             character.copy(
                 equipmentItems = character.resolvedEquipment.map { item ->
                     if (item.id == itemId && item.needsAttunement) item.copy(attuned = !item.attuned) else item
@@ -4510,18 +4802,93 @@ class DndAppState(
     }
 
     fun toggleWeaponAttunement(weaponId: String) {
+        val current = selectedCharacter ?: return
+        val selected = current.weapons.firstOrNull { it.id == weaponId } ?: return
+        val attunedCount = current.resolvedEquipment.count { it.attuned } + current.weapons.count { it.attuned }
+        if (selected.needsAttunement && !selected.attuned && attunedCount >= 3) {
+            inventoryFeedback = t(
+                "Attuned. Your character now exceeds the usual limit of 3.",
+                "Eingestimmt. Dein Charakter überschreitet jetzt das übliche Limit von 3.",
+            )
+        }
         updateSelectedCharacter { character ->
-            val selected = character.weapons.firstOrNull { it.id == weaponId }
-                ?: return@updateSelectedCharacter character
-            val attunedCount = character.resolvedEquipment.count { it.attuned } + character.weapons.count { it.attuned }
-            if (selected.needsAttunement && !selected.attuned && attunedCount >= 3) {
-                lastRoll = t("Attunement limit reached (3).", "Einstimmungsgrenze erreicht (3).")
-                return@updateSelectedCharacter character
-            }
             character.copy(weapons = character.weapons.map { weapon ->
                 if (weapon.id == weaponId && weapon.needsAttunement) weapon.copy(attuned = !weapon.attuned) else weapon
             })
         }
+    }
+
+    fun toggleWeaponEquipped(weaponId: String) {
+        updateSelectedCharacter { character ->
+            character.copy(weapons = character.weapons.map { weapon ->
+                if (weapon.id == weaponId) weapon.copy(equipped = !weapon.equipped) else weapon
+            })
+        }
+    }
+
+    fun updateEquipment(item: EquipmentUi) {
+        updateSelectedCharacter { character ->
+            character.copy(equipmentItems = character.resolvedEquipment.map { current ->
+                if (current.id == item.id) item else current
+            })
+        }
+    }
+
+    fun updateWeapon(item: WeaponUi) {
+        updateSelectedCharacter { character ->
+            character.copy(weapons = character.weapons.map { current -> if (current.id == item.id) item else current })
+        }
+    }
+
+    fun removeEquipment(itemId: String) {
+        val character = selectedCharacter ?: return
+        val index = character.resolvedEquipment.indexOfFirst { it.id == itemId }
+        if (index < 0) return
+        val item = character.resolvedEquipment[index]
+        pendingInventoryRemoval = InventoryRemovalUi.Equipment(character.id, index, item)
+        updateSelectedCharacter { it.copy(equipmentItems = it.resolvedEquipment.filterNot { entry -> entry.id == itemId }) }
+        inventoryFeedback = t("Removed ${item.name}", "${item.name} entfernt")
+    }
+
+    fun removeWeapon(weaponId: String) {
+        val character = selectedCharacter ?: return
+        val index = character.weapons.indexOfFirst { it.id == weaponId }
+        if (index < 0) return
+        val item = character.weapons[index]
+        pendingInventoryRemoval = InventoryRemovalUi.Weapon(character.id, index, item)
+        updateSelectedCharacter { it.copy(weapons = it.weapons.filterNot { entry -> entry.id == weaponId }) }
+        inventoryFeedback = t("Removed ${item.name}", "${item.name} entfernt")
+    }
+
+    fun undoInventoryRemoval() {
+        val removal = pendingInventoryRemoval ?: return
+        val index = characters.indexOfFirst { it.id == removal.characterId }
+        if (index < 0) return
+        val character = characters[index]
+        val restored = when (removal) {
+            is InventoryRemovalUi.Equipment -> character.copy(
+                equipmentItems = character.resolvedEquipment.toMutableList().apply {
+                    add(removal.index.coerceIn(0, size), removal.item)
+                },
+            )
+            is InventoryRemovalUi.Weapon -> character.copy(
+                weapons = character.weapons.toMutableList().apply {
+                    add(removal.index.coerceIn(0, size), removal.item)
+                },
+            )
+        }
+        characters[index] = CharacterStatEngine.resolve(
+            restored,
+            conditions.filter { it.characterId.isBlank() || it.characterId == restored.id },
+        )
+        pendingInventoryRemoval = null
+        inventoryFeedback = null
+        persist()
+    }
+
+    fun clearInventoryFeedback() {
+        inventoryFeedback = null
+        pendingInventoryRemoval = null
     }
 
     fun updateLanguages(values: List<String>) {
@@ -4626,6 +4993,16 @@ class DndAppState(
         else -> formula
     }
 
+    internal fun weaponUseCase(template: StandardWeaponTemplate): String = buildList {
+        val properties = template.properties.lowercase()
+        if ("reach" in properties) add(t("Controls space from 10 feet away.", "Kontrolliert Raum aus 10 Fuß Entfernung."))
+        if ("finesse" in properties) add(t("Can use Dexterity for attack and damage.", "Kann Geschicklichkeit für Angriff und Schaden verwenden."))
+        if ("light" in properties) add(t("Works well for two-weapon fighting.", "Eignet sich gut für den Kampf mit zwei Waffen."))
+        if ("thrown" in properties) add(t("Can be used in melee or thrown.", "Kann im Nahkampf oder geworfen verwendet werden."))
+        if ("ammunition" in properties) add(t("Ranged weapon; track its ammunition.", "Fernkampfwaffe; Munition mitführen."))
+        if (template.mastery.isNotBlank()) add(t("Mastery: ${template.mastery}.", "Meisterschaft: ${template.mastery}."))
+    }.joinToString(" ").ifBlank { t("A straightforward weapon for weapon attacks.", "Eine unkomplizierte Waffe für Waffenangriffe.") }
+
     private fun slug(value: String): String = value.lowercase().map { if (it.isLetterOrDigit()) it else '-' }
         .joinToString("").replace(Regex("-+"), "-").trim('-').ifBlank { "entry" }
 
@@ -4675,7 +5052,7 @@ class DndAppState(
             id = "condition-$characterId-${slug(name)}",
         )
         conditions += condition
-        persist()
+        updateSelectedCharacter { it }
         recordEvent(TurnEvent.ConditionApplied(condition.id), condition.name)
         conditionsOpen = false
     }
@@ -4687,7 +5064,7 @@ class DndAppState(
             return
         }
         conditions.remove(condition)
-        persist()
+        updateSelectedCharacter { it }
         recordEvent(TurnEvent.ConditionRemoved(condition.id), condition.name)
     }
 
@@ -5236,6 +5613,8 @@ private fun seedCharacters(): List<CharacterUi> = listOf(
         saves = standardSaves(mapOf("STR" to 4, "DEX" to 2, "CON" to 3, "INT" to 0, "WIS" to 1, "CHA" to 0), setOf("STR", "CON"), 4),
         languages = listOf("Common", "Dwarvish"),
         lockedLanguages = listOf("Common"),
+        proficiencyIds = setOf("weapon:simple", "weapon:martial"),
+        proficiencyRanks = mapOf("weapon:simple" to ProficiencyRank.TRAINED, "weapon:martial" to ProficiencyRank.TRAINED),
         weapons = listOf(
             WeaponUi("longsword", "Longsword", 8, "1d8 + 4", "Slashing", "Versatile (1d10)", mastery = "Sap", damageAbility = "STR"),
             WeaponUi("longbow", "Longbow", 6, "1d8 + 2", "Piercing", "Ammunition, heavy, two-handed", ability = "DEX", range = "150/600 ft", mastery = "Slow", damageAbility = "DEX"),
@@ -5283,7 +5662,7 @@ private fun seedCharacters(): List<CharacterUi> = listOf(
         lockedLanguages = listOf("Common", "Elvish"),
         weapons = listOf(WeaponUi("quarterstaff", "Quarterstaff", 2, "1d6 - 1", "Bludgeoning", "Versatile (1d8)", damageAbility = "STR")),
         spells = listOf(
-            SpellUi("fire-bolt", "Fire Bolt", 0, "Ranged spell attack · 120 ft"),
+            SpellUi("fire-bolt", "Fire Bolt", 0, "Ranged spell attack · 120 ft", spellAttack = true),
             SpellUi("magic-missile", "Magic Missile", 1, "Automatic force darts"),
             SpellUi("shield", "Shield", 1, "+5 AC until your next turn", activationCost = ActionCost(reactions = 1)),
             SpellUi(
@@ -5292,6 +5671,7 @@ private fun seedCharacters(): List<CharacterUi> = listOf(
                 3,
                 "Dexterity save · area fire damage",
                 castPreviews = (3..9).associateWith { level -> "${8 + level - 3}d6 fire" },
+                savingThrows = listOf(SavingThrowPrompt(Ability.DEXTERITY, DifficultyClass(useSpellcasting = true))),
             ),
         ),
         features = listOf(FeatureUi("arcane-recovery", "Arcane Recovery", "Recover expended spell slots after a Short Rest.", 1, 1, Recovery.LONG_REST)),
@@ -5324,13 +5704,14 @@ private fun seedCharacters(): List<CharacterUi> = listOf(
         lockedLanguages = listOf("Common"),
         weapons = listOf(WeaponUi("light-crossbow", "Light Crossbow", 5, "1d8 + 2", "Piercing", "Ammunition, loading, two-handed", ability = "DEX", range = "80/320 ft", damageAbility = "DEX")),
         spells = listOf(
-            SpellUi("ray-of-frost", "Ray of Frost", 0, "Ranged spell attack · cold damage"),
+            SpellUi("ray-of-frost", "Ray of Frost", 0, "Ranged spell attack · cold damage", spellAttack = true),
             SpellUi(
                 "burning-hands",
                 "Burning Hands",
                 1,
                 "Dexterity save · cone fire damage",
                 castPreviews = (1..9).associateWith { level -> "${level + 2}d6 fire" },
+                savingThrows = listOf(SavingThrowPrompt(Ability.DEXTERITY, DifficultyClass(useSpellcasting = true))),
             ),
             SpellUi("misty-step", "Misty Step", 2, "Bonus-action teleport", activationCost = ActionCost(bonusActions = 1)),
         ),

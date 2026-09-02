@@ -90,12 +90,12 @@
       "outputId": "srd-5.2.1.spell.message"
     },
     {
-      "sourceId": "spell.minor",
+      "sourceId": "spell.minor-illusion",
       "category": "wizard-sorcerer-spell",
       "decision": "included",
       "reason": "Appears on the Sorcerer and Wizard class spell list.",
       "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
-      "outputId": "srd-5.2.1.spell.minor"
+      "outputId": "srd-5.2.1.spell.minor-illusion"
     },
     {
       "sourceId": "spell.poison-spray",
@@ -1458,12 +1458,12 @@
       "outputId": "srd-5.2.1.spell.move-earth"
     },
     {
-      "sourceId": "spell.programmed",
+      "sourceId": "spell.programmed-illusion",
       "category": "wizard-sorcerer-spell",
       "decision": "included",
       "reason": "Appears on the Wizard class spell list.",
       "licenseEvidence": "System Reference Document 5.2.1, CC-BY-4.0, pinned SHA-256 8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
-      "outputId": "srd-5.2.1.spell.programmed"
+      "outputId": "srd-5.2.1.spell.programmed-illusion"
     },
     {
       "sourceId": "spell.sunbeam",

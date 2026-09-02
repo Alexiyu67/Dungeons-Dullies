@@ -42,4 +42,21 @@ class SrdSpellCatalogTest {
         assertEquals("5d6 fire", spell.castPreviews.first { it.slotLevel == 3 }.en)
         assertEquals("5d6 Feuer", spell.castPreviews.first { it.slotLevel == 3 }.de)
     }
+
+    @Test
+    fun combatMetadataTracksEditionSpecificSavesAndSpellAttacks() {
+        val oldAcidSplash = SrdSpellCombatCatalog.find(SrdSpellRevision.SRD_5_1, "spell.acid-splash")
+        val currentAcidSplash = SrdSpellCombatCatalog.find(SrdSpellRevision.SRD_5_2_1, "spell.acid-splash")
+        val currentFireBolt = SrdSpellCombatCatalog.find(SrdSpellRevision.SRD_5_2_1, "spell.fire-bolt")
+
+        assertEquals(setOf("DEXTERITY"), oldAcidSplash.savingThrowAbilities)
+        assertEquals(setOf("DEXTERITY"), currentAcidSplash.savingThrowAbilities)
+        assertTrue(currentFireBolt.spellAttack)
+    }
+
+    @Test
+    fun schoolNamesInsideSpellNamesAreNotTruncated() {
+        assertEquals("Minor Illusion", SrdSpellCatalog.find(SrdSpellRevision.SRD_5_2_1, "spell.minor-illusion")?.en?.name)
+        assertEquals("Programmed Illusion", SrdSpellCatalog.find(SrdSpellRevision.SRD_5_2_1, "spell.programmed-illusion")?.en?.name)
+    }
 }
