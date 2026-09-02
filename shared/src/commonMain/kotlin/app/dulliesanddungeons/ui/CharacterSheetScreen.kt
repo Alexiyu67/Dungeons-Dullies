@@ -2195,6 +2195,8 @@ internal fun AttackCard(
     onDismiss: () -> Unit,
 ) {
     var detailsExpanded by remember(weapon.id) { mutableStateOf(false) }
+    var rollAnimationCycle by remember(weapon.id) { mutableStateOf(0) }
+    var rollSettled by remember(weapon.id) { mutableStateOf(false) }
     val calculation = roll?.calculation ?: state.attackCalculation(character, weapon)
 
     Card(
@@ -2252,12 +2254,21 @@ internal fun AttackCard(
             }
 
             if (roll != null) {
-                AnimatedDiceRow(20, roll.dice, roll.kept, "${weapon.id}-${roll.dice}-${roll.total}", Modifier.align(Alignment.CenterHorizontally))
-                Text("${roll.total}", style = MaterialTheme.typography.displaySmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.align(Alignment.CenterHorizontally))
+                AnimatedDiceRow(
+                    sides = 20,
+                    values = roll.dice,
+                    kept = roll.kept,
+                    animationKey = "${weapon.id}-$rollAnimationCycle",
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    onAnimationFinished = { rollSettled = true },
+                )
+                if (rollSettled) {
+                    Text("${roll.total}", style = MaterialTheme.typography.displaySmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.align(Alignment.CenterHorizontally))
+                }
             }
 
             AnimatedVisibility(
-                visible = roll?.natural == 20 && outcome == AttackOutcome.Critical,
+                visible = rollSettled && roll?.natural == 20 && outcome == AttackOutcome.Critical,
                 enter = fadeIn() + scaleIn(initialScale = .92f),
                 exit = fadeOut() + scaleOut(targetScale = .96f),
             ) {
@@ -2278,13 +2289,17 @@ internal fun AttackCard(
             }
 
             Button(
-                onClick = onRoll,
+                onClick = {
+                    rollSettled = false
+                    rollAnimationCycle++
+                    onRoll()
+                },
                 enabled = canRoll,
                 modifier = Modifier.fillMaxWidth().height(46.dp),
                 shape = RoundedCornerShape(13.dp),
             ) { Text(state.t("Roll attack", "Angriff würfeln")) }
 
-            if (roll != null) {
+            if (roll != null && rollSettled) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                     listOf(AttackOutcome.Miss to state.t("Miss", "Verfehlt"), AttackOutcome.Hit to state.t("Hit", "Treffer"), AttackOutcome.Critical to state.t("Critical", "Kritisch")).forEach { (value, label) ->
                         val selected = outcome == value
@@ -2297,7 +2312,7 @@ internal fun AttackCard(
                 }
             }
 
-            damage?.let {
+            damage?.takeIf { rollSettled }?.let {
                 Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = RoundedCornerShape(14.dp)) {
                     Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
