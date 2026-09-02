@@ -103,6 +103,43 @@ data class CreationPreviewUi(
     val startingArmor: String,
 )
 
+data class CreationAbilitySourceUi(
+    val label: String,
+    val amount: Int,
+    val detail: String,
+)
+
+data class CreationAbilityBreakdownUi(
+    val ability: String,
+    val baseScore: Int,
+    val ancestrySource: CreationAbilitySourceUi?,
+    val finalScore: Int,
+    val modifier: Int,
+)
+
+data class CreationInfoUi(
+    val title: String,
+    val body: String,
+)
+
+private data class CreationAncestryBonuses(
+    val amounts: Map<String, Int> = emptyMap(),
+    val detail: String = "",
+    val invalidPrivateFormula: Boolean = false,
+)
+
+private val creationAbilityOrder = listOf("STR", "DEX", "CON", "INT", "WIS", "CHA")
+
+private val fifth2014AncestryBonuses = mapOf(
+    "Human" to creationAbilityOrder.associateWith { 1 },
+    "Dwarf" to mapOf("CON" to 2),
+    "Elf" to mapOf("DEX" to 2),
+    "Halfling" to mapOf("DEX" to 2),
+    "Dragonborn" to mapOf("STR" to 2, "CHA" to 1),
+    "Gnome" to mapOf("INT" to 2),
+    "Tiefling" to mapOf("INT" to 1, "CHA" to 2),
+)
+
 @Serializable
 data class EquipmentUi(
     val id: String,
@@ -1356,6 +1393,19 @@ class DndAppState(
         }
     }
 
+    fun setCreationLevel(level: Int) {
+        val safeLevel = level.coerceIn(1, 20)
+        if (safeLevel == creation.level) return
+        creation.level = safeLevel
+        creation.rolledHpGains.clear()
+    }
+
+    fun selectCreationClass(className: String) {
+        if (className == creation.className) return
+        creation.className = className
+        creation.rolledHpGains.clear()
+    }
+
     fun rollCreationHitPoints() {
         if (creation.ruleset == Ruleset.Pf2eRemaster) return
         val sides = hitDieFor(creation.className)
@@ -1459,6 +1509,117 @@ class DndAppState(
             startingArmor = armor?.name ?: t("Unarmored", "Unge­rüstet"),
         )
     }
+
+    fun creationAbilityBreakdowns(): List<CreationAbilityBreakdownUi> {
+        val baseScores = baseAbilityScoresForDraft()
+        val ancestryBonuses = creationAncestryBonuses()
+        return creationAbilityOrder.map { ability ->
+            val baseScore = baseScores.getValue(ability)
+            val ancestryBonus = ancestryBonuses.amounts[ability] ?: 0
+            val finalScore = baseScore + ancestryBonus
+            CreationAbilityBreakdownUi(
+                ability = ability,
+                baseScore = baseScore,
+                ancestrySource = ancestryBonus.takeIf { it != 0 }?.let {
+                    CreationAbilitySourceUi(
+                        label = creation.ancestry,
+                        amount = it,
+                        detail = ancestryBonuses.detail,
+                    )
+                },
+                finalScore = finalScore,
+                modifier = abilityModifier(finalScore),
+            )
+        }
+    }
+
+    fun creationAbilityInfo(ability: String): CreationInfoUi {
+        val breakdown = creationAbilityBreakdown(ability)
+        val name = creationAbilityName(ability)
+        val current = breakdown.ancestrySource?.let { source ->
+            t(
+                "Base ${breakdown.baseScore} + ${signed(source.amount)} from ${source.label} = final ${breakdown.finalScore}. Modifier ${signed(breakdown.modifier)}.",
+                "Basis ${breakdown.baseScore} + ${signed(source.amount)} durch ${source.label} = endgültig ${breakdown.finalScore}. Modifikator ${signed(breakdown.modifier)}.",
+            )
+        } ?: t(
+            "Current score ${breakdown.finalScore}. Modifier ${signed(breakdown.modifier)}.",
+            "Aktueller Wert ${breakdown.finalScore}. Modifikator ${signed(breakdown.modifier)}.",
+        )
+        val recommendation = creationAbilityRecommendation(ability)
+        return CreationInfoUi(
+            title = "$name ($ability)",
+            body = listOfNotNull(creationAbilityDescription(ability), current, recommendation).joinToString("\n\n"),
+        )
+    }
+
+    fun creationModifierInfo(ability: String): CreationInfoUi {
+        val breakdown = creationAbilityBreakdown(ability)
+        val name = creationAbilityName(ability)
+        val ancestryCalculation = breakdown.ancestrySource?.let { source ->
+            t(
+                "Its final score includes ${signed(source.amount)} from ${source.label}: ${breakdown.baseScore} + ${source.amount} = ${breakdown.finalScore}.",
+                "Der endgültige Wert enthält ${signed(source.amount)} durch ${source.label}: ${breakdown.baseScore} + ${source.amount} = ${breakdown.finalScore}.",
+            )
+        }
+        val formula = t(
+            "This modifier comes from the final $name score: (${breakdown.finalScore} - 10) ÷ 2, rounded down = ${signed(breakdown.modifier)}.",
+            "Dieser Modifikator stammt vom endgültigen $name-Wert: (${breakdown.finalScore} - 10) ÷ 2, abgerundet = ${signed(breakdown.modifier)}.",
+        )
+        return CreationInfoUi(
+            title = t("$name modifier ${signed(breakdown.modifier)}", "$name-Modifikator ${signed(breakdown.modifier)}"),
+            body = listOfNotNull(formula, ancestryCalculation).joinToString("\n\n"),
+        )
+    }
+
+    fun creationAncestryInfo(ability: String): CreationInfoUi? {
+        val breakdown = creationAbilityBreakdown(ability)
+        val source = breakdown.ancestrySource ?: return null
+        val name = creationAbilityName(ability)
+        val detail = source.detail.takeIf { it.isNotBlank() }?.let { "\n\n${t("Source", "Quelle")}: $it" }.orEmpty()
+        return CreationInfoUi(
+            title = t("${source.label} ancestry ${signed(source.amount)}", "${source.label}-Abstammung ${signed(source.amount)}"),
+            body = t(
+                "This ${signed(source.amount)} comes from ${source.label} ancestry for $name under ${creation.ruleset.shortLabel}. Base ${breakdown.baseScore} + ${source.amount} = final ${breakdown.finalScore}.",
+                "Diese ${signed(source.amount)} stammen bei $name aus der Abstammung ${source.label} nach ${creation.ruleset.shortLabel}. Basis ${breakdown.baseScore} + ${source.amount} = endgültig ${breakdown.finalScore}.",
+            ) + detail,
+        )
+    }
+
+    fun creationAncestryBonusAdvisory(): String? {
+        val privateEntry = privateEntryForName("ancestry", creation.ancestry)
+        val bonuses = creationAncestryBonuses()
+        if (bonuses.invalidPrivateFormula) {
+            return t(
+                "${creation.ancestry}'s local ability bonus formula is invalid, so no ancestry bonus is applied.",
+                "Die lokale Attributsbonus-Formel für ${creation.ancestry} ist ungültig; deshalb wird kein Abstammungsbonus angewendet.",
+            )
+        }
+        if (creation.ruleset == Ruleset.Fifth2014 && bonuses.amounts.isEmpty()) {
+            return if (privateEntry != null) {
+                t(
+                    "No reviewed ability bonus is defined for ${creation.ancestry}; no ancestry adjustment is applied.",
+                    "Für ${creation.ancestry} ist kein geprüfter Attributsbonus definiert; es wird kein Abstammungsbonus angewendet.",
+                )
+            } else {
+                t(
+                    "No audited SRD 5.1 ability bonus is available for ${creation.ancestry}; no ancestry adjustment is applied.",
+                    "Für ${creation.ancestry} ist kein geprüfter Attributsbonus aus dem SRD 5.1 verfügbar; es wird kein Abstammungsbonus angewendet.",
+                )
+            }
+        }
+        return null
+    }
+
+    fun creationAbilityLimitAdvisory(): String? = creationAbilityBreakdowns()
+        .filter { it.finalScore > 20 }
+        .takeIf { it.isNotEmpty() }
+        ?.joinToString { "${it.ability} ${it.finalScore}" }
+        ?.let { scores ->
+            t(
+                "Final scores above the usual creation limit of 20: $scores. The values remain allowed for table rulings and custom rules.",
+                "Endgültige Werte über dem üblichen Erschaffungslimit von 20: $scores. Die Werte bleiben für Spieltischentscheidungen und eigene Regeln erlaubt.",
+            )
+        }
 
     fun beginLevelUp() {
         val character = selectedCharacter ?: return
@@ -3541,7 +3702,132 @@ class DndAppState(
         }
     }
 
-    private fun abilityScoresForDraft(): LinkedHashMap<String, Int> {
+    private fun creationAbilityBreakdown(ability: String): CreationAbilityBreakdownUi =
+        creationAbilityBreakdowns().firstOrNull { it.ability == ability }
+            ?: error("Unknown creation ability $ability")
+
+    private fun creationAbilityName(ability: String): String = when (ability) {
+        "STR" -> t("Strength", "Stärke")
+        "DEX" -> t("Dexterity", "Geschicklichkeit")
+        "CON" -> t("Constitution", "Konstitution")
+        "INT" -> t("Intelligence", "Intelligenz")
+        "WIS" -> t("Wisdom", "Weisheit")
+        "CHA" -> t("Charisma", "Charisma")
+        else -> ability
+    }
+
+    private fun creationAbilityDescription(ability: String): String = when (ability) {
+        "STR" -> t(
+            "Physical power used for melee force, Athletics, lifting, and carrying.",
+            "Körperkraft für Nahkampfkraft, Athletik, Heben und Tragen.",
+        )
+        "DEX" -> if (creation.ruleset == Ruleset.Pf2eRemaster) {
+            t(
+                "Agility used for ranged attacks, Armor Class, Reflex defenses, and Stealth.",
+                "Beweglichkeit für Fernkampfangriffe, Rüstungsklasse, Reflexverteidigung und Heimlichkeit.",
+            )
+        } else {
+            t(
+                "Agility used for finesse and ranged attacks, Armor Class, initiative, and Stealth.",
+                "Beweglichkeit für Finesse- und Fernkampfangriffe, Rüstungsklasse, Initiative und Heimlichkeit.",
+            )
+        }
+        "CON" -> if (creation.ruleset == Ruleset.Pf2eRemaster) {
+            t(
+                "Endurance that increases Hit Points and helps with Fortitude defenses.",
+                "Ausdauer, die Trefferpunkte erhöht und bei Zähigkeitsverteidigungen hilft.",
+            )
+        } else {
+            t(
+                "Endurance that increases Hit Points and helps Constitution saves, including concentration checks.",
+                "Ausdauer, die Trefferpunkte erhöht und bei Konstitutionsrettungswürfen einschließlich Konzentration hilft.",
+            )
+        }
+        "INT" -> t(
+            "Reasoning and learned knowledge used for Arcana and Intelligence-based class abilities.",
+            "Verstand und erlerntes Wissen für Arkane Kunde und intelligenzbasierte Klassenfähigkeiten.",
+        )
+        "WIS" -> if (creation.ruleset == Ruleset.Pf2eRemaster) {
+            t(
+                "Awareness and intuition used for Perception, Will defenses, and this app's PF2e initiative.",
+                "Wahrnehmung und Intuition für Wahrnehmung, Willensverteidigung und die PF2e-Initiative dieser App.",
+            )
+        } else {
+            t(
+                "Awareness and intuition used for Perception, Insight, Survival, and Wisdom-based class abilities.",
+                "Wahrnehmung und Intuition für Wahrnehmung, Motiv erkennen, Überleben und weisheitsbasierte Klassenfähigkeiten.",
+            )
+        }
+        "CHA" -> t(
+            "Presence and force of personality used for social interaction and Charisma-based class abilities.",
+            "Ausstrahlung und Willenskraft für soziale Interaktion und charismabasierte Klassenfähigkeiten.",
+        )
+        else -> t("A character ability score.", "Ein Attributswert des Charakters.")
+    }
+
+    private fun creationAbilityRecommendation(ability: String): String? {
+        if (!creation.useRecommendations) return null
+        val primary = primaryAbilityFor(creation.className)
+        val rank = abilityPriorityForClass(creation.className).indexOf(ability)
+        return when {
+            ability == primary -> t(
+                "Recommended for ${creation.className}: this is the class's main ability, so making it one of your highest scores is a strong default.",
+                "Empfohlen für ${creation.className}: Dies ist das Hauptattribut der Klasse und daher meist einer der höchsten Werte.",
+            )
+            rank in 1..2 -> t(
+                "Useful for ${creation.className}: this is a strong secondary ability in the app's class-aware assignment.",
+                "Nützlich für ${creation.className}: Dies ist ein starkes Nebenattribut in der klassenbewussten Verteilung der App.",
+            )
+            else -> t(
+                "Usually a lower priority for ${creation.className}, but your concept and table rules can make it important.",
+                "Für ${creation.className} meist weniger wichtig, kann aber durch dein Konzept und die Spieltischregeln bedeutsam werden.",
+            )
+        }
+    }
+
+    private fun creationAncestryBonuses(): CreationAncestryBonuses {
+        val privateEntry = privateEntryForName("ancestry", creation.ancestry)
+        if (privateEntry != null) {
+            val formula = privateEntry.formula
+            val hasAbilityDeclaration = Regex(
+                "\\bability\\s+(?:STR|DEX|CON|INT|WIS|CHA)\\b",
+                RegexOption.IGNORE_CASE,
+            ).containsMatchIn(formula)
+            if (!hasAbilityDeclaration) return CreationAncestryBonuses(detail = privateEntry.sourceNote)
+
+            val matches = Regex(
+                "\\b(STR|DEX|CON|INT|WIS|CHA)\\s*=\\s*([+-]?\\d+)\\b",
+                RegexOption.IGNORE_CASE,
+            ).findAll(formula).toList()
+            val keys = matches.map { it.groupValues[1].uppercase() }
+            val valuesAreValid = matches.isNotEmpty() && matches.all { match ->
+                val raw = match.groupValues[2]
+                raw.startsWith('+') && (raw.drop(1).toIntOrNull() ?: 0) in 1..10
+            }
+            val keysAreUnique = keys.distinct().size == keys.size
+            if (!valuesAreValid || !keysAreUnique) {
+                return CreationAncestryBonuses(detail = privateEntry.sourceNote, invalidPrivateFormula = true)
+            }
+            return CreationAncestryBonuses(
+                amounts = matches.associate { match ->
+                    match.groupValues[1].uppercase() to match.groupValues[2].drop(1).toInt()
+                },
+                detail = privateEntry.sourceNote,
+            )
+        }
+
+        if (creation.ruleset != Ruleset.Fifth2014) return CreationAncestryBonuses()
+        return CreationAncestryBonuses(
+            amounts = fifth2014AncestryBonuses[creation.ancestry].orEmpty(),
+            detail = "SRD 5.1 · Races: ${creation.ancestry}",
+        )
+    }
+
+    private fun abilityScoresForDraft(): LinkedHashMap<String, Int> = linkedMapOf<String, Int>().apply {
+        creationAbilityBreakdowns().forEach { breakdown -> put(breakdown.ability, breakdown.finalScore) }
+    }
+
+    private fun baseAbilityScoresForDraft(): LinkedHashMap<String, Int> {
         if (creation.statMethod == StatMethod.Manual) return LinkedHashMap(creation.manualAbilities)
         val scores = when (creation.statMethod) {
             StatMethod.Rolled -> creation.rolledScores.takeIf { it.size == 6 } ?: run {
@@ -3552,7 +3838,13 @@ class DndAppState(
             StatMethod.PointBuy -> listOf(15, 15, 14, 10, 8, 8)
             StatMethod.Manual -> error("handled above")
         }.sortedDescending()
-        val priority = when (creation.className) {
+        val priority = abilityPriorityForClass(creation.className)
+        return linkedMapOf<String, Int>().apply {
+            priority.forEachIndexed { index, ability -> put(ability, scores[index]) }
+        }
+    }
+
+    private fun abilityPriorityForClass(className: String): List<String> = when (className) {
             "Wizard" -> listOf("INT", "CON", "DEX", "WIS", "CHA", "STR")
             "Cleric", "Druid" -> listOf("WIS", "CON", "DEX", "CHA", "INT", "STR")
             "Rogue", "Monk" -> listOf("DEX", "WIS", "CON", "CHA", "INT", "STR")
@@ -3561,10 +3853,6 @@ class DndAppState(
             "Ranger" -> listOf("DEX", "WIS", "CON", "STR", "INT", "CHA")
             else -> listOf("STR", "CON", "DEX", "WIS", "CHA", "INT")
         }
-        return linkedMapOf<String, Int>().apply {
-            priority.forEachIndexed { index, ability -> put(ability, scores[index]) }
-        }
-    }
 
     private fun DerivedModifierFormulaUi.resolve(abilities: Map<String, Int>, proficiency: Int): Int =
         base + abilityModifier(abilities[ability] ?: 10) + proficiencyMultiplier * proficiency

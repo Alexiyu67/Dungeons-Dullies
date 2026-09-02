@@ -2,6 +2,8 @@ package app.dulliesanddungeons.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -24,6 +26,8 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material3.Button
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -45,6 +49,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
@@ -264,7 +270,7 @@ private fun BuildStep(state: DndAppState) {
         SelectionHeading(state.t("Class", "Klasse"), draft.className)
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(classes) { className ->
-                FilterChip(selected = draft.className == className, onClick = { draft.className = className }, label = { Text(className) })
+                FilterChip(selected = draft.className == className, onClick = { state.selectCreationClass(className) }, label = { Text(className) })
             }
         }
         TextButton(onClick = {
@@ -311,7 +317,7 @@ private fun LevelAndStatsStep(state: DndAppState) {
         Text(state.t("Level ${draft.level}", "Stufe ${draft.level}"), style = MaterialTheme.typography.headlineMedium)
         Slider(
             value = draft.level.toFloat(),
-            onValueChange = { draft.level = it.roundToInt() },
+            onValueChange = { state.setCreationLevel(it.roundToInt()) },
             valueRange = 1f..20f,
             steps = 18,
         )
@@ -364,27 +370,13 @@ private fun LevelAndStatsStep(state: DndAppState) {
                     Spacer(Modifier.width(8.dp))
                     Text(if (draft.rolledScores.isEmpty()) state.t("Roll the six scores", "Sechs Werte würfeln") else state.t("Reroll all six", "Alle sechs neu würfeln"))
                 }
-                if (draft.rolledScores.isNotEmpty()) AbilityScorePreview(draft.rolledScores)
+                if (draft.rolledScores.isNotEmpty()) NumberChipPreview(draft.rolledScores)
             }
-            StatMethod.StandardArray -> AbilityScorePreview(if (draft.ruleset == Ruleset.Pf2eRemaster) listOf(18, 16, 14, 12, 10, 8) else listOf(15, 14, 13, 12, 10, 8))
-            StatMethod.PointBuy -> AbilityScorePreview(listOf(15, 15, 14, 10, 8, 8))
-            StatMethod.Manual -> {
-                Text(state.t("Enter each score", "Jeden Wert eingeben"), style = MaterialTheme.typography.titleSmall)
-                draft.manualAbilities.forEach { (ability, score) ->
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(ability, modifier = Modifier.width(42.dp), fontWeight = FontWeight.Bold)
-                        Slider(
-                            value = score.toFloat(),
-                            onValueChange = { draft.manualAbilities[ability] = it.roundToInt() },
-                            valueRange = 1f..20f,
-                            steps = 18,
-                            modifier = Modifier.weight(1f),
-                        )
-                        Text(score.toString(), modifier = Modifier.width(30.dp), fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
+            StatMethod.StandardArray -> NumberChipPreview(if (draft.ruleset == Ruleset.Pf2eRemaster) listOf(18, 16, 14, 12, 10, 8) else listOf(15, 14, 13, 12, 10, 8))
+            StatMethod.PointBuy -> NumberChipPreview(listOf(15, 15, 14, 10, 8, 8))
+            StatMethod.Manual -> Unit
         }
+        AbilityBreakdownList(state, editable = draft.statMethod == StatMethod.Manual)
 
         Text(state.t("Hit Points", "Trefferpunkte"), style = MaterialTheme.typography.titleMedium)
         if (draft.ruleset == Ruleset.Pf2eRemaster) {
@@ -415,7 +407,14 @@ private fun LevelAndStatsStep(state: DndAppState) {
                     Spacer(Modifier.width(8.dp))
                     Text(state.t("Roll ${draft.level - 1} Hit Dice", "${draft.level - 1} Trefferwürfel würfeln"))
                 }
-                if (draft.rolledHpGains.isNotEmpty()) AbilityScorePreview(draft.rolledHpGains)
+                if (draft.rolledHpGains.isNotEmpty()) {
+                    NumberChipPreview(draft.rolledHpGains)
+                    Text(
+                        state.t("Dice total: ${draft.rolledHpGains.sum()}", "Würfelsumme: ${draft.rolledHpGains.sum()}"),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
             }
             HpMethod.Manual -> {
                 Text(state.t("HP gained per additional level: ${draft.manualHpGain}", "TP pro weiterer Stufe: ${draft.manualHpGain}"), style = MaterialTheme.typography.titleSmall)
@@ -431,10 +430,15 @@ private fun LevelAndStatsStep(state: DndAppState) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun AbilityScorePreview(scores: List<Int>) {
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        items(scores) { score ->
+private fun NumberChipPreview(scores: List<Int>) {
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        scores.forEach { score ->
             Surface(
                 color = MaterialTheme.colorScheme.primaryContainer,
                 shape = RoundedCornerShape(12.dp),
@@ -449,6 +453,89 @@ private fun AbilityScorePreview(scores: List<Int>) {
         }
     }
 }
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AbilityBreakdownList(state: DndAppState, editable: Boolean) {
+    val breakdowns = state.creationAbilityBreakdowns()
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(
+            if (editable) state.t("Enter each base score", "Jeden Basiswert eingeben")
+            else state.t("Assigned scores", "Verteilte Werte"),
+            style = MaterialTheme.typography.titleSmall,
+        )
+        breakdowns.forEach { breakdown ->
+            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    val abilityInfo = state.creationAbilityInfo(breakdown.ability)
+                    TextButton(
+                        onClick = { state.showInfo(abilityInfo.title, abilityInfo.body) },
+                        modifier = Modifier.width(54.dp).semantics {
+                            contentDescription = state.t("Explain ${abilityInfo.title}", "${abilityInfo.title} erklären")
+                        },
+                        contentPadding = PaddingValues(0.dp),
+                    ) {
+                        Text(breakdown.ability, fontWeight = FontWeight.Bold)
+                    }
+                    if (editable) {
+                        Slider(
+                            value = breakdown.baseScore.toFloat(),
+                            onValueChange = { state.creation.manualAbilities[breakdown.ability] = it.roundToInt() },
+                            valueRange = 1f..20f,
+                            steps = 18,
+                            modifier = Modifier.weight(1f),
+                        )
+                    } else {
+                        Spacer(Modifier.weight(1f))
+                    }
+                    Text(
+                        if (breakdown.ancestrySource == null) breakdown.finalScore.toString()
+                        else "${breakdown.baseScore} → ${breakdown.finalScore}",
+                        modifier = Modifier.width(72.dp),
+                        textAlign = TextAlign.End,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth().padding(start = 54.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    AssistChip(
+                        onClick = {
+                            val info = state.creationModifierInfo(breakdown.ability)
+                            state.showInfo(info.title, info.body)
+                        },
+                        label = { Text(state.t("Modifier ${creationSigned(breakdown.modifier)}", "Modifikator ${creationSigned(breakdown.modifier)}")) },
+                        colors = AssistChipDefaults.assistChipColors(
+                            labelColor = MaterialTheme.colorScheme.primary,
+                        ),
+                    )
+                    breakdown.ancestrySource?.let { source ->
+                        AssistChip(
+                            onClick = {
+                                state.creationAncestryInfo(breakdown.ability)?.let { info -> state.showInfo(info.title, info.body) }
+                            },
+                            label = { Text("${source.label} ${creationSigned(source.amount)}") },
+                            colors = AssistChipDefaults.assistChipColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                            ),
+                        )
+                    }
+                }
+            }
+        }
+        state.creationAncestryBonusAdvisory()?.let { advisory ->
+            Text(advisory, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        state.creationAbilityLimitAdvisory()?.let { advisory ->
+            Text(advisory, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+        }
+    }
+}
+
+private fun creationSigned(value: Int): String = if (value >= 0) "+$value" else value.toString()
 
 @Composable
 private fun DetailsStep(state: DndAppState) {
