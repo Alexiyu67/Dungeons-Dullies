@@ -28,6 +28,7 @@ import app.dulliesanddungeons.domain.ExpiryTrigger
 import app.dulliesanddungeons.domain.FeatureRecord
 import app.dulliesanddungeons.domain.FiveEBuildData
 import app.dulliesanddungeons.domain.FiveEHealthState
+import app.dulliesanddungeons.domain.HealthStatus
 import app.dulliesanddungeons.domain.HitPointGainMethod
 import app.dulliesanddungeons.domain.HitPointGainRecord
 import app.dulliesanddungeons.domain.LanguageRecord
@@ -56,6 +57,8 @@ import app.dulliesanddungeons.domain.TurnGuideSelections
 import app.dulliesanddungeons.domain.TurnSection as DomainTurnSection
 import app.dulliesanddungeons.rules.DiceNotation
 import app.dulliesanddungeons.rules.FifthEditionFeatureRules
+import app.dulliesanddungeons.rules.FiveEHealthRules
+import app.dulliesanddungeons.rules.effectiveMaximumHitPoints
 
 internal fun CharacterUi.toDocument(characterConditions: List<ConditionUi> = emptyList()): CharacterDocument {
     val rulesetId = ruleset.toDomain()
@@ -190,6 +193,7 @@ internal fun CharacterUi.toDocument(characterConditions: List<ConditionUi> = emp
         currentHitPoints = hp,
         maximumHitPoints = maxHp,
         temporaryHitPoints = temporaryHp,
+        maximumHitPointReduction = maxHpReduction,
         health = health,
         resources = resources,
         conditions = characterConditions.map { it.toDomain() },
@@ -267,8 +271,9 @@ internal fun CharacterDocument.toCharacterUi(): CharacterUi {
         classLevel.subclassId?.let { displayName(classLevel.classId) to displayName(it) }
     }.toMap()
     val health = state.health
+    val maximumHitPointDeath = build.ruleset.isFiveEdition && state.effectiveMaximumHitPoints(build.ruleset) == 0
     val isDead = when (health) {
-        is FiveEHealthState -> health.deathReason != null || health.exhaustionLevel >= 6
+        is FiveEHealthState -> FiveEHealthRules.status(state, build.ruleset) == HealthStatus.DEAD
         is Pf2eHealthState -> health.dead
     }
     val resources = state.resources.associateBy { it.id }
@@ -326,11 +331,16 @@ internal fun CharacterDocument.toCharacterUi(): CharacterUi {
         hp = state.currentHitPoints,
         maxHp = state.maximumHitPoints,
         temporaryHp = state.temporaryHitPoints,
+        maxHpReduction = state.maximumHitPointReduction,
         deathSaveSuccesses = (health as? FiveEHealthState)?.deathSaveSuccesses ?: 0,
         deathSaveFailures = (health as? FiveEHealthState)?.deathSaveFailures ?: 0,
         isStable = (health as? FiveEHealthState)?.stable == true,
         isDead = isDead,
-        deathReason = (health as? FiveEHealthState)?.let { it.deathNote ?: it.deathReason?.displayName },
+        deathReason = if (maximumHitPointDeath) {
+            DeathReason.MAXIMUM_HIT_POINTS_ZERO.displayName
+        } else {
+            (health as? FiveEHealthState)?.let { it.deathNote ?: it.deathReason?.displayName }
+        },
         exhaustionLevel = (health as? FiveEHealthState)?.exhaustionLevel ?: 0,
         dyingValue = (health as? Pf2eHealthState)?.dying ?: 0,
         woundedValue = (health as? Pf2eHealthState)?.wounded ?: 0,
@@ -389,7 +399,9 @@ internal fun CharacterDocument.toCharacterUi(): CharacterUi {
         activePlaySession = state.activePlaySession,
         savedPlaySessions = state.savedPlaySessions,
         hasPlayedSinceLongRest = state.hasPlayedSinceLongRest ||
-            state.currentHitPoints < state.maximumHitPoints ||
+            state.currentHitPoints < state.effectiveMaximumHitPoints(build.ruleset) ||
+            state.temporaryHitPoints > 0 ||
+            state.maximumHitPointReduction > 0 ||
             state.resources.any { pool ->
                 pool.current < pool.maximum && pool.recoveryRules.any { it.trigger == app.dulliesanddungeons.domain.Recovery.SHORT_REST || it.trigger == app.dulliesanddungeons.domain.Recovery.LONG_REST }
             },
@@ -507,6 +519,7 @@ private fun CharacterDocument.toRollbackSnapshot() = CharacterRollbackSnapshot(
     spellSlotMaximumOverrides = state.spellSlotMaximumOverrides,
     spellSlotSpentCounts = state.spellSlotSpentCounts,
     hasPlayedSinceLongRest = state.hasPlayedSinceLongRest,
+    maximumHitPointReduction = state.maximumHitPointReduction,
 )
 
 private fun CharacterRollbackSnapshot.toDocument() = CharacterDocument(
@@ -518,6 +531,7 @@ private fun CharacterRollbackSnapshot.toDocument() = CharacterDocument(
         currentHitPoints = currentHitPoints,
         maximumHitPoints = maximumHitPoints,
         temporaryHitPoints = temporaryHitPoints,
+        maximumHitPointReduction = maximumHitPointReduction,
         health = health,
         resources = resources,
         conditions = conditions,
@@ -821,6 +835,7 @@ private fun String?.toDomainDeathReason(): DeathReason? = when (this) {
     "Failed death saves" -> DeathReason.DEATH_SAVE_FAILURES
     "Massive damage" -> DeathReason.MASSIVE_DAMAGE
     "Exhaustion" -> DeathReason.EXHAUSTION
+    "Maximum Hit Points are zero" -> DeathReason.MAXIMUM_HIT_POINTS_ZERO
     else -> null
 }
 

@@ -34,12 +34,22 @@ data class HealingResolution(
     val requiresRevivalOverride: Boolean = false,
 )
 
+fun CharacterState.effectiveMaximumHitPoints(ruleset: RulesetId): Int {
+    val reducedMaximum = (maximumHitPoints - maximumHitPointReduction).coerceAtLeast(0)
+    val exhaustion = (health as? FiveEHealthState)?.exhaustionLevel ?: 0
+    return when {
+        ruleset == RulesetId.FIFTH_EDITION_2014 && exhaustion >= 4 -> reducedMaximum / 2
+        else -> reducedMaximum
+    }
+}
+
 object FiveEHealthRules {
     fun status(state: CharacterState, ruleset: RulesetId): HealthStatus {
         require(ruleset.isFiveEdition)
         val health = state.health as? FiveEHealthState ?: return HealthStatus.ALIVE
         return when {
-            health.deathReason != null || health.exhaustionLevel >= 6 || state.maximumHitPoints <= 0 -> HealthStatus.DEAD
+            health.deathReason != null || health.exhaustionLevel >= 6 ||
+                state.effectiveMaximumHitPoints(ruleset) <= 0 -> HealthStatus.DEAD
             state.currentHitPoints > 0 -> HealthStatus.ALIVE
             health.stable -> HealthStatus.STABLE
             else -> HealthStatus.DOWNED
@@ -48,11 +58,7 @@ object FiveEHealthRules {
 
     fun effectiveMaximumHitPoints(state: CharacterState, ruleset: RulesetId): Int {
         require(ruleset.isFiveEdition)
-        val exhaustion = (state.health as? FiveEHealthState)?.exhaustionLevel ?: 0
-        return when {
-            ruleset == RulesetId.FIFTH_EDITION_2014 && exhaustion >= 4 -> state.maximumHitPoints / 2
-            else -> state.maximumHitPoints
-        }.coerceAtLeast(0)
+        return state.effectiveMaximumHitPoints(ruleset)
     }
 
     fun effectiveSpeedFeet(baseSpeedFeet: Int, ruleset: RulesetId, exhaustionLevel: Int): Int {

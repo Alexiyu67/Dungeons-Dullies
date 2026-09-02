@@ -29,6 +29,39 @@ class HealthRulesTest {
     }
 
     @Test
+    fun maximumHitPointReductionPrecedesThe2014ExhaustionModifier() {
+        val reduced = state(maximum = 41, exhaustion = 4).copy(
+            currentHitPoints = 10,
+            maximumHitPointReduction = 9,
+        )
+
+        assertEquals(16, FiveEHealthRules.effectiveMaximumHitPoints(reduced, RulesetId.FIFTH_EDITION_2014))
+        assertEquals(32, FiveEHealthRules.effectiveMaximumHitPoints(reduced, RulesetId.FIFTH_EDITION_2024))
+        assertEquals(HealthStatus.ALIVE, FiveEHealthRules.status(reduced, RulesetId.FIFTH_EDITION_2014))
+
+        val fullyReduced = reduced.copy(maximumHitPointReduction = 41)
+        assertEquals(HealthStatus.DEAD, FiveEHealthRules.status(fullyReduced, RulesetId.FIFTH_EDITION_2024))
+    }
+
+    @Test
+    fun healingAndMassiveDamageUseTheReducedMaximum() {
+        val reduced = state(maximum = 20).copy(
+            currentHitPoints = 10,
+            maximumHitPointReduction = 7,
+        )
+
+        val healed = FiveEHealthRules.heal(reduced, RulesetId.FIFTH_EDITION_2024, amount = 100)
+        assertEquals(13, healed.state.currentHitPoints)
+
+        val damaged = FiveEHealthRules.applyDamage(
+            reduced.copy(currentHitPoints = 5),
+            RulesetId.FIFTH_EDITION_2024,
+            amount = 18,
+        )
+        assertTrue(damaged.died)
+    }
+
+    @Test
     fun naturalOneAddsTwoFailuresAndNaturalTwentyRestoresOneHitPoint() {
         val failed = FiveEHealthRules.resolveDeathSave(
             state(),

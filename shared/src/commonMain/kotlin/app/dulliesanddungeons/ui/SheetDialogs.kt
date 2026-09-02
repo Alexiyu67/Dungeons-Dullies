@@ -64,16 +64,52 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.random.Random
 
+private enum class HpAdjustmentMode { CURRENT, TEMPORARY, MAXIMUM_REDUCTION }
+
 @Composable
 internal fun HpAdjustDialog(state: DndAppState) {
     val character = state.selectedCharacter ?: return
-    var targetHp by remember(character.id, character.hp, character.effectiveMaxHp) { mutableStateOf(character.hp.coerceAtMost(character.effectiveMaxHp)) }
-    var targetText by remember(character.id, character.hp, character.effectiveMaxHp) { mutableStateOf(character.hp.coerceAtMost(character.effectiveMaxHp).toString()) }
-    val delta = targetHp - character.hp
+    var mode by remember(character.id) { mutableStateOf(HpAdjustmentMode.CURRENT) }
+    val originalValue = when (mode) {
+        HpAdjustmentMode.CURRENT -> character.hp.coerceAtMost(character.effectiveMaxHp)
+        HpAdjustmentMode.TEMPORARY -> character.temporaryHp
+        HpAdjustmentMode.MAXIMUM_REDUCTION -> character.maxHpReduction
+    }
+    val maximumValue = when (mode) {
+        HpAdjustmentMode.CURRENT -> character.effectiveMaxHp
+        HpAdjustmentMode.TEMPORARY -> 9_999
+        HpAdjustmentMode.MAXIMUM_REDUCTION -> character.maxHp
+    }
+    var targetValue by remember(character.id, mode, originalValue, maximumValue) {
+        mutableStateOf(originalValue.coerceIn(0, maximumValue))
+    }
+    var targetText by remember(character.id, mode, originalValue, maximumValue) {
+        mutableStateOf(originalValue.coerceIn(0, maximumValue).toString())
+    }
+    val delta = targetValue - originalValue
     val deltaLabel = when {
-        delta < 0 -> state.t("${abs(delta)} HP lost", "${abs(delta)} TP verloren")
-        delta > 0 -> state.t("$delta HP gained", "$delta TP erhalten")
-        else -> state.t("No HP change", "Keine TP-Änderung")
+        mode == HpAdjustmentMode.CURRENT && delta < 0 -> state.t("${abs(delta)} HP lost", "${abs(delta)} TP verloren")
+        mode == HpAdjustmentMode.CURRENT && delta > 0 -> state.t("$delta HP gained", "$delta TP erhalten")
+        mode == HpAdjustmentMode.CURRENT -> state.t("No HP change", "Keine TP-Änderung")
+        mode == HpAdjustmentMode.TEMPORARY && delta != 0 -> state.t(
+            "Replaces ${character.temporaryHp} temporary HP",
+            "Ersetzt ${character.temporaryHp} temporäre TP",
+        )
+        mode == HpAdjustmentMode.TEMPORARY -> state.t("No temporary HP change", "Keine Änderung der temporären TP")
+        else -> state.t(
+            "Effective maximum: ${character.effectiveMaxHp(targetValue)} HP",
+            "Effektives Maximum: ${character.effectiveMaxHp(targetValue)} TP",
+        )
+    }
+    val fieldLabel = when (mode) {
+        HpAdjustmentMode.CURRENT -> state.t("Final HP", "Endgültige TP")
+        HpAdjustmentMode.TEMPORARY -> state.t("Temporary HP", "Temporäre TP")
+        HpAdjustmentMode.MAXIMUM_REDUCTION -> state.t("Max HP reduction", "Max.-TP-Senkung")
+    }
+    val valueSuffix = when (mode) {
+        HpAdjustmentMode.CURRENT -> "/ ${character.effectiveMaxHp} HP"
+        HpAdjustmentMode.TEMPORARY -> state.t("temporary HP", "temporäre TP")
+        HpAdjustmentMode.MAXIMUM_REDUCTION -> state.t("HP reduction", "TP-Senkung")
     }
     AlertDialog(
         onDismissRequest = { state.hpAdjustOpen = false },
@@ -81,53 +117,95 @@ internal fun HpAdjustDialog(state: DndAppState) {
         title = { Text(state.t("Adjust HP", "TP anpassen")) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                Text(state.t("Set the character's final HP.", "Lege die endgültigen TP des Charakters fest."), style = MaterialTheme.typography.bodySmall)
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    item {
+                        FilterChip(
+                            selected = mode == HpAdjustmentMode.CURRENT,
+                            onClick = { mode = HpAdjustmentMode.CURRENT },
+                            label = { Text("HP") },
+                        )
+                    }
+                    item {
+                        FilterChip(
+                            selected = mode == HpAdjustmentMode.TEMPORARY,
+                            onClick = { mode = HpAdjustmentMode.TEMPORARY },
+                            label = { Text(state.t("Temp HP", "Temp. TP")) },
+                        )
+                    }
+                    item {
+                        FilterChip(
+                            selected = mode == HpAdjustmentMode.MAXIMUM_REDUCTION,
+                            onClick = { mode = HpAdjustmentMode.MAXIMUM_REDUCTION },
+                            label = { Text(state.t("Max reduction", "Max.-Senkung")) },
+                        )
+                    }
+                }
                 Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(14.dp)) {
                     Column(Modifier.fillMaxWidth().padding(13.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
                         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(targetHp.toString(), style = MaterialTheme.typography.displaySmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-                            Text("/ ${character.effectiveMaxHp} HP", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 5.dp))
+                            Text(targetValue.toString(), style = MaterialTheme.typography.displaySmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                            Text(valueSuffix, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 5.dp))
                         }
-                        Text(deltaLabel, style = MaterialTheme.typography.labelLarge, color = if (delta < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            deltaLabel,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = if (mode == HpAdjustmentMode.CURRENT && delta < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
-                Slider(
-                    value = targetHp.toFloat(),
-                    onValueChange = { value ->
-                        targetHp = value.roundToInt().coerceIn(0, character.effectiveMaxHp)
-                        targetText = targetHp.toString()
-                    },
-                    valueRange = 0f..character.effectiveMaxHp.coerceAtLeast(1).toFloat(),
-                    steps = (character.effectiveMaxHp - 1).coerceAtLeast(0),
-                )
+                if (mode == HpAdjustmentMode.CURRENT) {
+                    Slider(
+                        value = targetValue.toFloat(),
+                        onValueChange = { value ->
+                            targetValue = value.roundToInt().coerceIn(0, maximumValue)
+                            targetText = targetValue.toString()
+                        },
+                        valueRange = 0f..maximumValue.coerceAtLeast(1).toFloat(),
+                        steps = (maximumValue - 1).coerceAtLeast(0),
+                    )
+                }
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     IconButton(
-                        onClick = { targetHp = (targetHp - 1).coerceAtLeast(0); targetText = targetHp.toString() },
-                        enabled = targetHp > 0,
-                    ) { Icon(Icons.Rounded.Remove, contentDescription = state.t("Lose 1 HP", "1 TP verlieren")) }
-                OutlinedTextField(
+                        onClick = { targetValue = (targetValue - 1).coerceAtLeast(0); targetText = targetValue.toString() },
+                        enabled = targetValue > 0,
+                    ) {
+                        Icon(
+                            Icons.Rounded.Remove,
+                            contentDescription = state.t("Decrease $fieldLabel by 1", "$fieldLabel um 1 verringern"),
+                        )
+                    }
+                    OutlinedTextField(
                         value = targetText,
                         onValueChange = { text ->
                             targetText = text.filter(Char::isDigit).take(4)
-                            targetText.toIntOrNull()?.let { targetHp = it.coerceIn(0, character.effectiveMaxHp) }
+                            targetText.toIntOrNull()?.let { targetValue = it.coerceIn(0, maximumValue) }
                         },
-                        label = { Text(state.t("Final HP", "Endgültige TP")) },
-                    singleLine = true,
+                        label = { Text(fieldLabel) },
+                        singleLine = true,
                         modifier = Modifier.weight(1f),
-                )
+                    )
                     IconButton(
-                        onClick = { targetHp = (targetHp + 1).coerceAtMost(character.effectiveMaxHp); targetText = targetHp.toString() },
-                        enabled = targetHp < character.effectiveMaxHp,
-                    ) { Icon(Icons.Rounded.Add, contentDescription = state.t("Gain 1 HP", "1 TP erhalten")) }
+                        onClick = { targetValue = (targetValue + 1).coerceAtMost(maximumValue); targetText = targetValue.toString() },
+                        enabled = targetValue < maximumValue,
+                    ) {
+                        Icon(
+                            Icons.Rounded.Add,
+                            contentDescription = state.t("Increase $fieldLabel by 1", "$fieldLabel um 1 erhöhen"),
+                        )
+                    }
                 }
             }
         },
         dismissButton = { TextButton(onClick = { state.hpAdjustOpen = false }) { Text(state.t("Cancel", "Abbrechen")) } },
         confirmButton = {
             Button(onClick = {
-                state.adjustHitPoints(abs(delta), damage = delta < 0)
+                when (mode) {
+                    HpAdjustmentMode.CURRENT -> state.setHitPoints(targetValue)
+                    HpAdjustmentMode.TEMPORARY -> state.setTemporaryHitPoints(targetValue)
+                    HpAdjustmentMode.MAXIMUM_REDUCTION -> state.setMaximumHitPointReduction(targetValue)
+                }
                 state.hpAdjustOpen = false
-            }, enabled = delta != 0) {
+            }, enabled = delta != 0 && targetText.toIntOrNull() != null) {
                 Text(state.t("Apply", "Anwenden"))
             }
         },

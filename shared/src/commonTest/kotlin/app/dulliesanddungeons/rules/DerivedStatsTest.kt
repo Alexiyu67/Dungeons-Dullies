@@ -64,6 +64,21 @@ class DerivedStatsTest {
 
         assertTrue(issues.any { it.code == "hp.current" })
     }
+
+    @Test
+    fun validatorUsesTheReducedEffectiveMaximum() {
+        val build = sampleBuild(level = 3)
+        val state = CharacterState(
+            build.id,
+            currentHitPoints = 8,
+            maximumHitPoints = 10,
+            maximumHitPointReduction = 3,
+        )
+
+        val issues = CharacterValidator.validate(build, state)
+
+        assertTrue(issues.any { it.code == "hp.current" })
+    }
 }
 
 internal fun sampleBuild(

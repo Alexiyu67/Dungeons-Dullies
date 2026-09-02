@@ -38,6 +38,29 @@ class LevelUpRulesTest {
     }
 
     @Test
+    fun levelUpPreservesMaximumHitPointReductionAndUsesTheEffectiveMaximum() {
+        val current = document().copy(
+            state = document().state.copy(
+                currentHitPoints = 20,
+                maximumHitPointReduction = 10,
+            ),
+        )
+        val target = current.build.copy(rules = rules(listOf(ClassLevel("fighter", 6))))
+        val entry = LevelProgressionEntry(
+            characterLevel = 6,
+            classId = "fighter",
+            classLevel = 6,
+            hitPoints = HitPointGainRecord(HitPointGainMethod.FIXED, 10, constitutionModifier = 2, totalGain = 8),
+        )
+
+        val updated = LevelUpRules.apply(current, target, entry, mapOf("fighter" to fighter()))
+
+        assertEquals(10, updated.state.maximumHitPointReduction)
+        assertEquals(28, updated.state.effectiveMaximumHitPoints(target.ruleset))
+        assertEquals(28, updated.state.currentHitPoints)
+    }
+
+    @Test
     fun multiclassPrerequisitesAreCheckedAgainstTheCurrentCharacter() {
         val current = document()
         val target = current.build.copy(

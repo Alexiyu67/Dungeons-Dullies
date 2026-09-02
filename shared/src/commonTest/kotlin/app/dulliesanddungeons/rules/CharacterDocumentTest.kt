@@ -23,6 +23,7 @@ import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class CharacterDocumentTest {
@@ -35,6 +36,8 @@ class CharacterDocumentTest {
                 characterId = build.id,
                 currentHitPoints = 31,
                 maximumHitPoints = 40,
+                temporaryHitPoints = 3,
+                maximumHitPointReduction = 5,
                 health = FiveEHealthState(exhaustionLevel = 2),
             ),
             sheet = CharacterSheetData(
@@ -62,6 +65,20 @@ class CharacterDocumentTest {
         assertEquals(document, restored)
         assertEquals(5, restored.build.level)
         assertEquals(40, restored.sheet.combat.baseSpeedsFeet.getValue(MovementMode.FLY))
+    }
+
+    @Test
+    fun documentsWithoutMaximumHitPointReductionRemainCompatible() {
+        val build = sampleBuild()
+        val document = CharacterDocument(
+            build = build,
+            state = CharacterState(build.id, currentHitPoints = 10, maximumHitPoints = 10),
+        )
+        val json = Json { encodeDefaults = false; classDiscriminator = "type" }
+        val encoded = json.encodeToString(document)
+
+        assertFalse("maximumHitPointReduction" in encoded)
+        assertEquals(0, json.decodeFromString<CharacterDocument>(encoded).state.maximumHitPointReduction)
     }
 
     @Test

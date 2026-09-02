@@ -191,7 +191,14 @@ object CharacterValidator {
             if (state.maximumHitPoints < 1) {
                 issues += ValidationIssue("hp.maximum", "Maximum hit points must be positive", "maximumHitPoints")
             }
-            if (state.currentHitPoints !in 0..state.maximumHitPoints) {
+            if (state.maximumHitPointReduction !in 0..state.maximumHitPoints.coerceAtLeast(0)) {
+                issues += ValidationIssue("hp.maximum_reduction", "Maximum hit point reduction must be within the base maximum", "maximumHitPointReduction")
+            }
+            if (state.temporaryHitPoints < 0) {
+                issues += ValidationIssue("hp.temporary", "Temporary hit points cannot be negative", "temporaryHitPoints")
+            }
+            val effectiveMaximum = state.effectiveMaximumHitPoints(build.ruleset)
+            if (state.currentHitPoints !in 0..effectiveMaximum) {
                 issues += ValidationIssue("hp.current", "Current hit points must be within the valid range", "currentHitPoints")
             }
             when (val health = state.health) {
