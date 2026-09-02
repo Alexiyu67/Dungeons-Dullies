@@ -60,12 +60,13 @@ internal fun ActionCost.toCostTokens(): List<CostTokenUi> = buildList {
 
 internal fun FeatureUi.toCostTokens(): List<CostTokenUi> = buildList {
     addAll(actionCost.toCostTokens())
-    val resourceLabel = resourceId?.toReadableCostName()
-        ?: name.takeIf { remaining != null && maximum != null }
+    val resourceLabel = sharedResourceCostLabel()
     if (resourceLabel != null && none { it.kind == CostTokenKind.Resource && it.labelOverride == resourceLabel }) {
         add(CostTokenUi(CostTokenKind.Resource, labelOverride = resourceLabel))
     }
 }
+
+internal fun FeatureUi.sharedResourceCostLabel(): String? = resourceId?.toReadableCostName()
 
 @Composable
 internal fun CostChip(

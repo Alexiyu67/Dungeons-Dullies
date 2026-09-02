@@ -4545,7 +4545,7 @@ class DndAppState(
                 add(SearchResultUi("spell-${spell.id}", spell.name, spell.summary, SearchResultKind.Action, t("Use", "Nutzen"), cost = spell.activationCost))
             }
             character.features.forEach { feature ->
-                add(SearchResultUi("feature-${feature.id}", feature.name, feature.summary, SearchResultKind.Rule, t("Info", "Info"), cost = feature.actionCost, resourceLabel = feature.resourceId ?: feature.name.takeIf { feature.remaining != null }))
+                add(SearchResultUi("feature-${feature.id}", feature.name, feature.summary, SearchResultKind.Rule, t("Info", "Info"), cost = feature.actionCost, resourceLabel = feature.sharedResourceCostLabel()))
             }
             character.subclassIdsByClass.forEach { (className, subclassId) ->
                 val option = subclassOptions(character.ruleset, className).firstOrNull { it.id == subclassId }
