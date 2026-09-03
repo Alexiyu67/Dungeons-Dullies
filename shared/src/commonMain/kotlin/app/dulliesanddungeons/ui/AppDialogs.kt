@@ -1,11 +1,14 @@
 package app.dulliesanddungeons.ui
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -53,7 +56,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -66,6 +68,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
@@ -261,6 +264,12 @@ internal fun ConditionsDialog(state: DndAppState) {
                     item { Text(state.t("ACTIVE", "AKTIV"), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
                     items(state.selectedConditions, key = { it.id.ifBlank { "condition-${it.name}-${it.source}-${it.characterId}" } }) { condition ->
                         val inspiration = condition.isInspiration()
+                        val infoBody = if (condition.name.equals("Custom effect", ignoreCase = true)) {
+                            null
+                        } else {
+                            state.conditionInfo(condition.name, condition.level)
+                                ?: condition.explanation.takeIf(String::isNotBlank)
+                        }
                         Card(
                             colors = CardDefaults.cardColors(
                                 containerColor = if (inspiration) {
@@ -279,6 +288,15 @@ internal fun ConditionsDialog(state: DndAppState) {
                                 )
                                 Spacer(Modifier.width(9.dp))
                                 Text(condition.name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
+                                if (infoBody != null) {
+                                    IconButton(onClick = { state.showInfo(condition.name, infoBody) }) {
+                                        Icon(
+                                            Icons.Rounded.Info,
+                                            contentDescription = state.t("Condition info for ${condition.name}", "Zustandsinfo für ${condition.name}"),
+                                            modifier = Modifier.size(19.dp),
+                                        )
+                                    }
+                                }
                                 if (condition.removable) TextButton(onClick = { state.removeCondition(condition) }) { Text(state.t("Remove", "Entfernen")) }
                             }
                         }
@@ -287,19 +305,19 @@ internal fun ConditionsDialog(state: DndAppState) {
                 }
                 item { Text(state.t("QUICK ADD", "SCHNELL HINZUFÜGEN"), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
                 items(quickOptions) { condition ->
-                    OutlinedButton(
-                        onClick = {
-                            if (condition == "Exhaustion") exhaustionLevel = state.selectedCharacter?.exhaustionLevel?.coerceAtLeast(1) ?: 1
-                            else state.addCondition(condition)
-                        },
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        shape = RoundedCornerShape(14.dp),
-                    ) {
-                        Icon(conditionIcon(condition), contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(Modifier.width(10.dp))
-                        Text(if (condition == "Custom effect") state.t("Custom effect…", "Eigener Effekt …") else condition, modifier = Modifier.weight(1f))
-                        Icon(Icons.Rounded.Add, contentDescription = state.t("Add $condition", "$condition hinzufügen"), modifier = Modifier.size(18.dp))
+                    val addCondition = {
+                        if (condition == "Exhaustion") exhaustionLevel = state.selectedCharacter?.exhaustionLevel?.coerceAtLeast(1) ?: 1
+                        else state.addCondition(condition)
                     }
+                    val infoLevel = if (condition == "Exhaustion") {
+                        state.selectedCharacter?.exhaustionLevel?.coerceAtLeast(1) ?: 1
+                    } else 1
+                    ConditionQuickAddRow(
+                        state = state,
+                        condition = condition,
+                        infoBody = state.conditionInfo(condition, infoLevel),
+                        onAdd = addCondition,
+                    )
                 }
             }
         },
@@ -337,6 +355,53 @@ internal fun ConditionsDialog(state: DndAppState) {
                 }) { Text(state.t("Apply", "Anwenden")) }
             },
         )
+    }
+}
+
+@Composable
+private fun ConditionQuickAddRow(
+    state: DndAppState,
+    condition: String,
+    infoBody: String?,
+    onAdd: () -> Unit,
+) {
+    val addLabel = state.t("Add $condition", "$condition hinzufügen")
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.primary,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+    ) {
+        Row(Modifier.fillMaxWidth().height(48.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .clickable(onClickLabel = addLabel, role = Role.Button, onClick = onAdd)
+                    .padding(start = 16.dp, end = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(conditionIcon(condition), contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    if (condition == "Custom effect") state.t("Custom effect…", "Eigener Effekt …") else condition,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            if (infoBody != null) {
+                IconButton(onClick = { state.showInfo(condition, infoBody) }) {
+                    Icon(
+                        Icons.Rounded.Info,
+                        contentDescription = state.t("Condition info for $condition", "Zustandsinfo für $condition"),
+                        modifier = Modifier.size(19.dp),
+                    )
+                }
+            }
+            IconButton(onClick = onAdd) {
+                Icon(Icons.Rounded.Add, contentDescription = addLabel, modifier = Modifier.size(18.dp))
+            }
+        }
     }
 }
 

@@ -5493,7 +5493,20 @@ class DndAppState(
         searchOpen = false
     }
 
-    private fun conditionExplanation(name: String): String = when (name) {
+    private fun conditionExplanation(name: String): String = conditionInfo(name) ?: t(
+        "This effect can change what your character can do.",
+        "Dieser Effekt kann die Möglichkeiten deines Charakters ändern.",
+    )
+
+    internal fun conditionInfo(name: String, level: Int = 1): String? {
+        if (name.equals("Custom effect", ignoreCase = true)) return null
+        return when (selectedCharacter?.ruleset ?: Ruleset.Fifth2024) {
+            Ruleset.Pf2eRemaster -> pf2eConditionInfo(name)
+            Ruleset.Fifth2014, Ruleset.Fifth2024 -> fiveEConditionInfo(name, level)
+        }
+    }
+
+    private fun fiveEConditionInfo(name: String, level: Int): String? = when (name) {
         "Inspiration" -> t(
             "After an eligible d20 roll, use Inspiration to roll it again. The new result replaces the previous result.",
             "Verwende Inspiration nach einem passenden W20-Wurf, um ihn zu wiederholen. Das neue Ergebnis ersetzt das vorherige.",
@@ -5501,21 +5514,46 @@ class DndAppState(
         "Blinded" -> t("You cannot see. Your attacks have disadvantage, and attacks against you have advantage.", "Du kannst nicht sehen. Deine Angriffe haben Nachteil; Angriffe gegen dich haben Vorteil.")
         "Charmed" -> t("You cannot attack the charmer, and the charmer has an edge in social interaction with you.", "Du kannst den Bezaubernden nicht angreifen; er hat Vorteile bei sozialen Interaktionen mit dir.")
         "Deafened" -> t("You cannot hear and automatically fail checks that require hearing.", "Du kannst nicht hören und scheiterst automatisch an Würfen, die Gehör erfordern.")
+        "Exhaustion" -> selectedCharacter?.let { exhaustionExplanation(it.ruleset, level.coerceAtLeast(1)) }
+            ?: t("Exhaustion has cumulative levels.", "Erschöpfung hat kumulative Stufen.")
         "Frightened" -> t("You have disadvantage on checks and attacks while the source is visible, and cannot willingly move closer.", "Du hast Nachteil bei Würfen, solange die Quelle sichtbar ist, und kannst dich ihr nicht freiwillig nähern.")
         "Grappled" -> t("Your speed becomes 0 until the grapple ends.", "Deine Bewegungsrate wird 0, bis der Griff endet.")
         "Incapacitated" -> t("You cannot take actions, Bonus Actions, or Reactions.", "Du kannst keine Aktionen, Bonusaktionen oder Reaktionen ausführen.")
-        "Restrained" -> t("Your speed is 0; your attacks and Dexterity saves suffer while attacks against you gain advantage.", "Deine Bewegungsrate ist 0; Angriffe und Geschicklichkeitsrettungswürfe sind erschwert, Angriffe gegen dich erleichtert.")
-        "Prone" -> t("Crawling costs extra movement. Standing normally costs half your speed.", "Kriechen kostet zusätzliche Bewegung. Aufstehen kostet normalerweise die Hälfte deiner Bewegungsrate.")
-        "Poisoned" -> t("Disadvantage on attack rolls and ability checks.", "Nachteil bei Angriffswürfen und Attributswürfen.")
-        "Stunned" -> t("You are incapacitated, cannot move, and nearby attackers have advantage; relevant saves can fail automatically.", "Du bist handlungsunfähig, kannst dich nicht bewegen, und Angreifer haben Vorteil; bestimmte Rettungswürfe scheitern automatisch.")
+        "Invisible" -> t("You cannot be seen without special senses; your attacks gain advantage and attacks against you have disadvantage when your position is known.", "Ohne besondere Sinne bist du unsichtbar; deine Angriffe haben Vorteil und Angriffe gegen dich Nachteil, wenn deine Position bekannt ist.")
         "Paralyzed" -> t("You are incapacitated and cannot move or speak. Nearby hits can become critical hits.", "Du bist handlungsunfähig und kannst dich weder bewegen noch sprechen. Nahe Treffer können kritische Treffer werden.")
         "Petrified" -> t("You are transformed and incapacitated, with strong defenses but no movement or speech.", "Du bist verwandelt und handlungsunfähig, mit starken Abwehrvorteilen, aber ohne Bewegung oder Sprache.")
+        "Poisoned" -> t("Disadvantage on attack rolls and ability checks.", "Nachteil bei Angriffswürfen und Attributswürfen.")
+        "Prone" -> t("Crawling costs extra movement. Standing normally costs half your speed.", "Kriechen kostet zusätzliche Bewegung. Aufstehen kostet normalerweise die Hälfte deiner Bewegungsrate.")
+        "Restrained" -> t("Your speed is 0; your attacks and Dexterity saves suffer while attacks against you gain advantage.", "Deine Bewegungsrate ist 0; Angriffe und Geschicklichkeitsrettungswürfe sind erschwert, Angriffe gegen dich erleichtert.")
+        "Stunned" -> t("You are incapacitated, cannot move, and nearby attackers have advantage; relevant saves can fail automatically.", "Du bist handlungsunfähig, kannst dich nicht bewegen, und Angreifer haben Vorteil; bestimmte Rettungswürfe scheitern automatisch.")
         "Unconscious" -> t("You are incapacitated, cannot move or speak, drop held items, and fall Prone.", "Du bist handlungsunfähig, kannst dich weder bewegen noch sprechen, lässt Gehaltenes fallen und liegst am Boden.")
-        "Invisible" -> t("You cannot be seen without special senses; your attacks gain advantage and attacks against you have disadvantage when your position is known.", "Ohne besondere Sinne bist du unsichtbar; deine Angriffe haben Vorteil und Angriffe gegen dich Nachteil, wenn deine Position bekannt ist.")
         "Concentrating" -> t("Taking damage may require a Constitution saving throw.", "Schaden kann einen Konstitutionsrettungswurf erfordern.")
-        "Exhaustion" -> selectedCharacter?.let { exhaustionExplanation(it.ruleset, it.exhaustionLevel.coerceAtLeast(1)) }
-            ?: t("Exhaustion has cumulative levels.", "Erschöpfung hat kumulative Stufen.")
-        else -> t("This effect can change what your character can do. Tap its info icon for details.", "Dieser Effekt kann die Möglichkeiten deines Charakters ändern. Tippe auf das Infosymbol.")
+        else -> null
+    }
+
+    private fun pf2eConditionInfo(name: String): String? = when (name) {
+        "Blinded" -> t("Sight is unavailable, so visual tasks and locating creatures are impaired.", "Du kannst nicht sehen; sichtabhängige Aufgaben und das Aufspüren von Kreaturen sind beeinträchtigt.")
+        "Clumsy" -> t("Reduced coordination hinders Dexterity-based defenses and actions.", "Verringerte Koordination erschwert geschicklichkeitsbasierte Verteidigung und Handlungen.")
+        "Confused" -> t("You act unpredictably and cannot reliably distinguish allies from enemies.", "Du handelst unberechenbar und kannst Verbündete nicht zuverlässig von Gegnern unterscheiden.")
+        "Controlled" -> t("Another creature directs your actions, even against your wishes.", "Eine andere Kreatur bestimmt deine Handlungen, auch gegen deinen Willen.")
+        "Deafened" -> t("Hearing is unavailable, so sound-based awareness and activities are impaired.", "Du kannst nicht hören; geräuschbasierte Wahrnehmung und Handlungen sind beeinträchtigt.")
+        "Drained" -> t("Lost vitality weakens Constitution-based endurance and reduces how much harm you can withstand.", "Verlorene Lebenskraft schwächt deine konstitutionsbasierte Ausdauer und verringert, wie viel Schaden du verkraftest.")
+        "Enfeebled" -> t("Reduced strength hinders Strength-based attacks, damage, and physical tasks.", "Verringerte Stärke erschwert stärkebasierte Angriffe, Schaden und körperliche Aufgaben.")
+        "Frightened" -> t("Fear imposes broad temporary penalties that normally ease over time.", "Furcht verursacht vorübergehende allgemeine Abzüge, die normalerweise mit der Zeit nachlassen.")
+        "Grabbed" -> t("You are held in place, easier to exploit, and less able to perform precise actions.", "Du wirst festgehalten, bist leichter auszunutzen und kannst präzise Handlungen schlechter ausführen.")
+        "Immobilized" -> t("You cannot move freely until the effect holding you in place ends.", "Du kannst dich nicht frei bewegen, bis der festhaltende Effekt endet.")
+        "Invisible" -> t("Creatures relying on sight cannot see you and must locate you by other means.", "Kreaturen, die sich auf Sicht verlassen, können dich nicht sehen und müssen dich anders aufspüren.")
+        "Off-Guard" -> t("Your defenses are lowered because you cannot protect yourself as effectively.", "Deine Verteidigung ist verringert, weil du dich nicht so wirksam schützen kannst.")
+        "Paralyzed" -> t("Your body is frozen, preventing normal movement and physical actions.", "Dein Körper ist erstarrt, wodurch normale Bewegung und körperliche Handlungen verhindert werden.")
+        "Persistent Damage" -> t("The listed damage repeats over time until the ongoing effect ends.", "Der angegebene Schaden wiederholt sich, bis der anhaltende Effekt endet.")
+        "Prone" -> t("You are on the ground, easier to attack, and must reposition before moving normally.", "Du liegst am Boden, bist leichter anzugreifen und musst dich neu positionieren, bevor du dich normal bewegst.")
+        "Quickened" -> t("You gain an extra action each turn, limited to the activities named by the source.", "Du erhältst in jedem Zug eine zusätzliche Aktion, begrenzt auf die vom Ursprung genannten Handlungen.")
+        "Restrained" -> t("You are pinned in place and can do little besides trying to get free.", "Du bist festgesetzt und kannst kaum etwas tun, außer dich zu befreien.")
+        "Sickened" -> t("Illness makes many tasks harder until you recover or spend effort overcoming it.", "Übelkeit erschwert viele Aufgaben, bis du dich erholst oder sie aktiv überwindest.")
+        "Slowed" -> t("You regain fewer actions at the start of your turns.", "Du erhältst zu Beginn deiner Züge weniger Aktionen zurück.")
+        "Stunned" -> t("You temporarily lose the ability to use some or all of your actions.", "Du verlierst vorübergehend die Möglichkeit, einige oder alle Aktionen einzusetzen.")
+        "Unconscious" -> t("You are unaware and cannot act; you fall down and release held items.", "Du bist ohne Bewusstsein und kannst nicht handeln; du gehst zu Boden und lässt Gehaltenes fallen.")
+        else -> null
     }
 
     private fun signed(value: Int): String = if (value >= 0) "+$value" else value.toString()
