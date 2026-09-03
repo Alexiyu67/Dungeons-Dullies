@@ -13,6 +13,44 @@ Wiki topics; the remaining sample packs are representative rather than complete.
 Commercial fifth-edition options outside SRD 5.1/5.2.1 are not bundled. See
 [content licensing](docs/LEGAL_CONTENT_POLICY.md) before adding data.
 
+Content that cannot be redistributed must be privately converted and imported as
+JSON or `.dndpack`; never commit or publish a source scan or personal pack. See
+[private local content](docs/PRIVATE_CONTENT.md).
+
+<details>
+<summary>Private JSON format</summary>
+
+JSON imports follow [`private-content-v1.schema.json`](content/schema/private-content-v1.schema.json).
+Download the same schema from **Local content** in the app, or begin with the
+[fictional example](content/private-template/private-content.example.json).
+
+```json
+{
+  "schemaVersion": 1,
+  "id": "private.example",
+  "version": "1.0.0",
+  "ruleset": "2024",
+  "locale": "en",
+  "entries": [{ "id": "feat-example", "kind": "feat", "name": "Example Feat" }]
+}
+```
+
+</details>
+
+<details>
+<summary>Private .dndpack format</summary>
+
+A `.dndpack` is a ZIP containing exactly `manifest.json` and `content.json`.
+The manifest records the content byte size and SHA-256 digest. Build or validate
+one offline with:
+
+```powershell
+python scripts\import-private-content.py private-local\my-content.json
+python scripts\import-private-content.py private-local\my-content.dndpack --check
+```
+
+</details>
+
 ## Principles
 
 - Runs without an account, server, analytics, content download, or internet

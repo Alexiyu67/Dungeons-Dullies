@@ -13,6 +13,7 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts.OpenDocument
+import androidx.activity.result.contract.ActivityResultContracts.CreateDocument
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -29,7 +30,6 @@ import app.dulliesanddungeons.App
 import app.dulliesanddungeons.ui.DndAppState
 import app.dulliesanddungeons.ui.PendingImportUi
 import app.dulliesanddungeons.ui.PortraitPickTarget
-import app.dulliesanddungeons.ui.UiLanguage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -47,6 +47,9 @@ class MainActivity : ComponentActivity() {
     private val importCompletionMutex = Mutex()
     private val privateImportPicker = registerForActivityResult(OpenDocument()) { uri ->
         if (uri != null) enqueuePrivateImport(uri)
+    }
+    private val privateSchemaExporter = registerForActivityResult(CreateDocument("application/schema+json")) { uri ->
+        if (uri != null) exportPrivateContentSchema(uri)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -112,6 +115,7 @@ class MainActivity : ComponentActivity() {
                             }
                         },
                         onImportPrivateContent = ::launchPrivateImport,
+                        onDownloadPrivateContentSchema = { privateSchemaExporter.launch("private-content-v1.schema.json") },
                         portraitEditor = {
                             portraitEditorSession?.let { session ->
                                 PortraitCropDialog(
@@ -192,14 +196,25 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun launchPrivateImport() {
-        privateImportPicker.launch(arrayOf("*/*"))
+        privateImportPicker.launch(arrayOf("application/json", "application/zip", "application/octet-stream", "application/vnd.dulliesanddungeons.pack+zip"))
+    }
+
+    private fun exportPrivateContentSchema(uri: Uri) {
+        lifecycleScope.launch {
+            val saved = withContext(Dispatchers.IO) {
+                runCatching {
+                    assets.open("private-content-v1.schema.json").use { input ->
+                        contentResolver.openOutputStream(uri, "wt")!!.use(input::copyTo)
+                    }
+                }.isSuccess
+            }
+            Toast.makeText(this@MainActivity, if (saved) "JSON schema saved" else "JSON schema could not be saved", Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun enqueuePrivateImport(uri: Uri) {
         lifecycleScope.launch {
-            val locale = (bootstrapState as? BootstrapState.Ready)?.appState?.language
-                .let { if (it == UiLanguage.German) "de" else "en" }
-            privateImportCoordinator.stageAndEnqueue(uri, locale).fold(
+            privateImportCoordinator.stageAndEnqueue(uri).fold(
                 onSuccess = { id ->
                     Toast.makeText(this@MainActivity, "Private import started", Toast.LENGTH_SHORT).show()
                     val info = awaitImport(id)
@@ -236,8 +251,8 @@ class MainActivity : ComponentActivity() {
             val path = info.outputData.getString(PrivateImportWorker.KEY_RESULT_PATH).orEmpty()
             val message = if (info.state == WorkInfo.State.SUCCEEDED) {
                 val packId = info.outputData.getString(PrivateImportWorker.KEY_PACK_ID).orEmpty()
-                val kind = info.outputData.getString(PrivateImportWorker.KEY_CONTAINER_KIND).orEmpty()
-                runCatching { privateImportCoordinator.loadPendingImport(path, packId, kind) }.fold(
+                val version = info.outputData.getString(PrivateImportWorker.KEY_PACK_VERSION).orEmpty()
+                runCatching { privateImportCoordinator.loadPendingImport(path, packId, version) }.fold(
                     onSuccess = { pending ->
                         appState.registerPendingImport(pending)
                         "Private import is ready for review"
@@ -246,7 +261,7 @@ class MainActivity : ComponentActivity() {
                         appState.registerPendingImport(
                             PendingImportUi(
                                 packId = packId.ifBlank { "failed-${id.toString().take(8)}" },
-                                containerKind = kind.ifBlank { "error" },
+                                version = version.ifBlank { "0.0.0-error" },
                                 sourcePath = path,
                                 error = "pack-read-failed",
                             ),
@@ -259,7 +274,7 @@ class MainActivity : ComponentActivity() {
                 appState.registerPendingImport(
                     PendingImportUi(
                         packId = "failed-${id.toString().take(8)}",
-                        containerKind = "error",
+                        version = "0.0.0-error",
                         sourcePath = "",
                         error = errorCode,
                     ),

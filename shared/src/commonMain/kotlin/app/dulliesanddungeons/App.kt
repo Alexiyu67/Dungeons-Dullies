@@ -11,6 +11,7 @@ fun App(
     state: DndAppState = remember { DndAppState() },
     onPickPortrait: (PortraitPickTarget) -> Unit = {},
     onImportPrivateContent: () -> Unit = {},
+    onDownloadPrivateContentSchema: () -> Unit = {},
     onEditPortrait: (PortraitPickTarget) -> Unit = {},
     portraitEditor: @Composable () -> Unit = {},
 ) {
@@ -19,6 +20,7 @@ fun App(
         onPickPortrait = onPickPortrait,
         onEditPortrait = onEditPortrait,
         onImportPrivateContent = onImportPrivateContent,
+        onDownloadPrivateContentSchema = onDownloadPrivateContentSchema,
         portraitEditor = portraitEditor,
     )
 }

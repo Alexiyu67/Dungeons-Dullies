@@ -216,12 +216,17 @@ data class PrivateEntryUi(
     val subclass: SubclassMechanicsUi? = null,
     val attackGrants: List<DerivedAttackGrant> = emptyList(),
     val combatContributions: List<CombatContribution> = emptyList(),
+    val aliases: List<String> = emptyList(),
+    val mechanics: PrivateMechanicsUi = PrivateMechanicsUi(),
+    val sourcePackId: String? = null,
+    val sourcePackVersion: String? = null,
 )
 
 @Serializable
 data class PendingImportUi(
     val packId: String,
-    val containerKind: String,
+    val version: String,
+    val requires: List<PrivateContentRequirementUi> = emptyList(),
     val sourcePath: String,
     val candidates: List<PrivateEntryUi> = emptyList(),
     val error: String? = null,
@@ -402,6 +407,7 @@ data class CharacterUi(
     val baseSpeedFeet: Int? = null,
     val baseFlySpeedFeet: Int? = null,
     val passiveArmorClassBonus: Int = 0,
+    val privateContentVersions: List<InstalledPrivatePackUi> = emptyList(),
 ) {
     val buildLabel: String get() = "$ancestry $className $level"
     val classLevelLabel: String
@@ -995,6 +1001,7 @@ class CharacterEditorDraft(character: CharacterUi, portrait: ByteArray?, portrai
     var portraitSourceBytes by mutableStateOf(portraitSource?.sourceBytes)
     var portraitCrop by mutableStateOf(portraitSource?.crop)
     var portraitChanged by mutableStateOf(false)
+    var linkPrivateContent by mutableStateOf(false)
     val abilities = mutableStateMapOf<String, Int>().apply { putAll(character.baseAbilities.ifEmpty { character.abilities }) }
     val spells = mutableStateListOf<SpellUi>().apply { addAll(character.spells) }
 
@@ -1033,7 +1040,7 @@ class DndAppState(
     private val restored = runCatching {
         initialStateJson?.let { json.decodeFromString<PersistedAppState>(it) }
     }.getOrNull()?.takeIf { persisted ->
-        persisted.schemaVersion in 2..4 && persisted.characters.all {
+        persisted.schemaVersion == 5 && persisted.characters.all {
             CharacterDocumentValidator.validate(it).isEmpty()
         }
     }
@@ -1051,6 +1058,9 @@ class DndAppState(
     }
     val privateEntries = mutableStateListOf<PrivateEntryUi>().apply { addAll(restored?.privateEntries.orEmpty()) }
     val pendingImports = mutableStateListOf<PendingImportUi>().apply { addAll(restored?.pendingImports.orEmpty()) }
+    val installedPrivatePacks = mutableStateListOf<InstalledPrivatePackUi>().apply {
+        addAll(restored?.installedPrivatePacks.orEmpty())
+    }
     private val savedTurnDrafts = mutableStateMapOf<String, TurnSessionSnapshotUi>().apply {
         restored?.characters.orEmpty().mapNotNull { it.toTurnSessionSnapshotUi() }.forEach { put(it.characterId, it) }
     }
@@ -1253,7 +1263,7 @@ class DndAppState(
         }
         val id = "character-${characters.size + 1}-${Random.nextInt(10_000)}"
         val caster = isCasterClass(creation.ruleset, creation.className) ||
-            privateEntryForName("class", creation.className)?.formula?.contains("caster", ignoreCase = true) == true
+            privateEntryForName("class", creation.className)?.mechanics?.caster == true
         val portraitResult = creation.portraitBytes?.let { portraitBytes ->
             PortraitEditResult(
                 sourceBytes = creation.portraitSourceBytes ?: portraitBytes,
@@ -1347,9 +1357,15 @@ class DndAppState(
             privateEntryForName("class", creation.className)?.let { classEntry ->
                 add(FeatureUi("private-class-${classEntry.id}", classEntry.name, classEntry.summary, custom = true, notes = classEntry.sourceNote, combatContributions = classEntry.combatContributions))
             }
+            addAll(automaticPrivateFeatures(
+                creation.className,
+                creation.ancestry,
+                subclassOption?.let { privateEntryForName("subclass", it.name)?.id ?: it.id },
+                creation.level,
+            ))
             subclassOption?.let { addAll(it.resolveFeatures(creation.level, proficiency, abilities = abilities)) }
             if (isEmpty()) add(FeatureUi("class-feature", creation.className, "Your level ${creation.level} class features are filtered by the selected content pack."))
-        }
+        }.distinctBy { it.name.lowercase() }
         val created = CharacterStatEngine.resolve(CharacterUi(
             id = id,
             name = creation.name.trim().ifEmpty { t("Unnamed hero", "Namenlose Heldin") },
@@ -1436,6 +1452,12 @@ class DndAppState(
             baseSpeedFeet = speedFor(creation.ruleset, creation.ancestry) + subclassStats.speedBonusFeet,
             baseFlySpeedFeet = if (creation.ancestry == "Aarakocra") 50 else null,
             passiveArmorClassBonus = subclassStats.armorClassBonus,
+            privateContentVersions = privateContentVersionsUsedBy(
+                className = creation.className,
+                ancestry = creation.ancestry,
+                subclassId = subclassOption?.let { privateEntryForName("subclass", it.name)?.id ?: it.id },
+                selectedEntryIds = creation.selectedFeatIds + creation.selectedSpellIds,
+            ),
         ))
         val completedCharacter = withCompleteSkills(created)
         characters += completedCharacter
@@ -1700,6 +1722,53 @@ class DndAppState(
         editorDraft = null
     }
 
+    fun matchingPrivateContentCount(draft: CharacterEditorDraft): Int = matchingPrivateEntries(draft).size
+
+    fun linkPrivateContent(draft: CharacterEditorDraft) {
+        if (matchingPrivateEntries(draft).isNotEmpty()) draft.linkPrivateContent = true
+    }
+
+    private fun matchingPrivateEntries(draft: CharacterEditorDraft): List<PrivateEntryUi> {
+        if (draft.ruleset != Ruleset.Fifth2024) return emptyList()
+        val classEntry = privateEntryForName("class", draft.className, draft.ruleset)
+        val speciesEntry = privateEntryForName("ancestry", draft.ancestry, draft.ruleset)
+        val subclassEntry = approvedPrivateEntries("subclass", draft.ruleset).firstOrNull { entry ->
+            entry.name.equals(draft.subclass, true) && entry.mechanics.parentClassId == classEntry?.id
+        }
+        val parents = setOfNotNull(classEntry?.id, speciesEntry?.id, subclassEntry?.id)
+        val children = privateEntries.filter { entry ->
+            entry.mechanics.parentClassId in parents ||
+                entry.mechanics.parentSpeciesId in parents ||
+                entry.mechanics.parentSubclassId in parents
+        }.filter { (it.mechanics.unlockLevel ?: 1) <= draft.level }
+        return (listOfNotNull(classEntry, speciesEntry, subclassEntry) + children).distinctBy { it.id }
+    }
+
+    private fun applyPrivateContent(character: CharacterUi, draft: CharacterEditorDraft): CharacterUi {
+        val matching = matchingPrivateEntries(draft)
+        if (matching.isEmpty()) return character
+        val classEntry = matching.firstOrNull { it.normalizedKind() == "class" }
+        val speciesEntry = matching.firstOrNull { it.normalizedKind() == "ancestry" }
+        val subclassEntry = matching.firstOrNull { it.normalizedKind() == "subclass" }
+        val linkedFeatures = matching.filter { it.normalizedKind() in setOf("class", "ancestry", "subclass", "feature", "feat") }
+            .map { entry -> entry.toPrivateFeature().copy(id = "private-linked-${entry.id}") }
+        val grantedSpellIds = matching.flatMap { it.mechanics.grantedSpellIds }.toSet()
+        val linkedSpells = grantedSpellIds.mapNotNull(::privateEntryById).mapNotNull(::privateSpell)
+        val usedPackIds = (matching + grantedSpellIds.mapNotNull(::privateEntryById)).mapNotNull { it.sourcePackId }.toSet()
+        val usedPacks = installedPrivatePacks.filter { it.id in usedPackIds }
+        return character.copy(
+            subclassIdsByClass = if (subclassEntry == null) character.subclassIdsByClass else character.subclassIdsByClass + (character.className to subclassEntry.id),
+            subclassNamesByClass = if (subclassEntry == null) character.subclassNamesByClass else character.subclassNamesByClass + (character.className to subclassEntry.name),
+            speedFeet = speciesEntry?.mechanics?.speedFeet ?: character.speedFeet,
+            baseSpeedFeet = speciesEntry?.mechanics?.speedFeet ?: character.baseSpeedFeet,
+            hitDieOverrides = classEntry?.mechanics?.hitDie?.let { character.hitDieOverrides + (character.className to it) } ?: character.hitDieOverrides,
+            hasSpellcastingCapability = classEntry?.mechanics?.caster ?: character.hasSpellcastingCapability,
+            features = (character.features.filterNot { it.id.startsWith("private-linked-") } + linkedFeatures).distinctBy { it.id },
+            spells = (character.spells + linkedSpells).distinctBy { it.id },
+            privateContentVersions = (character.privateContentVersions.filterNot { previous -> usedPacks.any { it.id == previous.id } } + usedPacks),
+        )
+    }
+
     fun saveEdit(): Boolean {
         val draft = editorDraft ?: return false
         if (!draft.isValid) return false
@@ -1775,7 +1844,7 @@ class DndAppState(
             baseArmorClass = draft.armorClass,
             baseSpeedFeet = draft.speedFeet,
             baseFlySpeedFeet = draft.flySpeedFeet?.takeIf { it > 0 },
-        )
+        ).let { if (draft.linkPrivateContent) applyPrivateContent(it, draft) else it }
         val existingIndex = characters.indexOfFirst { it.id == original.id }
         if (existingIndex < 0) return false
         val charactersBeforeEdit = characters.toList()
@@ -1946,13 +2015,23 @@ class DndAppState(
         )
     }
 
-    internal fun creationBackgroundOptions(): List<BackgroundDefinitionUi> = ProficiencyCatalog.backgrounds(creation.ruleset)
+    internal fun creationBackgroundOptions(): List<BackgroundDefinitionUi> = (
+        ProficiencyCatalog.backgrounds(creation.ruleset) + approvedPrivateEntries("background").map { entry ->
+            BackgroundDefinitionUi(
+                id = entry.id,
+                englishName = entry.name,
+                germanName = entry.name,
+                grantedSkillIds = entry.mechanics.grantedSkillIds.map(ProficiencyCatalog::normalizeSkillId).toSet(),
+                customSkillCount = entry.mechanics.skillChoiceCount,
+            )
+        }
+    ).distinctBy { it.id }
 
     internal fun selectedCreationBackground(): BackgroundDefinitionUi? =
-        ProficiencyCatalog.background(creation.ruleset, creation.backgroundId)
+        creationBackgroundOptions().firstOrNull { it.id == creation.backgroundId }
 
     fun selectCreationBackground(backgroundId: String) {
-        val selected = ProficiencyCatalog.background(creation.ruleset, backgroundId) ?: return
+        val selected = creationBackgroundOptions().firstOrNull { it.id == backgroundId } ?: return
         if (creation.backgroundId == selected.id) return
         val hadChoices = creation.backgroundId != null || creation.classSkillIds.isNotEmpty() || creation.skillRankChoices.isNotEmpty()
         creation.backgroundId = selected.id
@@ -2171,7 +2250,26 @@ class DndAppState(
         if (ruleset == Ruleset.Pf2eRemaster) return emptyList()
         val builtIn = BuiltInSubclassCatalog.forClass(ruleset, className)
         val local = approvedPrivateEntries("subclass", ruleset).mapNotNull { entry ->
-            entry.subclass
+            val parentClass = entry.mechanics.parentClassId?.let(::privateEntryById)?.name
+            val generated = parentClass?.let {
+                SubclassMechanicsUi(
+                    parentClassName = it,
+                    ruleset = Ruleset.Fifth2024,
+                    selectionLevel = entry.mechanics.selectionLevel ?: 3,
+                    features = privateEntries.filter { child ->
+                        child.mechanics.parentSubclassId == entry.id && child.normalizedKind() == "feature"
+                    }
+                        .map { child ->
+                            SubclassFeatureGrantUi(
+                                minimumClassLevel = child.mechanics.unlockLevel ?: 1,
+                                feature = child.toPrivateFeature(),
+                            )
+                        },
+                    spells = privateEntries.filter { child -> child.mechanics.parentSubclassId == entry.id && child.normalizedKind() == "spell" }
+                        .mapNotNull { child -> privateSpell(child)?.let { SubclassSpellGrantUi(child.mechanics.unlockLevel ?: it.level.coerceAtLeast(1), it) } },
+                )
+            }
+            (entry.subclass ?: generated)
                 ?.takeIf { it.ruleset == ruleset && it.parentClassName.equals(className, true) }
                 ?.let { mechanics ->
                     SubclassOptionUi(
@@ -2539,6 +2637,12 @@ class DndAppState(
         "spell",
         character?.ruleset ?: creation.ruleset,
     )
+        .filter { entry ->
+            character == null || entry.mechanics.classIds.isEmpty() || entry.mechanics.classIds.any { classId ->
+                val className = privateEntryById(classId)?.name ?: return@any false
+                character.className.equals(className, true) || character.progression.any { it.className.equals(className, true) }
+            }
+        }
         .mapNotNull(::privateSpell)
 
     fun creationPreview(): CreationPreviewUi {
@@ -3344,7 +3448,8 @@ class DndAppState(
         return retained.distinctBy(FeatureUi::id)
     }
 
-    private fun hitDieFor(className: String, ruleset: Ruleset = creation.ruleset): Int = privateEntryForName("class", className, ruleset)?.formula
+    private fun hitDieFor(className: String, ruleset: Ruleset = creation.ruleset): Int = privateEntryForName("class", className, ruleset)?.mechanics?.hitDie
+        ?: privateEntryForName("class", className, ruleset)?.formula
         ?.let { Regex("(?:hit[- ]?die\\s*[:=]?\\s*)?d(6|8|10|12)", RegexOption.IGNORE_CASE).find(it)?.groupValues?.get(1)?.toIntOrNull() }
         ?: when (className) {
         "Barbarian" -> 12
@@ -3369,6 +3474,7 @@ class DndAppState(
     }
 
     private fun primaryAbilityFor(className: String): String {
+        privateEntryForName("class", className)?.mechanics?.primaryAbility?.let { return it }
         privateEntryForName("class", className)?.formula?.let { formula ->
             Regex("(?:key|primary)\\s*ability\\s*[:=]?\\s*(STR|DEX|CON|INT|WIS|CHA)", RegexOption.IGNORE_CASE)
                 .find(formula)?.groupValues?.get(1)?.uppercase()?.let { return it }
@@ -3382,7 +3488,8 @@ class DndAppState(
         }
     }
 
-    private fun isCasterClass(ruleset: Ruleset, className: String): Boolean = if (ruleset == Ruleset.Pf2eRemaster) {
+    private fun isCasterClass(ruleset: Ruleset, className: String): Boolean = privateEntryForName("class", className, ruleset)
+        ?.mechanics?.caster ?: if (ruleset == Ruleset.Pf2eRemaster) {
         className in setOf("Wizard", "Cleric", "Druid", "Bard", "Sorcerer")
     } else {
         className in setOf("Wizard", "Cleric", "Druid", "Bard", "Sorcerer", "Warlock", "Paladin", "Ranger")
@@ -3524,7 +3631,8 @@ class DndAppState(
         else -> "armor:light"
     }
 
-    private fun speedFor(ruleset: Ruleset, ancestry: String): Int = if (ruleset == Ruleset.Pf2eRemaster) {
+    private fun speedFor(ruleset: Ruleset, ancestry: String): Int = privateEntryForName("ancestry", ancestry, ruleset)
+        ?.mechanics?.speedFeet ?: if (ruleset == Ruleset.Pf2eRemaster) {
         when (ancestry) {
             "Dwarf" -> 20
             "Elf" -> 30
@@ -3564,15 +3672,42 @@ class DndAppState(
 
     private fun privateSpell(entry: PrivateEntryUi): SpellUi? {
         if (entry.normalizedKind() != "spell") return null
-        val level = Regex("(?:level|rank)\\s*[:=]?\\s*(\\d+)", RegexOption.IGNORE_CASE)
+        val typed = entry.mechanics.spell
+        val level = typed?.level ?: Regex("(?:level|rank)\\s*[:=]?\\s*(\\d+)", RegexOption.IGNORE_CASE)
             .find(entry.formula)?.groupValues?.get(1)?.toIntOrNull()?.coerceIn(0, 10) ?: 0
+        val saveAbility = typed?.saveAbility?.let { value ->
+            when (value) {
+                "STR" -> Ability.STRENGTH
+                "DEX" -> Ability.DEXTERITY
+                "CON" -> Ability.CONSTITUTION
+                "INT" -> Ability.INTELLIGENCE
+                "WIS" -> Ability.WISDOM
+                "CHA" -> Ability.CHARISMA
+                else -> null
+            }
+        }
         return SpellUi(
             "private-${entry.id}",
             entry.name,
             level,
             entry.summary,
             sourceName = entry.sourceNote,
-            activationCost = entry.structuredSpellCost(creation.ruleset),
+            activationCost = typed?.actionCost ?: entry.structuredSpellCost(creation.ruleset),
+            castPreviews = typed?.castPreviews.orEmpty(),
+            savingThrows = saveAbility?.let { listOf(SavingThrowPrompt(it, DifficultyClass(useSpellcasting = true))) }.orEmpty(),
+            spellAttack = typed?.spellAttack == true,
+            rulesText = typed?.let {
+                SpellRulesText(
+                    school = it.school,
+                    concentration = it.concentration,
+                    ritual = it.ritual,
+                    castingTime = it.castingTime,
+                    range = it.range,
+                    components = it.components,
+                    duration = it.duration,
+                    source = entry.sourceNote,
+                )
+            } ?: SpellRulesText(),
             combatContributions = entry.combatContributions,
         )
     }
@@ -5272,11 +5407,76 @@ class DndAppState(
         persist()
     }
 
-    fun approvePendingImport(packId: String) {
-        val pending = pendingImports.firstOrNull { it.packId == packId } ?: return
-        pending.candidates.forEach(::addPrivateEntry)
+    fun missingPrivateRequirements(packId: String): List<PrivateContentRequirementUi> {
+        val pending = pendingImports.firstOrNull { it.packId == packId } ?: return emptyList()
+        return pending.requires.filter { requirement ->
+            installedPrivatePacks.none { it.id == requirement.id && it.version == requirement.version }
+        }
+    }
+
+    private fun PrivateEntryUi.toPrivateFeature(): FeatureUi {
+        val resource = mechanics.resource
+        return FeatureUi(
+            id = "private-$id",
+            name = name,
+            summary = summary,
+            remaining = resource?.maximum,
+            maximum = resource?.maximum,
+            recovery = resource?.recovery ?: Recovery.MANUAL,
+            actionCost = mechanics.actionCost,
+            custom = true,
+            notes = sourceNote,
+            turnGuideEligible = resource != null || mechanics.actionCost != ActionCost(),
+            attackGrants = attackGrants,
+            combatContributions = combatContributions,
+        )
+    }
+
+    private fun automaticPrivateFeatures(
+        className: String,
+        ancestry: String,
+        subclassId: String?,
+        level: Int,
+    ): List<FeatureUi> {
+        val classId = privateEntryForName("class", className)?.id
+        val speciesId = privateEntryForName("ancestry", ancestry)?.id
+        return privateEntries.filter { entry ->
+            entry.normalizedKind() == "feature" &&
+                entry.mechanics.grantAutomatically &&
+                (entry.mechanics.unlockLevel ?: 1) <= level &&
+                (
+                    entry.mechanics.parentClassId == classId ||
+                        entry.mechanics.parentSpeciesId == speciesId ||
+                        entry.mechanics.parentSubclassId == subclassId
+                    )
+        }.map { it.toPrivateFeature() }
+    }
+
+    private fun privateContentVersionsUsedBy(
+        className: String,
+        ancestry: String,
+        subclassId: String?,
+        selectedEntryIds: Collection<String>,
+    ): List<InstalledPrivatePackUi> {
+        val packIds = buildSet {
+            privateEntryForName("class", className)?.sourcePackId?.let(::add)
+            privateEntryForName("ancestry", ancestry)?.sourcePackId?.let(::add)
+            subclassId?.let(::privateEntryById)?.sourcePackId?.let(::add)
+            selectedEntryIds.mapNotNull(::privateEntryById).mapNotNullTo(this) { it.sourcePackId }
+        }
+        return installedPrivatePacks.filter { it.id in packIds }
+    }
+
+    fun approvePendingImport(packId: String): Boolean {
+        val pending = pendingImports.firstOrNull { it.packId == packId } ?: return false
+        if (pending.error != null || pending.candidates.isEmpty() || missingPrivateRequirements(packId).isNotEmpty()) return false
+        privateEntries.removeAll { it.sourcePackId == packId }
+        privateEntries += pending.candidates
+        installedPrivatePacks.removeAll { it.id == packId }
+        installedPrivatePacks += InstalledPrivatePackUi(packId, pending.version, pending.requires)
         pendingImports.remove(pending)
         persist()
+        return true
     }
 
     fun discardPendingImport(packId: String) {
@@ -6126,6 +6326,7 @@ class DndAppState(
                         conditions = conditions.filter { it.characterId.isBlank() },
                         privateEntries = privateEntries.toList(),
                         pendingImports = pendingImports.toList(),
+                        installedPrivatePacks = installedPrivatePacks.toList(),
                     )
                 )
             )

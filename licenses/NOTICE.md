@@ -5,13 +5,6 @@ an application build. A build must omit notices for packs it does not contain
 and must not ship a pack whose manifest has `distributionReady: false` as if it
 were complete.
 
-## PDFBox-Android
-
-On-device text extraction uses PDFBox-Android by Tom Roush, a port of Apache
-PDFBox. It is licensed under the Apache License, Version 2.0. A copy is included
-at `licenses/APACHE-2.0.txt`. The app uses PDFBox only for files selected by the
-user and does not add network access.
-
 ## Application logo
 
 `logo.png` is project-supplied application artwork. Android launcher, themed,

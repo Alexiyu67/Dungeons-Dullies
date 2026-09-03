@@ -47,7 +47,7 @@ that cannot be redistributed in the public app.
 schema/                 JSON Schemas for manifests, localized entries, coverage
 catalogs/               Generated cross-edition app catalog and source audit data
 packs/<pack-id>/        Public seed manifests and localized entry files
-private-template/       Copy-only template for locally owned content
+private-template/       Fictional example for the private JSON import schema
 reports/                Machine-readable coverage examples
 ```
 

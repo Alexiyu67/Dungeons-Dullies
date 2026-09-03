@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dulliesanddungeons.app/schema/private-content-v1.schema.json",
+  "title": "Dullies & Dungeons private content",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "version", "ruleset", "locale", "entries"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "$ref": "#/$defs/id" },
+    "version": { "$ref": "#/$defs/version" },
+    "ruleset": { "const": "2024" },
+    "locale": { "const": "en" },
+    "requires": { "type": "array", "maxItems": 32, "items": { "$ref": "#/$defs/requirement" } },
+    "entries": { "type": "array", "minItems": 1, "maxItems": 5000, "items": { "$ref": "#/$defs/entry" } }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{1,79}$" },
+    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[a-z0-9.-]+)?$" },
+    "ability": { "enum": ["STR", "DEX", "CON", "INT", "WIS", "CHA"] },
+    "requirement": {
+      "type": "object", "additionalProperties": false, "required": ["id", "version"],
+      "properties": { "id": { "$ref": "#/$defs/id" }, "version": { "$ref": "#/$defs/version" } }
+    },
+    "actionCost": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "actions": { "type": "integer", "minimum": 0, "maximum": 10 },
+        "bonusActions": { "type": "integer", "minimum": 0, "maximum": 1 },
+        "reactions": { "type": "integer", "minimum": 0, "maximum": 1 },
+        "attacks": { "type": "integer", "minimum": 0, "maximum": 10 },
+        "objectInteractions": { "type": "integer", "minimum": 0, "maximum": 10 },
+        "pf2eActions": { "type": "integer", "minimum": 0, "maximum": 3 },
+        "resources": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 1, "maximum": 20 } }
+      }
+    },
+    "resource": {
+      "type": "object", "additionalProperties": false, "required": ["maximum"],
+      "properties": {
+        "maximum": { "type": "integer", "minimum": 1, "maximum": 999 },
+        "recovery": { "enum": ["TURN_START", "SHORT_REST", "LONG_REST", "DAILY_PREPARATION", "MANUAL"] }
+      }
+    },
+    "spell": {
+      "type": "object", "additionalProperties": false, "required": ["level"],
+      "properties": {
+        "level": { "type": "integer", "minimum": 0, "maximum": 9 },
+        "school": { "type": "string", "maxLength": 80 },
+        "concentration": { "type": "boolean" },
+        "ritual": { "type": "boolean" },
+        "castingTime": { "type": "string", "maxLength": 120 },
+        "range": { "type": "string", "maxLength": 120 },
+        "components": { "type": "string", "maxLength": 120 },
+        "duration": { "type": "string", "maxLength": 120 },
+        "spellAttack": { "type": "boolean" },
+        "saveAbility": { "$ref": "#/$defs/ability" },
+        "actionCost": { "$ref": "#/$defs/actionCost" },
+        "castPreviews": { "type": "object", "propertyNames": { "pattern": "^[1-9]$" }, "additionalProperties": { "type": "string", "maxLength": 240 } }
+      }
+    },
+    "item": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "type": { "enum": ["weapon", "armor", "shield", "gear", "tool", "consumable", "rations", "mount", "vehicle", "magic-item"] },
+        "damage": { "type": "string", "maxLength": 40 },
+        "damageType": { "type": "string", "maxLength": 60 },
+        "ability": { "$ref": "#/$defs/ability" },
+        "properties": { "type": "string", "maxLength": 240 },
+        "range": { "type": "string", "maxLength": 80 },
+        "mastery": { "type": "string", "maxLength": 80 },
+        "armorClass": { "type": "integer", "minimum": 1, "maximum": 30 },
+        "shieldBonus": { "type": "integer", "minimum": 0, "maximum": 9 },
+        "rarity": { "type": "string", "maxLength": 40 },
+        "requiresAttunement": { "type": "boolean" },
+        "quantity": { "type": "integer", "minimum": 1, "maximum": 999 }
+      }
+    },
+    "mechanics": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "parentClassId": { "$ref": "#/$defs/id" },
+        "parentSubclassId": { "$ref": "#/$defs/id" },
+        "parentSpeciesId": { "$ref": "#/$defs/id" },
+        "selectionLevel": { "type": "integer", "minimum": 1, "maximum": 20 },
+        "unlockLevel": { "type": "integer", "minimum": 1, "maximum": 20 },
+        "classIds": { "type": "array", "maxItems": 20, "items": { "$ref": "#/$defs/id" }, "uniqueItems": true },
+        "hitDie": { "enum": [6, 8, 10, 12] },
+        "primaryAbility": { "$ref": "#/$defs/ability" },
+        "caster": { "type": "boolean" },
+        "grantedSkillIds": { "type": "array", "maxItems": 18, "items": { "type": "string", "maxLength": 80 }, "uniqueItems": true },
+        "skillChoiceCount": { "type": "integer", "minimum": 0, "maximum": 18 },
+        "originFeatId": { "$ref": "#/$defs/id" },
+        "speedFeet": { "type": "integer", "minimum": 0, "maximum": 200 },
+        "actionCost": { "$ref": "#/$defs/actionCost" },
+        "resource": { "$ref": "#/$defs/resource" },
+        "spell": { "$ref": "#/$defs/spell" },
+        "item": { "$ref": "#/$defs/item" },
+        "grantedSpellIds": { "type": "array", "maxItems": 100, "items": { "$ref": "#/$defs/id" }, "uniqueItems": true },
+        "grantAutomatically": { "type": "boolean" }
+      }
+    },
+    "entry": {
+      "type": "object", "additionalProperties": false, "required": ["id", "kind", "name"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "kind": { "enum": ["class", "subclass", "species", "background", "feat", "feature", "spell", "weapon", "armor", "item", "tool", "gear", "mount", "vehicle", "magic-item", "action", "condition"] },
+        "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "summary": { "type": "string", "maxLength": 1200 },
+        "aliases": { "type": "array", "maxItems": 24, "items": { "type": "string", "minLength": 1, "maxLength": 120 }, "uniqueItems": true },
+        "mechanics": { "$ref": "#/$defs/mechanics" }
+      }
+    }
+  }
+}

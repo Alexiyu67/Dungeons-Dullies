@@ -1,307 +1,219 @@
 #!/usr/bin/env python3
-"""Build a review-only .dndpack from a user-supplied local PDF, text, or JSON file.
-
-The importer has no network code, never writes into public content/packs, and does not print source
-text. Candidates remain informational until a human marks them reviewed in candidates.json.
-"""
+"""Validate private-content JSON and build the compact two-file .dndpack archive."""
 
 from __future__ import annotations
 
 import argparse
 import hashlib
 import json
-import os
 import re
 import sys
 import zipfile
-from dataclasses import dataclass
-from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable
 
-MAX_SOURCE_BYTES = 50 * 1024 * 1024
-MAX_TEXT_BYTES = 16 * 1024 * 1024
-MAX_PDF_PAGES = 1_000
-MAX_EXTRACTED_CHARACTERS = 5_000_000
-ALLOWED_SUFFIXES = {".pdf", ".txt", ".md", ".json"}
-PRIVATE_OUTPUT_PARTS = {"privatecontent", "private-local", "local-content"}
-FORMULA_PATTERN = re.compile(r"\b\d+d\d+(?:\s*[+-]\s*\d+)?\b", re.IGNORECASE)
-MEDIA_TYPES = {
-    ".pdf": "application/pdf",
-    ".txt": "text/plain",
-    ".md": "text/markdown",
-    ".json": "application/json",
+ID = re.compile(r"^[a-z0-9][a-z0-9._-]{1,79}$")
+VERSION = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+(?:-[a-z0-9.-]+)?$")
+KINDS = {
+    "class", "subclass", "species", "background", "feat", "feature", "spell",
+    "weapon", "armor", "item", "tool", "gear", "mount", "vehicle", "magic-item",
+    "action", "condition",
 }
+ROOT_KEYS = {"schemaVersion", "id", "version", "ruleset", "locale", "requires", "entries"}
+ENTRY_KEYS = {"id", "kind", "name", "summary", "aliases", "mechanics"}
+MECHANICS_KEYS = {
+    "parentClassId", "parentSubclassId", "parentSpeciesId", "selectionLevel", "unlockLevel",
+    "classIds", "hitDie", "primaryAbility", "caster", "grantedSkillIds", "skillChoiceCount",
+    "originFeatId", "speedFeet", "actionCost", "resource", "spell", "item",
+    "grantedSpellIds", "grantAutomatically",
+}
+ACTION_KEYS = {"actions", "bonusActions", "reactions", "attacks", "objectInteractions", "pf2eActions", "resources"}
+SPELL_KEYS = {"level", "school", "concentration", "ritual", "castingTime", "range", "components", "duration", "spellAttack", "saveAbility", "actionCost", "castPreviews"}
+ITEM_KEYS = {"type", "damage", "damageType", "ability", "properties", "range", "mastery", "armorClass", "shieldBonus", "rarity", "requiresAttunement", "quantity"}
+ABILITIES = {"STR", "DEX", "CON", "INT", "WIS", "CHA"}
 
 
-@dataclass(frozen=True)
-class SourcePage:
-    page: int
-    text: str
+def exact_keys(value: dict, allowed: set[str], label: str) -> None:
+    unknown = set(value) - allowed
+    if unknown:
+        raise ValueError(f"{label} has unsupported fields: {', '.join(sorted(unknown))}")
 
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Create a private review pack from a local source file.")
-    parser.add_argument("--input", required=True, type=Path, help="Local .pdf, .txt, .md, or .json source")
-    parser.add_argument("--output", required=True, type=Path, help="Output path inside privateContent, private-local, or local-content")
-    parser.add_argument("--pack-id", required=True, help="Stable private pack ID")
-    parser.add_argument("--language", choices=("en", "de"), default="en")
-    parser.add_argument("--force", action="store_true", help="Replace an existing output pack")
-    return parser.parse_args()
+def integer(value: object, low: int, high: int, label: str) -> None:
+    if not isinstance(value, int) or isinstance(value, bool) or not low <= value <= high:
+        raise ValueError(f"{label} must be an integer from {low} to {high}")
 
 
-def fail(message: str) -> "NoReturn":
-    print(f"error: {message}", file=sys.stderr)
-    raise SystemExit(2)
+def validate_action(value: dict, label: str) -> None:
+    if not isinstance(value, dict):
+        raise ValueError(f"{label} must be an object")
+    exact_keys(value, ACTION_KEYS, label)
+    limits = {"actions": 10, "bonusActions": 1, "reactions": 1, "attacks": 10, "objectInteractions": 10, "pf2eActions": 3}
+    for key, maximum in limits.items():
+        if key in value:
+            integer(value[key], 0, maximum, f"{label}.{key}")
+    resources = value.get("resources", {})
+    if not isinstance(resources, dict) or any(not ID.fullmatch(key) for key in resources):
+        raise ValueError(f"{label}.resources has an invalid ID")
+    for key, amount in resources.items():
+        integer(amount, 1, 20, f"{label}.resources.{key}")
 
 
-def validate_paths(source: Path, output: Path, force: bool) -> tuple[Path, Path]:
-    source_text = str(source)
-    if re.match(r"^https?:[\\/]", source_text, re.IGNORECASE):
-        fail("URLs are not accepted; provide a file you already have locally")
-    source = source.expanduser().resolve()
-    output = output.expanduser().resolve()
-    if not source.is_file():
-        fail("input is not a readable local file")
-    if source.suffix.lower() not in ALLOWED_SUFFIXES:
-        fail("input must be PDF, TXT, MD, or JSON")
-    if source.stat().st_size > MAX_SOURCE_BYTES:
-        fail("input exceeds the 50 MB local-import limit")
-    if source.suffix.lower() != ".pdf" and source.stat().st_size > MAX_TEXT_BYTES:
-        fail("text and JSON input exceeds the 16 MB local-import limit")
-    if not any(part.lower() in PRIVATE_OUTPUT_PARTS for part in output.parts):
-        fail("output must be inside privateContent, private-local, or local-content")
-    if output.suffix.lower() != ".dndpack":
-        output = output.with_suffix(".dndpack")
-    if output.exists() and not force:
-        fail("output already exists; pass --force to replace that exact pack")
-    return source, output
+def validate_document(document: object) -> dict:
+    if not isinstance(document, dict):
+        raise ValueError("content root must be an object")
+    exact_keys(document, ROOT_KEYS, "content")
+    required = {"schemaVersion", "id", "version", "ruleset", "locale", "entries"}
+    if not required <= set(document):
+        raise ValueError(f"content is missing: {', '.join(sorted(required - set(document)))}")
+    if document["schemaVersion"] != 1 or document["ruleset"] != "2024" or document["locale"] != "en":
+        raise ValueError("schemaVersion, ruleset, and locale must be 1, 2024, and en")
+    if not isinstance(document["id"], str) or not ID.fullmatch(document["id"]):
+        raise ValueError("invalid pack id")
+    if not isinstance(document["version"], str) or not VERSION.fullmatch(document["version"]):
+        raise ValueError("invalid pack version")
+    requirements = document.get("requires", [])
+    if not isinstance(requirements, list) or len(requirements) > 32:
+        raise ValueError("requires must contain at most 32 items")
+    for requirement in requirements:
+        if not isinstance(requirement, dict) or set(requirement) != {"id", "version"}:
+            raise ValueError("each requirement needs exactly id and version")
+        if not ID.fullmatch(requirement["id"]) or not VERSION.fullmatch(requirement["version"]):
+            raise ValueError("invalid requirement")
+
+    entries = document["entries"]
+    if not isinstance(entries, list) or not 1 <= len(entries) <= 5000:
+        raise ValueError("entries must contain 1 to 5000 items")
+    ids: dict[str, str] = {}
+    for index, entry in enumerate(entries):
+        label = f"entries[{index}]"
+        if not isinstance(entry, dict):
+            raise ValueError(f"{label} must be an object")
+        exact_keys(entry, ENTRY_KEYS, label)
+        if not {"id", "kind", "name"} <= set(entry):
+            raise ValueError(f"{label} needs id, kind, and name")
+        if not isinstance(entry["id"], str) or not ID.fullmatch(entry["id"]) or entry["id"] in ids:
+            raise ValueError(f"{label} has an invalid or duplicate id")
+        if entry["kind"] not in KINDS:
+            raise ValueError(f"{label} has an unsupported kind")
+        if not isinstance(entry["name"], str) or not 1 <= len(entry["name"]) <= 120:
+            raise ValueError(f"{label} has an invalid name")
+        if not isinstance(entry.get("summary", ""), str) or len(entry.get("summary", "")) > 1200:
+            raise ValueError(f"{label} has an invalid summary")
+        aliases = entry.get("aliases", [])
+        if not isinstance(aliases, list) or len(aliases) > 24 or any(not isinstance(alias, str) or not 1 <= len(alias) <= 120 for alias in aliases):
+            raise ValueError(f"{label} has invalid aliases")
+        ids[entry["id"]] = entry["kind"]
+
+        mechanics = entry.get("mechanics", {})
+        if not isinstance(mechanics, dict):
+            raise ValueError(f"{label}.mechanics must be an object")
+        exact_keys(mechanics, MECHANICS_KEYS, f"{label}.mechanics")
+        for key in ("selectionLevel", "unlockLevel"):
+            if key in mechanics:
+                integer(mechanics[key], 1, 20, f"{label}.{key}")
+        if "hitDie" in mechanics and mechanics["hitDie"] not in {6, 8, 10, 12}:
+            raise ValueError(f"{label}.hitDie must be 6, 8, 10, or 12")
+        if "primaryAbility" in mechanics and mechanics["primaryAbility"] not in ABILITIES:
+            raise ValueError(f"{label}.primaryAbility is invalid")
+        if "speedFeet" in mechanics:
+            integer(mechanics["speedFeet"], 0, 200, f"{label}.speedFeet")
+        if "actionCost" in mechanics:
+            validate_action(mechanics["actionCost"], f"{label}.actionCost")
+        if "resource" in mechanics:
+            resource = mechanics["resource"]
+            if not isinstance(resource, dict) or not set(resource) <= {"maximum", "recovery"} or "maximum" not in resource:
+                raise ValueError(f"{label}.resource is invalid")
+            integer(resource["maximum"], 1, 999, f"{label}.resource.maximum")
+        if "spell" in mechanics:
+            spell = mechanics["spell"]
+            if not isinstance(spell, dict) or "level" not in spell:
+                raise ValueError(f"{label}.spell is invalid")
+            exact_keys(spell, SPELL_KEYS, f"{label}.spell")
+            integer(spell["level"], 0, 9, f"{label}.spell.level")
+            if "actionCost" in spell:
+                validate_action(spell["actionCost"], f"{label}.spell.actionCost")
+        if "item" in mechanics:
+            item = mechanics["item"]
+            if not isinstance(item, dict):
+                raise ValueError(f"{label}.item is invalid")
+            exact_keys(item, ITEM_KEYS, f"{label}.item")
+
+    for entry in entries:
+        mechanics = entry.get("mechanics", {})
+        expected = {"parentClassId": "class", "parentSubclassId": "subclass", "parentSpeciesId": "species", "originFeatId": "feat"}
+        for key, kind in expected.items():
+            if key in mechanics and ids.get(mechanics[key]) != kind:
+                raise ValueError(f"{entry['id']}.{key} must reference a {kind} in the same file")
+        for class_id in mechanics.get("classIds", []):
+            if ids.get(class_id) != "class":
+                raise ValueError(f"{entry['id']}.classIds has an invalid reference")
+        for spell_id in mechanics.get("grantedSpellIds", []):
+            if ids.get(spell_id) != "spell":
+                raise ValueError(f"{entry['id']}.grantedSpellIds has an invalid reference")
+    return document
 
 
-def extract_pdf(source: Path) -> list[SourcePage]:
+def content_bytes(path: Path) -> bytes:
+    raw = path.read_text(encoding="utf-8")
+    document = validate_document(json.loads(raw))
+    return (json.dumps(document, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+
+
+def manifest(content: bytes) -> bytes:
+    value = {"schemaVersion": 1, "content": {"path": "content.json", "size": len(content), "sha256": hashlib.sha256(content).hexdigest()}}
+    return (json.dumps(value, indent=2) + "\n").encode("utf-8")
+
+
+def write_pack(destination: Path, content: bytes) -> None:
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(destination, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
+        for name, payload in (("manifest.json", manifest(content)), ("content.json", content)):
+            info = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.external_attr = 0o600 << 16
+            archive.writestr(info, payload)
+
+
+def validate_pack(path: Path) -> dict:
+    with zipfile.ZipFile(path) as archive:
+        if archive.namelist() != ["manifest.json", "content.json"]:
+            raise ValueError("a .dndpack must contain exactly manifest.json and content.json")
+        packed_manifest = json.loads(archive.read("manifest.json"))
+        content = archive.read("content.json")
+    if set(packed_manifest) != {"schemaVersion", "content"} or packed_manifest["schemaVersion"] != 1:
+        raise ValueError("invalid manifest")
+    metadata = packed_manifest["content"]
+    if set(metadata) != {"path", "size", "sha256"} or metadata["path"] != "content.json":
+        raise ValueError("invalid content metadata")
+    if metadata["size"] != len(content) or metadata["sha256"] != hashlib.sha256(content).hexdigest():
+        raise ValueError("content integrity check failed")
+    return validate_document(json.loads(content))
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("input", type=Path, help="private-content JSON or .dndpack")
+    parser.add_argument("-o", "--output", type=Path, help="output .dndpack path for JSON input")
+    parser.add_argument("--check", action="store_true", help="validate only")
+    args = parser.parse_args()
     try:
-        import pdfplumber  # type: ignore
-
-        with pdfplumber.open(source) as document:
-            if not 1 <= len(document.pages) <= MAX_PDF_PAGES:
-                fail("PDF page count exceeds the local-import limit")
-            pages = []
-            total = 0
-            for index, page in enumerate(document.pages):
-                text = page.extract_text() or ""
-                total += len(text)
-                if total > MAX_EXTRACTED_CHARACTERS:
-                    fail("extracted PDF text exceeds the local-import limit")
-                pages.append(SourcePage(index + 1, text))
-    except ImportError:
-        try:
-            from pypdf import PdfReader  # type: ignore
-
-            reader = PdfReader(str(source))
-            if not 1 <= len(reader.pages) <= MAX_PDF_PAGES:
-                fail("PDF page count exceeds the local-import limit")
-            pages = []
-            total = 0
-            for index, page in enumerate(reader.pages):
-                text = page.extract_text() or ""
-                total += len(text)
-                if total > MAX_EXTRACTED_CHARACTERS:
-                    fail("extracted PDF text exceeds the local-import limit")
-                pages.append(SourcePage(index + 1, text))
-        except ImportError:
-            fail("PDF import needs the local pdfplumber or pypdf package")
-    if not any(page.text.strip() for page in pages):
-        fail("no text was extracted; OCR the scan explicitly before importing it")
-    return pages
-
-
-def extract_json(source: Path) -> list[SourcePage]:
-    try:
-        value = json.loads(source.read_text(encoding="utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError, RecursionError):
-        fail("JSON input is not valid UTF-8 JSON")
-
-    fragments: list[str] = []
-
-    extracted_characters = 0
-
-    def append_fragment(value: str) -> None:
-        nonlocal extracted_characters
-        remaining = MAX_EXTRACTED_CHARACTERS - extracted_characters
-        if remaining <= 0:
-            return
-        fragment = value.strip()[:remaining]
-        if fragment:
-            fragments.append(fragment)
-            extracted_characters += len(fragment)
-
-    def visit(node: Any, depth: int = 0) -> None:
-        if depth > 12 or len(fragments) >= 10_000:
-            return
-        if isinstance(node, str) and node.strip():
-            append_fragment(node)
-        elif isinstance(node, dict):
-            for key, child in node.items():
-                if isinstance(key, str) and key.strip():
-                    append_fragment(key)
-                visit(child, depth + 1)
-        elif isinstance(node, list):
-            for child in node:
-                visit(child, depth + 1)
-
-    visit(value)
-    return [SourcePage(1, "\n".join(fragments)[:MAX_EXTRACTED_CHARACTERS])]
-
-
-def extract_source(source: Path) -> list[SourcePage]:
-    if source.suffix.lower() == ".pdf":
-        return extract_pdf(source)
-    if source.suffix.lower() == ".json":
-        return extract_json(source)
-    try:
-        return [SourcePage(1, source.read_text(encoding="utf-8")[:MAX_EXTRACTED_CHARACTERS])]
-    except UnicodeDecodeError:
-        fail("text input must use UTF-8")
-
-
-def looks_like_heading(line: str) -> bool:
-    markdown_heading = line.lstrip().startswith("#")
-    line = line.strip().strip("#*:—-")
-    if not 2 <= len(line) <= 100 or len(line.split()) > 12:
-        return False
-    if FORMULA_PATTERN.fullmatch(line):
-        return False
-    alpha = [char for char in line if char.isalpha()]
-    return bool(alpha) and (markdown_heading or line.isupper() or line.istitle() or line.endswith(("Feature", "Spell", "Weapon", "Action")))
-
-
-def guess_kind(title: str, body: str) -> str:
-    text = f"{title} {body}".lower()
-    routes = (
-        ("spell", ("spell", "cantrip", "zauber")),
-        ("weapon", ("weapon", "attack", "waffe", "angriff")),
-        ("condition", ("condition", "zustand")),
-        ("feat", ("feat", "talent")),
-        ("species", ("species", "ancestry", "spezies", "abstammung")),
-        ("background", ("background", "hintergrund")),
-        ("subclass", ("subclass", "subklasse")),
-        ("class", ("class", "klasse")),
-        ("language", ("language", "speech", "sprache")),
-        ("item", ("item", "equipment", "gear", "gegenstand", "ausrüstung")),
-        ("resource", ("uses", "charges", "rest", "verwendungen", "rast")),
-    )
-    return next((kind for kind, words in routes if any(word in text for word in words)), "rule")
-
-
-def stable_id(pack_id: str, title: str, page: int, index: int) -> str:
-    slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")[:60] or "candidate"
-    digest = hashlib.sha256(f"{pack_id}:{page}:{index}:{title}".encode()).hexdigest()[:8]
-    return f"{slug}-{digest}"
-
-
-def candidates_from_pages(pack_id: str, pages: Iterable[SourcePage]) -> list[dict[str, Any]]:
-    candidates: list[dict[str, Any]] = []
-    for page in pages:
-        lines = [re.sub(r"\s+", " ", line).strip() for line in page.text.splitlines()]
-        headings = [index for index, line in enumerate(lines) if looks_like_heading(line)]
-        for local_index, line_index in enumerate(headings):
-            title = lines[line_index].strip("#*:—- ")
-            next_heading = headings[local_index + 1] if local_index + 1 < len(headings) else len(lines)
-            body_lines = [line for line in lines[line_index + 1 : next_heading] if line][:8]
-            summary = " ".join(body_lines)[:600]
-            if not summary:
-                continue
-            formulas = sorted(set(FORMULA_PATTERN.findall(summary)))[:8]
-            candidates.append(
-                {
-                    "id": stable_id(pack_id, title, page.page, local_index),
-                    "kind": guess_kind(title, summary),
-                    "name": title,
-                    "summaryCandidate": summary,
-                    "formulas": formulas,
-                    "sourcePage": page.page,
-                    "review": {"status": "needs_review", "approvedBy": None, "reviewedAt": None},
-                    "automation": {"level": "informational", "eligible": False, "reason": "human review required"},
-                }
-            )
-    return candidates[:5_000]
-
-
-def write_pack(source: Path, output: Path, pack_id: str, language: str, candidates: list[dict[str, Any]]) -> None:
-    if not re.fullmatch(r"[a-z0-9][a-z0-9._-]{1,79}", pack_id):
-        fail("pack ID must use 2-80 lowercase letters, numbers, dots, underscores, or hyphens")
-    output.parent.mkdir(parents=True, exist_ok=True)
-    source_digest = hashlib.sha256()
-    with source.open("rb") as source_stream:
-        for block in iter(lambda: source_stream.read(64 * 1024), b""):
-            source_digest.update(block)
-    source_hash = source_digest.hexdigest()
-    review_note = """# Local pack review
-
-Every candidate begins as `needs_review` and `informational`. Check the named source page, correct
-the mechanical fields, and record approval before enabling automation. Do not move this pack into
-the public `content/packs` directory. Missing or ambiguous fields must remain informational.
-"""
-    candidates_bytes = json.dumps(candidates, ensure_ascii=False, indent=2).encode("utf-8")
-    review_bytes = review_note.encode("utf-8")
-
-    def packed_file(path: str, media_type: str, value: bytes) -> dict[str, Any]:
-        return {
-            "path": path,
-            "mediaType": media_type,
-            "size": len(value),
-            "sha256": hashlib.sha256(value).hexdigest(),
-        }
-
-    manifest = {
-        "schemaVersion": 1,
-        "containerKind": "review-candidates",
-        "id": pack_id,
-        "version": "0.0.1-local",
-        "locale": language,
-        "createdAt": datetime.now(timezone.utc).isoformat(),
-        "source": {
-            "fileName": source.name,
-            "sha256": source_hash,
-            "mediaType": MEDIA_TYPES[source.suffix.lower()],
-        },
-        "payload": {"primary": "candidates.json"},
-        "files": [
-            packed_file("candidates.json", "application/json", candidates_bytes),
-            packed_file("REVIEW.md", "text/markdown", review_bytes),
-        ],
-        "privacy": {
-            "containsPrivateContent": True,
-            "distributionReady": False,
-            "networkAccess": False,
-        },
-        "review": {"status": "needs-review", "automationEligibleCount": 0},
-    }
-    partial = output.with_name(f"{output.name}.part")
-    try:
-        partial.unlink(missing_ok=True)
-        with zipfile.ZipFile(partial, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-            archive.writestr("manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2))
-            archive.writestr("candidates.json", candidates_bytes)
-            archive.writestr("REVIEW.md", review_bytes)
-        with partial.open("rb+") as staged_pack:
-            os.fsync(staged_pack.fileno())
-        partial.replace(output)
-    finally:
-        partial.unlink(missing_ok=True)
-
-
-def main() -> None:
-    args = parse_args()
-    source, output = validate_paths(args.input, args.output, args.force)
-    pages = extract_source(source)
-    candidates = candidates_from_pages(args.pack_id, pages)
-    if not candidates:
-        fail("no structured candidates were found; use the in-app manual editor for this source")
-    write_pack(source, output, args.pack_id, args.language, candidates)
-    print(f"created review pack: {output}")
-    print(f"candidates: {len(candidates)}; automation eligible: 0")
+        if args.input.suffix.lower() == ".dndpack":
+            document = validate_pack(args.input)
+            if args.output:
+                raise ValueError("--output is only valid for JSON input")
+        else:
+            payload = content_bytes(args.input)
+            document = json.loads(payload)
+            if not args.check:
+                output = args.output or args.input.with_suffix(".dndpack")
+                write_pack(output, payload)
+                print(output)
+        print(f"valid {document['id']} {document['version']} ({len(document['entries'])} entries)")
+        return 0
+    except (OSError, ValueError, json.JSONDecodeError, zipfile.BadZipFile) as failure:
+        print(f"error: {failure}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

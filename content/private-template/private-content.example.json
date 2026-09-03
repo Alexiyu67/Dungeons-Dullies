@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "private.example",
+  "version": "1.0.0",
+  "ruleset": "2024",
+  "locale": "en",
+  "entries": [
+    {
+      "id": "class-stargazer",
+      "kind": "class",
+      "name": "Stargazer",
+      "summary": "A fictional example class for validating private imports.",
+      "mechanics": { "hitDie": 8, "primaryAbility": "WIS", "caster": true }
+    },
+    {
+      "id": "feature-star-focus",
+      "kind": "feature",
+      "name": "Star Focus",
+      "summary": "Spend one use as a Bonus Action; resolve the chosen effect at the table.",
+      "mechanics": {
+        "parentClassId": "class-stargazer",
+        "unlockLevel": 1,
+        "actionCost": { "bonusActions": 1 },
+        "resource": { "maximum": 2, "recovery": "LONG_REST" },
+        "grantAutomatically": true
+      }
+    }
+  ]
+}

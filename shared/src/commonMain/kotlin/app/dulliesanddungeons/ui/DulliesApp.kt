@@ -122,6 +122,7 @@ fun DulliesAndDungeonsApp(
     state: DndAppState = remember { DndAppState() },
     onPickPortrait: (PortraitPickTarget) -> Unit = {},
     onImportPrivateContent: () -> Unit = {},
+    onDownloadPrivateContentSchema: () -> Unit = {},
     onEditPortrait: (PortraitPickTarget) -> Unit = {},
     portraitEditor: @Composable () -> Unit = {},
 ) {
@@ -169,7 +170,7 @@ fun DulliesAndDungeonsApp(
         if (state.hpAdjustOpen) HpAdjustDialog(state)
         if (state.quickRollEditorOpen) QuickRollEditorDialog(state)
         if (state.equipmentAddOpen) ItemBrowserDialog(state)
-        if (state.privateContentOpen) PrivateContentDialog(state, onImportPrivateContent)
+        if (state.privateContentOpen) PrivateContentDialog(state, onImportPrivateContent, onDownloadPrivateContentSchema)
         if (state.turnOpen) TurnAssistantDialog(state)
         if (state.sessionHistoryOpen) SessionHistoryDialog(state)
         if (state.sessionSaveOpen) SaveSessionDialog(state)

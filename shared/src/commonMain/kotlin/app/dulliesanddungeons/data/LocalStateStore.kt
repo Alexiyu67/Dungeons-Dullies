@@ -4,6 +4,7 @@ import app.dulliesanddungeons.domain.CharacterDocument
 import app.dulliesanddungeons.ui.ConditionUi
 import app.dulliesanddungeons.ui.PrivateEntryUi
 import app.dulliesanddungeons.ui.PendingImportUi
+import app.dulliesanddungeons.ui.InstalledPrivatePackUi
 import app.dulliesanddungeons.ui.UiLanguage
 import kotlinx.serialization.Serializable
 
@@ -28,11 +29,12 @@ interface LocalStateStore {
 
 @Serializable
 data class PersistedAppState(
-    val schemaVersion: Int = 4,
+    val schemaVersion: Int = 5,
     val language: UiLanguage = UiLanguage.English,
     val characters: List<CharacterDocument> = emptyList(),
     /** App-wide condition notices only; character effects live inside CharacterDocument.state. */
     val conditions: List<ConditionUi> = emptyList(),
     val privateEntries: List<PrivateEntryUi> = emptyList(),
     val pendingImports: List<PendingImportUi> = emptyList(),
+    val installedPrivatePacks: List<InstalledPrivatePackUi> = emptyList(),
 )

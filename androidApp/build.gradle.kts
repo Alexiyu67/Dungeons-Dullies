@@ -80,6 +80,8 @@ android {
         buildConfig = true
     }
 
+    sourceSets["main"].assets.srcDir(rootProject.file("content/schema"))
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -151,7 +153,6 @@ dependencies {
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.exifinterface)
     implementation(libs.androidx.work.runtime.ktx)
-    implementation(libs.pdfbox.android)
     implementation(compose.runtime)
     implementation(compose.animation)
     implementation(compose.foundation)

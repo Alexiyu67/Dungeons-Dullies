@@ -126,18 +126,18 @@ class CharacterStatEngineTest {
     }
 
     @Test
-    fun schemaTwoCharactersMigrateAndNextWriteUsesSchemaThree() {
+    fun unsupportedSchemaStartsFreshAndNextWriteUsesCurrentSchema() {
         val original = DndAppState(EffectTestStore()).selectedCharacter!!.copy(name = "Migrated hero")
         val payload = Json.encodeToString(
             PersistedAppState(schemaVersion = 2, characters = listOf(original.toDocument())),
         )
         val store = EffectTestStore(payload)
         val restored = DndAppState(store)
-        assertEquals("Migrated hero", restored.selectedCharacter?.name)
+        assertFalse(restored.characters.any { it.name == "Migrated hero" })
 
         restored.addEquipment(EquipmentUi("migration-token", "Migration Token"))
         val persisted = Json.decodeFromString<PersistedAppState>(store.storedValue!!)
-        assertEquals(4, persisted.schemaVersion)
+        assertEquals(5, persisted.schemaVersion)
     }
 }
 

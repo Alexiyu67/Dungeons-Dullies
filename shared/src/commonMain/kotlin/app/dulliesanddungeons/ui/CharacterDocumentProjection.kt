@@ -14,6 +14,7 @@ import app.dulliesanddungeons.domain.CharacterRollbackSnapshot
 import app.dulliesanddungeons.domain.ChoiceSelection
 import app.dulliesanddungeons.domain.ClassLevel
 import app.dulliesanddungeons.domain.CombatProfile
+import app.dulliesanddungeons.domain.ContentVersionRef
 import app.dulliesanddungeons.domain.CustomEntityKind
 import app.dulliesanddungeons.domain.CustomEntitySnapshot
 import app.dulliesanddungeons.domain.DeathReason
@@ -141,6 +142,7 @@ internal fun CharacterUi.toDocument(characterConditions: List<ConditionUi> = emp
         ruleset = rulesetId,
         sourceCharacterId = sourceCharacterId,
         locale = LocaleId.EN,
+        contentVersions = privateContentVersions.map { ContentVersionRef(it.id, it.version) },
         portraitFileName = portraitFileName,
         portraitSourceFileName = portraitSourceFileName,
         portraitCrop = portraitCrop,
@@ -427,6 +429,7 @@ internal fun CharacterDocument.toCharacterUi(): CharacterUi {
         baseSpeedFeet = combat.baseSpeedsFeet[MovementMode.WALK] ?: 0,
         baseFlySpeedFeet = combat.baseSpeedsFeet[MovementMode.FLY],
         passiveArmorClassBonus = combat.passiveArmorClassBonus,
+        privateContentVersions = build.contentVersions.map { InstalledPrivatePackUi(it.packId, it.version) },
     )
     return CharacterStatEngine.resolve(raw)
 }

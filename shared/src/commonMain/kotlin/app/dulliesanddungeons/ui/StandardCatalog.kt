@@ -464,13 +464,14 @@ internal fun privateKnownItem(entry: PrivateEntryUi): KnownItemUi? {
     val normalizedKind = entry.normalizedPrivateKind()
     if (normalizedKind !in setOf("item", "weapon")) return null
     val rulesets = entry.privateRulesets()
-    val rarity = entry.formulaValue("rarity")?.toItemRarity() ?: ItemRarity.Unspecified
+    val typed = entry.mechanics.item
+    val rarity = typed?.rarity?.toItemRarity() ?: entry.formulaValue("rarity")?.toItemRarity() ?: ItemRarity.Unspecified
 
     if (normalizedKind == "weapon") {
-        val damage = entry.formulaValue("damage")
+        val damage = typed?.damage ?: entry.formulaValue("damage")
             ?: Regex("\\b\\d+d\\d+(?:\\s*[+-]\\s*\\d+)?\\b", RegexOption.IGNORE_CASE).find(entry.formula)?.value
-        val damageType = entry.formulaValue("damage[ _-]?type")
-        val ability = entry.formulaValue("ability")?.uppercase()?.takeIf { it in setOf("STR", "DEX") } ?: "STR"
+        val damageType = typed?.damageType ?: entry.formulaValue("damage[ _-]?type")
+        val ability = typed?.ability ?: entry.formulaValue("ability")?.uppercase()?.takeIf { it in setOf("STR", "DEX") } ?: "STR"
         val template = damage?.let {
             StandardWeaponTemplate(
                 id = "private-${entry.id}",
@@ -478,11 +479,11 @@ internal fun privateKnownItem(entry: PrivateEntryUi): KnownItemUi? {
                 damage = it,
                 damageType = damageType.orEmpty(),
                 ability = ability,
-                properties = entry.formulaValue("properties").orEmpty(),
-                range = entry.formulaValue("range").orEmpty(),
-                mastery = entry.formulaValue("mastery").orEmpty(),
+                properties = typed?.properties ?: entry.formulaValue("properties").orEmpty(),
+                range = typed?.range ?: entry.formulaValue("range").orEmpty(),
+                mastery = typed?.mastery ?: entry.formulaValue("mastery").orEmpty(),
                 itemBonus = entry.formulaInt("(?:item[ _-]?)?bonus")?.coerceIn(-5, 5) ?: 0,
-                needsAttunement = entry.formulaFlag("attunement", "attuned", "requires attunement"),
+                needsAttunement = typed?.requiresAttunement ?: entry.formulaFlag("attunement", "attuned", "requires attunement"),
                 custom = true,
                 combatContributions = entry.combatContributions,
             )
@@ -501,7 +502,8 @@ internal fun privateKnownItem(entry: PrivateEntryUi): KnownItemUi? {
         )
     }
 
-    val declaredType = entry.formulaValue("(?:type|category)")?.lowercase()?.replace('-', ' ')?.replace('_', ' ')
+    val declaredType = typed?.type?.lowercase()?.replace('-', ' ')?.replace('_', ' ')
+        ?: entry.formulaValue("(?:type|category)")?.lowercase()?.replace('-', ' ')?.replace('_', ' ')
         ?: entry.kind.trim().lowercase()
     val itemType = when (declaredType) {
         "armor", "armour", "shield" -> KnownItemType.Armor
@@ -511,14 +513,15 @@ internal fun privateKnownItem(entry: PrivateEntryUi): KnownItemUi? {
         else -> KnownItemType.Gear
     }
     val kind = itemType.toEquipmentKind()
-    val armorClass = entry.formulaInt("(?:armor[ _-]?class|ac)")?.coerceIn(1, 30)
-    val shieldBonus = entry.formulaInt("shield(?:[ _-]?bonus)?")?.coerceIn(0, 9) ?: 0
+    val armorClass = typed?.armorClass ?: entry.formulaInt("(?:armor[ _-]?class|ac)")?.coerceIn(1, 30)
+    val shieldBonus = typed?.shieldBonus ?: entry.formulaInt("shield(?:[ _-]?bonus)?")?.coerceIn(0, 9) ?: 0
     val equipment = EquipmentUi(
         id = "private-${entry.id}",
         name = entry.name,
         kind = kind,
+        quantity = typed?.quantity ?: 1,
         details = entry.summary,
-        needsAttunement = entry.formulaFlag("attunement", "attuned", "requires attunement"),
+        needsAttunement = typed?.requiresAttunement ?: entry.formulaFlag("attunement", "attuned", "requires attunement"),
         armorClass = armorClass,
         shieldBonus = shieldBonus,
         combatContributions = entry.combatContributions,
@@ -545,7 +548,7 @@ internal fun PrivateEntryUi.normalizedPrivateKind(): String = when (kind.trim().
     "feature", "class feature", "species feature", "racial feature", "trait" -> "feature"
     "spell" -> "spell"
     "creature", "monster", "enemy", "gegner", "kreatur" -> "creature"
-    "item", "equipment", "gear", "armor", "armour" -> "item"
+    "item", "equipment", "gear", "armor", "armour", "tool", "mount", "vehicle", "magic-item" -> "item"
     "weapon" -> "weapon"
     "language" -> "language"
     "condition" -> "condition"
@@ -556,6 +559,7 @@ internal fun PrivateEntryUi.normalizedPrivateKind(): String = when (kind.trim().
 }
 
 internal fun PrivateEntryUi.privateRulesets(): Set<Ruleset> {
+    if (sourcePackId != null) return setOf(Ruleset.Fifth2024)
     val marker = formulaValue("ruleset")?.lowercase() ?: return everyRuleset
     return when (marker) {
         "5e" -> fifthEditionRulesets

@@ -38,6 +38,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -275,6 +276,21 @@ private fun BuildEditor(state: DndAppState, draft: CharacterEditorDraft) {
         OutlinedTextField(draft.ancestry, { draft.ancestry = it }, Modifier.fillMaxWidth(), label = { Text(state.t("Ancestry", "Abstammung")) }, singleLine = true)
         OutlinedTextField(draft.className, { draft.className = it }, Modifier.fillMaxWidth(), label = { Text(state.t("Class", "Klasse")) }, singleLine = true)
         OutlinedTextField(draft.subclass, { draft.subclass = it }, Modifier.fillMaxWidth(), label = { Text(state.t("Subclass", "Unterklasse")) }, singleLine = true)
+        val localMatches = state.matchingPrivateContentCount(draft)
+        if (localMatches > 0) {
+            OutlinedButton(
+                onClick = { state.linkPrivateContent(draft) },
+                enabled = !draft.linkPrivateContent,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(if (draft.linkPrivateContent) Icons.Rounded.Check else Icons.Rounded.AutoAwesome, contentDescription = null)
+                Spacer(Modifier.width(7.dp))
+                Text(
+                    if (draft.linkPrivateContent) state.t("Local handbook data linked", "Lokale Handbuchdaten verknüpft")
+                    else state.t("Use local handbook data", "Lokale Handbuchdaten verwenden"),
+                )
+            }
+        }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text(state.t("Level", "Stufe"), style = MaterialTheme.typography.titleSmall)
             Text(draft.level.toString(), style = MaterialTheme.typography.titleLarge)

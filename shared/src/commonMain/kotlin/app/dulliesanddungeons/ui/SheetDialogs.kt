@@ -574,7 +574,11 @@ private fun CustomWeaponForm(state: DndAppState, character: CharacterUi) {
 }
 
 @Composable
-internal fun PrivateContentDialog(state: DndAppState, onImportPrivateContent: () -> Unit) {
+internal fun PrivateContentDialog(
+    state: DndAppState,
+    onImportPrivateContent: () -> Unit,
+    onDownloadSchema: () -> Unit,
+) {
     var kind by remember { mutableStateOf("Item") }
     var name by remember { mutableStateOf("") }
     var summary by remember { mutableStateOf("") }
@@ -594,23 +598,29 @@ internal fun PrivateContentDialog(state: DndAppState, onImportPrivateContent: ()
                     Text(state.t("Import file", "Datei importieren"))
                 }
                 Text(
-                    state.t("PDF, TXT, MD, JSON and .dndpack stay on this phone.", "PDF, TXT, MD, JSON und .dndpack bleiben auf diesem Smartphone."),
+                    state.t("Import JSON or .dndpack files. Content stays on this phone.", "JSON- oder .dndpack-Dateien importieren. Inhalte bleiben auf diesem Smartphone."),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                TextButton(onClick = onDownloadSchema, modifier = Modifier.fillMaxWidth()) {
+                    Text(state.t("Download JSON schema", "JSON-Schema herunterladen"))
+                }
                 if (state.pendingImports.isNotEmpty()) {
                     Text(state.t("REVIEW IMPORTS", "IMPORTE PRÜFEN"), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                     state.pendingImports.forEach { pending ->
                         val expanded = expandedPackId == pending.packId
+                        val missing = state.missingPrivateRequirements(pending.packId)
+                        val counts = pending.candidates.groupingBy { it.kind.lowercase() }.eachCount().entries
+                            .sortedBy { it.key }.joinToString(" · ") { "${it.value} ${it.key}" }
                         Card(shape = RoundedCornerShape(15.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                             Surface(onClick = { expandedPackId = if (expanded) null else pending.packId }, color = androidx.compose.ui.graphics.Color.Transparent) {
                                 Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                                     Icon(Icons.Rounded.FileOpen, contentDescription = null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
                                     Spacer(Modifier.width(9.dp))
                                     Column(Modifier.weight(1f)) {
-                                        Text(pending.sourcePath.substringAfterLast('/').substringAfterLast('\\').ifBlank { pending.containerKind }, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        Text("${pending.packId} · ${pending.version}", style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                         Text(
-                                            pending.error ?: state.t("${pending.candidates.size} candidates", "${pending.candidates.size} Kandidaten"),
+                                            pending.error ?: if (missing.isNotEmpty()) state.t("Requires ${missing.joinToString { "${it.id} ${it.version}" }}", "Benötigt ${missing.joinToString { "${it.id} ${it.version}" }}") else counts,
                                             style = MaterialTheme.typography.bodySmall,
                                             color = if (pending.error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                                             maxLines = 2,
@@ -626,7 +636,7 @@ internal fun PrivateContentDialog(state: DndAppState, onImportPrivateContent: ()
                                     if (pending.candidates.isEmpty() && pending.error == null) {
                                         Text(state.t("No entries found.", "Keine Einträge gefunden."), style = MaterialTheme.typography.bodySmall)
                                     }
-                                    pending.candidates.forEach { candidate ->
+                                    pending.candidates.take(30).forEach { candidate ->
                                         Row(verticalAlignment = Alignment.Top) {
                                             Icon(Icons.Rounded.Check, contentDescription = null, Modifier.size(17.dp), tint = MaterialTheme.colorScheme.primary)
                                             Spacer(Modifier.width(7.dp))
@@ -637,13 +647,18 @@ internal fun PrivateContentDialog(state: DndAppState, onImportPrivateContent: ()
                                             }
                                         }
                                     }
+                                    if (pending.candidates.size > 30) Text(
+                                        state.t("and ${pending.candidates.size - 30} more", "und ${pending.candidates.size - 30} weitere"),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
                                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                         OutlinedButton(onClick = { state.discardPendingImport(pending.packId) }, modifier = Modifier.weight(1f)) { Text(state.t("Discard", "Verwerfen")) }
                                         Button(
                                             onClick = { state.approvePendingImport(pending.packId) },
-                                            enabled = pending.error == null && pending.candidates.isNotEmpty(),
+                                            enabled = pending.error == null && pending.candidates.isNotEmpty() && missing.isEmpty(),
                                             modifier = Modifier.weight(1f),
-                                        ) { Text(state.t("Approve", "Freigeben")) }
+                                        ) { Text(state.t("Install", "Installieren")) }
                                     }
                                 }
                             }
