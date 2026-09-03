@@ -6,6 +6,8 @@ import app.dulliesanddungeons.domain.CoreStatistic
 import app.dulliesanddungeons.domain.DifficultyClass
 import app.dulliesanddungeons.domain.EffectActivation
 import app.dulliesanddungeons.domain.SavingThrowPrompt
+import app.dulliesanddungeons.domain.WeaponClassification
+import app.dulliesanddungeons.domain.WeaponCombatType
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -870,6 +872,11 @@ private fun CustomWeaponPage(state: DndAppState, initial: KnownItemUi?, editing:
                         }.orEmpty(),
                         effects = editing?.effects.orEmpty(),
                         useCase = editing?.useCase.orEmpty(),
+                        classification = editing?.classification ?: template?.classification ?: WeaponClassification(
+                            baseWeaponId = editing?.definitionId ?: editing?.id ?: name.trim().lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-'),
+                            combatType = if (properties.contains("ammunition", true)) WeaponCombatType.RANGED else WeaponCombatType.MELEE,
+                            propertyIds = normalizedWeaponPropertyIds(properties),
+                        ),
                     )
                 state.itemBrowserFeedback = state.t("Added ${name.trim()}", "${name.trim()} hinzugefügt")
                 if (state.itemBrowserTarget == ItemBrowserTarget.StartingGear) {

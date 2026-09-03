@@ -195,6 +195,7 @@ data class TurnGuideSelections(
     val weaponId: String? = null,
     val spellId: String? = null,
     val featureId: String? = null,
+    val attackOptionId: String? = null,
 )
 
 /** Serializable, resumable per-character draft. It is reducer-owned and safe to discard. */
@@ -327,11 +328,21 @@ sealed interface TurnEvent {
 
     @Serializable
     @SerialName("attack_made")
-    data class AttackMade(val weaponId: String) : TurnEvent
+    data class AttackMade(
+        val weaponId: String,
+        val attackOptionId: String? = null,
+        val sourceFeatureId: String? = null,
+        val cost: ActionCost = ActionCost(),
+    ) : TurnEvent
 
     @Serializable
     @SerialName("attack_resolved")
-    data class AttackResolved(val weaponId: String, val outcome: AttackOutcomeRecord) : TurnEvent
+    data class AttackResolved(
+        val weaponId: String,
+        val outcome: AttackOutcomeRecord,
+        val attackOptionId: String? = null,
+        val sourceFeatureId: String? = null,
+    ) : TurnEvent
 
     @Serializable
     @SerialName("hit_points_changed")

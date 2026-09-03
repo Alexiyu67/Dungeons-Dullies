@@ -13,6 +13,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -141,7 +142,8 @@ internal fun CharacterSheetScreen(
         return
     }
     val listState = rememberLazyListState()
-    val activeWeapon = character.weapons.firstOrNull { it.id == state.sheetAttackWeaponId }
+    val activeAttackOption = state.currentSheetAttackOption()
+    val activeWeapon = state.currentSheetAttackWeapon()
     var languagesEditorOpen by remember(character.id) { mutableStateOf(false) }
     var customFeatureEditorOpen by remember(character.id) { mutableStateOf(false) }
     var editingCustomFeature by remember(character.id) { mutableStateOf<FeatureUi?>(null) }
@@ -341,7 +343,7 @@ internal fun CharacterSheetScreen(
                     }
                 }
                 if (sectionExpanded("weapons")) {
-                    items(character.weapons, key = { it.id }) { weapon -> WeaponRow(state, weapon) }
+                    items(character.weapons, key = { it.id }) { weapon -> WeaponRow(state, character, weapon) }
                 }
 
                 item {
@@ -450,10 +452,11 @@ internal fun CharacterSheetScreen(
                     state = state,
                     character = character,
                     weapon = weapon,
+                    attackOption = activeAttackOption,
                     roll = state.sheetAttackRoll,
                     damage = state.sheetDamageRoll,
                     outcome = state.sheetAttackOutcome,
-                    canRoll = true,
+                    canRoll = state.canRollCurrentSheetAttack(),
                     onRoll = {
                         state.rollSheetAttack(RollMode.NORMAL)
                         state.dicePresentation = null
@@ -2185,7 +2188,8 @@ private fun SorcerySlotRecoveryDialog(state: DndAppState, character: CharacterUi
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-private fun WeaponRow(state: DndAppState, weapon: WeaponUi) {
+private fun WeaponRow(state: DndAppState, character: CharacterUi, weapon: WeaponUi) {
+    val derivedOptions = state.derivedAttackOptions(character, weapon)
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
             when (value) {
@@ -2200,8 +2204,10 @@ private fun WeaponRow(state: DndAppState, weapon: WeaponUi) {
         state = dismissState,
         backgroundContent = { InventorySwipeBackground(state, dismissState.targetValue) },
     ) {
-    Card(
-        modifier = Modifier.fillMaxWidth()
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+        Column(Modifier.fillMaxWidth()) {
+        Row(
+            Modifier.fillMaxWidth()
             .combinedClickable(
                 onClick = { state.openSheetAttack(weapon.id) },
                 onLongClick = { state.toggleWeaponEquipped(weapon.id) },
@@ -2212,10 +2218,10 @@ private fun WeaponRow(state: DndAppState, weapon: WeaponUi) {
                     CustomAccessibilityAction(state.t("Remove weapon", "Waffe entfernen")) { state.removeWeapon(weapon.id); true },
                     CustomAccessibilityAction(state.t("Toggle equipped", "Ausrüstung umschalten")) { state.toggleWeaponEquipped(weapon.id); true },
                 )
-            },
-        shape = RoundedCornerShape(16.dp),
-    ) {
-        Row(Modifier.fillMaxWidth().padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
+            }
+            .padding(13.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = RoundedCornerShape(11.dp)) {
                 Icon(Icons.Rounded.SportsMma, contentDescription = null, modifier = Modifier.padding(9.dp), tint = MaterialTheme.colorScheme.onSecondaryContainer)
             }
@@ -2236,6 +2242,38 @@ private fun WeaponRow(state: DndAppState, weapon: WeaponUi) {
                 Icon(Icons.Rounded.Info, contentDescription = state.t("Weapon details", "Waffendetails"))
             }
             CostChip(state, CostTokenUi(CostTokenKind.Attack))
+        }
+        derivedOptions.forEach { option ->
+            HorizontalDivider(modifier = Modifier.padding(start = 54.dp), color = MaterialTheme.colorScheme.outlineVariant)
+            Surface(
+                onClick = { state.openSheetAttack(weapon.id, option.id) },
+                modifier = Modifier.fillMaxWidth().padding(start = 38.dp),
+                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = .28f),
+            ) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 13.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(9.dp),
+                ) {
+                    Box(Modifier.width(2.dp).height(34.dp).background(MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp)))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            option.weapon.name + if (option.attackCount > 1) " ×${option.attackCount}" else "",
+                            style = MaterialTheme.typography.labelLarge,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            "${signed(option.weapon.attackBonus)} · ${option.weapon.damage} ${option.weapon.damageType}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    val tokens = option.cost.toCostTokens().ifEmpty { listOf(CostTokenUi(CostTokenKind.Attack)) }
+                    CostChipRow(state, tokens)
+                }
+            }
+        }
         }
     }
     }
@@ -2429,6 +2467,7 @@ internal fun AttackCard(
     state: DndAppState,
     character: CharacterUi,
     weapon: WeaponUi,
+    attackOption: ResolvedAttackOptionUi? = null,
     roll: AttackRollUi?,
     damage: DamageRollUi?,
     outcome: AttackOutcome,
@@ -2456,13 +2495,14 @@ internal fun AttackCard(
                 Column(Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
-                            weapon.name,
+                            weapon.name + if ((attackOption?.attackCount ?: 1) > 1) " ×${attackOption?.attackCount}" else "",
                             modifier = Modifier.weight(1f),
                             style = MaterialTheme.typography.titleLarge,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        CostChip(state, CostTokenUi(CostTokenKind.Attack), available = canRoll)
+                        val tokens = attackOption?.cost?.toCostTokens().orEmpty().ifEmpty { listOf(CostTokenUi(CostTokenKind.Attack)) }
+                        CostChipRow(state, tokens, available = canRoll)
                     }
                     Text(
                         "${weapon.damage} ${weapon.damageType}",
@@ -2471,6 +2511,15 @@ internal fun AttackCard(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
+                    if (attackOption != null && attackOption.timingHint.isNotBlank()) {
+                        Text(
+                            attackOption.timingHint,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
                 TextButton(
                     onClick = {
@@ -2508,6 +2557,12 @@ internal fun AttackCard(
                         )
                     }
                     if (detailsExpanded) {
+                        if (attackOption != null) {
+                            CalculationRow(state.t("Source", "Quelle"), attackOption.sourceName)
+                            if (attackOption.details.isNotBlank()) {
+                                Text(attackOption.details, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
                         HorizontalDivider()
                         CalculationRow("d20", "1–20")
                         CalculationRow(calculation.abilityLabel, signed(calculation.ability))

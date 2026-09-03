@@ -695,7 +695,12 @@ private fun MoveTurnSection(
 
 @Composable
 private fun AttackTurnSection(state: DndAppState, character: CharacterUi, session: TurnSession) {
-    val selected = character.weapons.firstOrNull { it.id == session.selectedWeaponId } ?: character.weapons.firstOrNull()
+    val derivedOptions = state.allAttackOptions(character)
+    val selectedOption = derivedOptions.firstOrNull { it.id == session.selectedAttackOptionId }
+    val selectedParent = character.weapons.firstOrNull { it.id == selectedOption?.parentWeaponId ?: session.selectedWeaponId }
+        ?: character.weapons.firstOrNull()
+    val selected = selectedOption?.weapon ?: selectedParent
+    val canRollSelected = selectedOption?.isAvailableIn(session, character) ?: session.canAttack
     var weaponMenuOpen by remember(session) { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(11.dp)) {
         if (selected == null) {
@@ -711,7 +716,8 @@ private fun AttackTurnSection(state: DndAppState, character: CharacterUi, sessio
                 Column(Modifier.weight(1f), horizontalAlignment = Alignment.Start) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(selected.name, style = MaterialTheme.typography.labelLarge)
-                        CostChip(state, CostTokenUi(CostTokenKind.Attack), available = session.canAttack)
+                        val tokens = selectedOption?.cost?.toCostTokens().orEmpty().ifEmpty { listOf(CostTokenUi(CostTokenKind.Attack)) }
+                        CostChipRow(state, tokens, available = canRollSelected)
                     }
                     Text("${signed(selected.attackBonus)} · ${selected.damage} ${selected.damageType}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -730,6 +736,7 @@ private fun AttackTurnSection(state: DndAppState, character: CharacterUi, sessio
                         onClick = {
                             weaponMenuOpen = false
                             session.selectedWeaponId = weapon.id
+                            session.selectedAttackOptionId = null
                             session.lastAttackDetails = null
                             session.lastAttackRoll = null
                             session.lastDamageDetails = null
@@ -737,6 +744,34 @@ private fun AttackTurnSection(state: DndAppState, character: CharacterUi, sessio
                             session.attackOutcome = AttackOutcome.Pending
                         },
                     )
+                    derivedOptions.filter { it.parentWeaponId == weapon.id }.forEach { option ->
+                        val available = option.isAvailableIn(session, character)
+                        DropdownMenuItem(
+                            text = {
+                                Column {
+                                    Text("↳ ${option.weapon.name}${if (option.attackCount > 1) " ×${option.attackCount}" else ""}", style = MaterialTheme.typography.labelLarge)
+                                    Text(
+                                        option.unavailableReason(session, character)
+                                            ?: "${signed(option.weapon.attackBonus)} · ${option.weapon.damage} ${option.weapon.damageType}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                    )
+                                }
+                            },
+                            enabled = available,
+                            leadingIcon = if (option.id == selectedOption?.id) {{ Icon(Icons.Rounded.Check, contentDescription = null) }} else null,
+                            onClick = {
+                                weaponMenuOpen = false
+                                session.selectedWeaponId = option.parentWeaponId
+                                session.selectedAttackOptionId = option.id
+                                session.lastAttackDetails = null
+                                session.lastAttackRoll = null
+                                session.lastDamageDetails = null
+                                session.lastDamageRoll = null
+                                session.attackOutcome = AttackOutcome.Pending
+                                session.unresolvedAttackCommitted = false
+                            },
+                        )
+                    }
                 }
             }
         }
@@ -744,12 +779,13 @@ private fun AttackTurnSection(state: DndAppState, character: CharacterUi, sessio
             state = state,
             character = character,
             weapon = selected,
+            attackOption = selectedOption,
             roll = session.lastAttackDetails,
             damage = session.lastDamageDetails,
             outcome = session.attackOutcome,
-            canRoll = session.canAttack,
+            canRoll = canRollSelected,
             onRoll = {
-                state.rollAttack(selected, session, RollMode.NORMAL)
+                state.rollAttack(selected, session, RollMode.NORMAL, selectedOption)
                 state.dicePresentation = null
                 session.markSuggestionComplete("attack")
             },
@@ -759,7 +795,7 @@ private fun AttackTurnSection(state: DndAppState, character: CharacterUi, sessio
             },
             onOutcome = { outcome ->
                 session.attackOutcome = outcome
-                state.recordAttackOutcome(selected, outcome, session)
+                state.recordAttackOutcome(selected, outcome, session, selectedOption)
                 when (outcome) {
                     AttackOutcome.Hit -> state.rollDamage(selected, session, false)
                     AttackOutcome.Critical -> state.rollDamage(selected, session, true)

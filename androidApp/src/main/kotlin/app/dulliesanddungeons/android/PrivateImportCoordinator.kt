@@ -8,6 +8,16 @@ import android.util.AtomicFile
 import androidx.work.Data
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import app.dulliesanddungeons.domain.ActionCost
+import app.dulliesanddungeons.domain.DamageAbilityRule
+import app.dulliesanddungeons.domain.DerivedAttackGrant
+import app.dulliesanddungeons.domain.DerivedAttackParent
+import app.dulliesanddungeons.domain.DerivedAttackTrigger
+import app.dulliesanddungeons.domain.DiceExpression
+import app.dulliesanddungeons.domain.RulesetId
+import app.dulliesanddungeons.domain.WeaponCombatType
+import app.dulliesanddungeons.domain.WeaponMatch
+import app.dulliesanddungeons.domain.WeaponTrainingCategory
 import app.dulliesanddungeons.ui.PendingImportUi
 import app.dulliesanddungeons.ui.PrivateEntryUi
 import kotlinx.coroutines.CancellationException
@@ -145,6 +155,25 @@ internal class PrivateImportCoordinator(private val context: Context) {
                             content.optString("contentStatus") == "private-local" &&
                             !content.optBoolean("distributionReady", true),
                     ) { "installable-content-manifest" }
+                    val entries = content.optJSONArray("entries")
+                    if (entries != null) {
+                        require(entries.length() <= MAX_CANDIDATES) { "content-entry-count" }
+                        val mapped = (0 until entries.length()).map { index ->
+                            val item = entries.getJSONObject(index)
+                            PrivateEntryUi(
+                                id = item.getString("id").take(100),
+                                kind = item.getString("kind").take(40),
+                                name = item.getString("name").take(100),
+                                summary = item.optString("summary").take(500),
+                                formula = item.optString("formula").take(80),
+                                sourceNote = "Local .dndpack / ${expectedPackId.take(80)}",
+                                attackGrants = item.optJSONArray("attackGrants").toAttackGrants(),
+                            )
+                        }
+                        val automatedEntries = mapped.count { it.attackGrants.isNotEmpty() }
+                        require(automatedEntries <= review.optInt("automationEligibleCount", 0)) { "content-automation-count" }
+                        mapped
+                    } else
                     listOf(
                         PrivateEntryUi(
                             id = "${expectedPackId.take(80)}-review",
@@ -240,4 +269,101 @@ internal class PrivateImportCoordinator(private val context: Context) {
         const val MAX_CANDIDATE_BYTES = 16 * 1024 * 1024
         const val MAX_CANDIDATES = 5_000
     }
+}
+
+private fun org.json.JSONArray?.toAttackGrants(): List<DerivedAttackGrant> {
+    if (this == null) return emptyList()
+    require(length() <= 20) { "attack-grant-count" }
+    return (0 until length()).map { index -> getJSONObject(index).toAttackGrant() }
+}
+
+private fun JSONObject.toAttackGrant(): DerivedAttackGrant {
+    val id = getString("id")
+    require(id.matches(Regex("[a-z0-9][a-z0-9._-]{0,79}"))) { "attack-grant-id" }
+    val weaponMatch = optJSONObject("weaponMatch").toWeaponMatch()
+    val triggerWeaponMatch = optJSONObject("triggerWeaponMatch").toWeaponMatch().takeUnless { it == WeaponMatch() }
+        ?: weaponMatch
+    val dice = optJSONObject("damageDice")?.let { value ->
+        val sides = value.getInt("sides")
+        require(sides in setOf(1, 2, 4, 6, 8, 10, 12, 20, 100)) { "attack-grant-die" }
+        DiceExpression(
+            count = value.optInt("count", 1).coerceIn(1, 20),
+            sides = sides,
+            modifier = value.optInt("modifier", 0).coerceIn(-100, 100),
+        )
+    }
+    return DerivedAttackGrant(
+        id = id,
+        name = getString("name").take(100),
+        supportedRulesets = stringSet("supportedRulesets").map { value ->
+            when (value) {
+                "2014", "fifth_edition_2014", "fifth-edition-2014" -> RulesetId.FIFTH_EDITION_2014
+                "2024", "fifth_edition_2024", "fifth-edition-2024" -> RulesetId.FIFTH_EDITION_2024
+                "pf2e", "pf2e_remaster", "pf2e-remaster" -> RulesetId.PF2E_REMASTER
+                else -> error("attack-grant-ruleset")
+            }
+        }.toSet(),
+        parent = enumValue(optString("parent", "same_weapon"), DerivedAttackParent.SAME_WEAPON),
+        weaponMatch = weaponMatch,
+        triggerWeaponMatch = triggerWeaponMatch,
+        trigger = enumValue(optString("trigger", "always"), DerivedAttackTrigger.ALWAYS),
+        cost = optJSONObject("cost").toActionCost(),
+        damageDice = dice,
+        damageType = optString("damageType").take(40).ifBlank { null },
+        damageAbilityRule = enumValue(optString("damageAbilityRule", "inherit"), DamageAbilityRule.INHERIT),
+        attackCount = optInt("attackCount", 1).coerceIn(1, 10),
+        maxUsesPerTurn = if (has("maxUsesPerTurn")) optInt("maxUsesPerTurn").coerceIn(1, 20) else null,
+        requiresDifferentTriggerWeapon = optBoolean("requiresDifferentTriggerWeapon", false),
+        inheritItemBonus = optBoolean("inheritItemBonus", true),
+        inheritReach = optBoolean("inheritReach", true),
+        timingHint = optString("timingHint").take(240),
+        details = optString("details").take(500),
+    )
+}
+
+private inline fun <reified T : Enum<T>> enumValue(value: String, default: T): T {
+    if (value.isBlank()) return default
+    return enumValues<T>().firstOrNull { it.name.equals(value.replace('-', '_'), true) }
+        ?: error("attack-grant-enum")
+}
+
+private fun JSONObject?.toWeaponMatch(): WeaponMatch {
+    if (this == null) return WeaponMatch()
+    return WeaponMatch(
+        baseWeaponIds = stringSet("baseWeaponIds"),
+        excludedBaseWeaponIds = stringSet("excludedBaseWeaponIds"),
+        training = stringSet("training").mapNotNull { value ->
+            enumValues<WeaponTrainingCategory>().firstOrNull { it.name.equals(value, true) }
+        }.toSet(),
+        combatTypes = stringSet("combatTypes").mapNotNull { value ->
+            enumValues<WeaponCombatType>().firstOrNull { it.name.equals(value, true) }
+        }.toSet(),
+        allPropertyIds = stringSet("allPropertyIds"),
+        anyPropertyIds = stringSet("anyPropertyIds"),
+        excludedPropertyIds = stringSet("excludedPropertyIds"),
+    )
+}
+
+private fun JSONObject.stringSet(name: String): Set<String> {
+    val values = optJSONArray(name) ?: return emptySet()
+    require(values.length() <= 50) { "attack-grant-match-count" }
+    return (0 until values.length()).map { values.getString(it).lowercase(Locale.ROOT).take(80) }.toSet()
+}
+
+private fun JSONObject?.toActionCost(): ActionCost {
+    if (this == null) return ActionCost()
+    val resourcesObject = optJSONObject("resources")
+    val resources = if (resourcesObject == null) emptyMap() else resourcesObject.keys().asSequence().associateWith { key ->
+        require(key.matches(Regex("[A-Za-z0-9._-]{1,80}"))) { "attack-grant-resource-id" }
+        resourcesObject.getInt(key).coerceIn(1, 20)
+    }
+    return ActionCost(
+        actions = optInt("actions", 0).coerceIn(0, 10),
+        bonusActions = optInt("bonusActions", 0).coerceIn(0, 1),
+        reactions = optInt("reactions", 0).coerceIn(0, 1),
+        attacks = optInt("attacks", 0).coerceIn(0, 10),
+        objectInteractions = optInt("objectInteractions", 0).coerceIn(0, 10),
+        pf2eActions = optInt("pf2eActions", 0).coerceIn(0, 3),
+        resources = resources,
+    )
 }

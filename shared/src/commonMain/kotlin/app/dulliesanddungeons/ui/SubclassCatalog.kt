@@ -1,8 +1,12 @@
 package app.dulliesanddungeons.ui
 
 import app.dulliesanddungeons.domain.ActionCost
+import app.dulliesanddungeons.domain.DerivedAttackGrant
+import app.dulliesanddungeons.domain.DerivedAttackTrigger
 import app.dulliesanddungeons.domain.Recovery
 import app.dulliesanddungeons.domain.RollMode
+import app.dulliesanddungeons.domain.WeaponCombatType
+import app.dulliesanddungeons.domain.WeaponMatch
 import kotlinx.serialization.Serializable
 import kotlin.math.floor
 
@@ -130,6 +134,7 @@ private data class FeatureSeed(
     val useScaling: SubclassUseScalingUi = SubclassUseScalingUi.NONE,
     val fixedUses: Int = 0,
     val suggest: Boolean = false,
+    val attackGrants: List<DerivedAttackGrant> = emptyList(),
 )
 
 private fun slug(value: String): String = value.lowercase().map { if (it.isLetterOrDigit()) it else '-' }
@@ -169,6 +174,7 @@ private fun option(
                         effect = seed.effect,
                         actionCost = seed.actionCost,
                         turnGuideEligible = seed.suggest,
+                        attackGrants = seed.attackGrants,
                     ),
                     useScaling = seed.useScaling,
                     fixedUses = seed.fixedUses,
@@ -180,7 +186,30 @@ private fun option(
     )
 }
 
-private fun passive(level: Int, name: String, summary: String) = FeatureSeed(level, name, summary)
+private fun passive(
+    level: Int,
+    name: String,
+    summary: String,
+    attackGrants: List<DerivedAttackGrant> = emptyList(),
+) = FeatureSeed(level, name, summary, attackGrants = attackGrants)
+
+private fun meleeAttackGrant(
+    id: String,
+    name: String,
+    trigger: DerivedAttackTrigger,
+    cost: ActionCost,
+    timingHint: String,
+    includeUnarmed: Boolean = true,
+) = DerivedAttackGrant(
+    id = id,
+    name = name,
+    weaponMatch = WeaponMatch(combatTypes = setOf(WeaponCombatType.MELEE) + if (includeUnarmed) setOf(WeaponCombatType.UNARMED) else emptySet()),
+    triggerWeaponMatch = WeaponMatch(combatTypes = setOf(WeaponCombatType.MELEE) + if (includeUnarmed) setOf(WeaponCombatType.UNARMED) else emptySet()),
+    trigger = trigger,
+    cost = cost,
+    maxUsesPerTurn = 1,
+    timingHint = timingHint,
+)
 private fun active(
     level: Int,
     name: String,
@@ -199,7 +228,12 @@ private fun spell(level: Int, id: String, name: String, spellLevel: Int, summary
 internal object BuiltInSubclassCatalog {
     val entries: List<SubclassOptionUi> = listOf(
         option("srd51.subclass.berserker", Ruleset.Fifth2014, "Barbarian", "Path of the Berserker", "Turns rage into relentless offense.", "Verwandelt Kampfrausch in unerbittliche Offensive.", 3,
-            features = listOf(passive(3, "Frenzy", "Rage can fuel an additional melee attack, with the rule's exhaustion cost."), passive(6, "Mindless Rage", "Rage protects against being charmed or frightened."), active(10, "Intimidating Presence", "Attempt to frighten a creature.", uses = 1, recovery = Recovery.LONG_REST), passive(14, "Retaliation", "A nearby attacker can trigger a retaliatory Reaction."))),
+            features = listOf(
+                passive(3, "Frenzy", "Rage can fuel an additional melee attack, with the rule's exhaustion cost.", listOf(meleeAttackGrant("frenzy-attack", "Frenzy attack", DerivedAttackTrigger.WHILE_RAGING_AFTER_FIRST_TURN, ActionCost(bonusActions = 1), "Available while Frenzying, after the first turn of the rage.", includeUnarmed = false))),
+                passive(6, "Mindless Rage", "Rage protects against being charmed or frightened."),
+                active(10, "Intimidating Presence", "Attempt to frighten a creature.", uses = 1, recovery = Recovery.LONG_REST),
+                passive(14, "Retaliation", "A nearby attacker can trigger a retaliatory Reaction.", listOf(meleeAttackGrant("retaliation-attack", "Retaliation", DerivedAttackTrigger.DAMAGED_BY_CREATURE_IN_REACH, ActionCost(reactions = 1), "Use after a creature within 5 feet damages you.", includeUnarmed = false))),
+            )),
         option("srd51.subclass.lore", Ruleset.Fifth2014, "Bard", "College of Lore", "Adds skills, magical secrets, and reactive support.", "Erweitert Fertigkeiten, magische Geheimnisse und reaktive Unterstützung.", 3,
             features = listOf(passive(3, "Bonus Proficiencies", "Gain three skill proficiencies."), FeatureSeed(3, "Cutting Words", "Spend Bardic Inspiration as a Reaction to hinder another creature's roll.", ActionCost(reactions = 1)), passive(6, "Additional Magical Secrets", "Learn two spells from any class."), passive(14, "Peerless Skill", "Add Bardic Inspiration to one of your own ability checks."))),
         option("srd51.subclass.life", Ruleset.Fifth2014, "Cleric", "Life Domain", "Strengthens healing magic and grants protective training.", "Stärkt Heilmagie und verleiht schützende Ausbildung.", 1,
@@ -218,7 +252,12 @@ internal object BuiltInSubclassCatalog {
         evoker(Ruleset.Fifth2014, "srd51.subclass.evocation", "School of Evocation", 2),
 
         option("srd52.subclass.berserker", Ruleset.Fifth2024, "Barbarian", "Path of the Berserker", "Turns rage into forceful, fearless offense.", "Verwandelt Kampfrausch in kraftvolle, furchtlose Offensive.", 3,
-            features = listOf(passive(3, "Frenzy", "Reckless Attack can add extra damage while raging."), passive(6, "Mindless Rage", "Rage protects against being charmed or frightened."), active(10, "Intimidating Presence", "Frighten nearby creatures as a Bonus Action.", ActionCost(bonusActions = 1), Recovery.LONG_REST, scaling = SubclassUseScalingUi.PROFICIENCY_BONUS), passive(14, "Retaliation", "A nearby attacker can trigger a retaliatory Reaction."))),
+            features = listOf(
+                passive(3, "Frenzy", "Reckless Attack can add extra damage while raging."),
+                passive(6, "Mindless Rage", "Rage protects against being charmed or frightened."),
+                passive(10, "Retaliation", "A nearby attacker can trigger a retaliatory Reaction.", listOf(meleeAttackGrant("retaliation-attack", "Retaliation", DerivedAttackTrigger.DAMAGED_BY_CREATURE_IN_REACH, ActionCost(reactions = 1), "Use after a creature within 5 feet damages you."))),
+                active(14, "Intimidating Presence", "Frighten nearby creatures as a Bonus Action.", ActionCost(bonusActions = 1), Recovery.LONG_REST, scaling = SubclassUseScalingUi.PROFICIENCY_BONUS),
+            )),
         option("srd52.subclass.lore", Ruleset.Fifth2024, "Bard", "College of Lore", "Adds expertise, magical discoveries, and reactive support.", "Erweitert Expertise, magische Entdeckungen und reaktive Unterstützung.", 3,
             features = listOf(passive(3, "Bonus Proficiencies", "Gain three skill proficiencies."), FeatureSeed(3, "Cutting Words", "Spend Bardic Inspiration as a Reaction to hinder a creature's roll.", ActionCost(reactions = 1)), passive(6, "Magical Discoveries", "Learn additional spells from broader lists."), passive(14, "Peerless Skill", "Add Bardic Inspiration to one of your own ability checks."))),
         option("srd52.subclass.life", Ruleset.Fifth2024, "Cleric", "Life Domain", "Strengthens healing and life-preserving magic.", "Stärkt Heilung und lebensbewahrende Magie.", 3,

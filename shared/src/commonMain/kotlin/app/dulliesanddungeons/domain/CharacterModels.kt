@@ -466,6 +466,7 @@ data class WeaponRecord(
     val effects: List<CoreModifier> = emptyList(),
     val savingThrows: List<SavingThrowPrompt> = emptyList(),
     val useCase: String = "",
+    val classification: WeaponClassification = WeaponClassification(),
 )
 
 @Serializable
@@ -506,6 +507,7 @@ data class FeatureRecord(
     val turnGuideEligible: Boolean = true,
     val source: EntityRef? = null,
     val effects: List<CoreModifier> = emptyList(),
+    val attackGrants: List<DerivedAttackGrant> = emptyList(),
 )
 
 @Serializable

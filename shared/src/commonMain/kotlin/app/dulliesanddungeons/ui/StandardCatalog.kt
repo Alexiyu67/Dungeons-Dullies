@@ -8,6 +8,9 @@ import app.dulliesanddungeons.domain.EffectActivation
 import app.dulliesanddungeons.domain.EquipmentLocation
 import app.dulliesanddungeons.domain.ModifierOperation
 import app.dulliesanddungeons.domain.SavingThrowPrompt
+import app.dulliesanddungeons.domain.WeaponClassification
+import app.dulliesanddungeons.domain.WeaponCombatType
+import app.dulliesanddungeons.domain.WeaponTrainingCategory
 
 enum class KnownItemType { Weapon, Armor, Gear, Tool, Consumable, Rations }
 
@@ -61,7 +64,62 @@ data class StandardWeaponTemplate(
     val supportedRulesets: Set<Ruleset> = setOf(Ruleset.Fifth2014, Ruleset.Fifth2024),
     val useCase: String = "",
     val savingThrows: List<SavingThrowPrompt> = emptyList(),
+    val classification: WeaponClassification = standardWeaponClassification(id, properties, range),
 )
+
+private val simpleMeleeWeaponIds = setOf(
+    "club", "dagger", "greatclub", "handaxe", "javelin", "light-hammer", "mace", "quarterstaff", "sickle", "spear",
+)
+private val simpleRangedWeaponIds = setOf("light-crossbow", "dart", "shortbow", "sling")
+private val martialMeleeWeaponIds = setOf(
+    "battleaxe", "flail", "glaive", "greataxe", "greatsword", "halberd", "lance", "longsword", "maul", "morningstar",
+    "pike", "rapier", "scimitar", "shortsword", "trident", "war-pick", "warhammer", "whip",
+)
+private val martialRangedWeaponIds = setOf(
+    "blowgun", "hand-crossbow", "heavy-crossbow", "longbow", "musket", "pistol", "net",
+)
+
+internal fun normalizedWeaponPropertyIds(properties: String): Set<String> = buildSet {
+    val normalized = properties.lowercase()
+    listOf("ammunition", "finesse", "heavy", "light", "loading", "reach", "special", "thrown", "two-handed", "versatile")
+        .filterTo(this) { property -> Regex("(^|[^a-z-])${Regex.escape(property)}([^a-z-]|$)").containsMatchIn(normalized) }
+}
+
+internal fun standardWeaponClassification(id: String, properties: String, range: String): WeaponClassification {
+    val training = when (id) {
+        in simpleMeleeWeaponIds, in simpleRangedWeaponIds -> WeaponTrainingCategory.SIMPLE
+        in martialMeleeWeaponIds, in martialRangedWeaponIds -> WeaponTrainingCategory.MARTIAL
+        else -> WeaponTrainingCategory.CUSTOM
+    }
+    val combatType = when (id) {
+        in simpleRangedWeaponIds, in martialRangedWeaponIds -> WeaponCombatType.RANGED
+        else -> if ("ammunition" in properties.lowercase() && range.isNotBlank()) WeaponCombatType.RANGED else WeaponCombatType.MELEE
+    }
+    return WeaponClassification(
+        baseWeaponId = id,
+        training = training,
+        combatType = combatType,
+        propertyIds = normalizedWeaponPropertyIds(properties),
+    )
+}
+
+internal fun StandardWeaponTemplate.forRuleset(ruleset: Ruleset): StandardWeaponTemplate {
+    val resolved = when {
+        ruleset == Ruleset.Fifth2014 && id == "lance" -> copy(
+            damage = "1d12",
+            properties = "Reach, special",
+            mastery = "",
+        )
+        ruleset == Ruleset.Fifth2014 && id == "trident" -> copy(
+            damage = "1d6",
+            properties = "Thrown, versatile (1d8)",
+            mastery = "",
+        )
+        ruleset == Ruleset.Fifth2014 -> copy(mastery = "")
+        else -> this
+    }
+    return resolved.copy(classification = standardWeaponClassification(resolved.id, resolved.properties, resolved.range))
+}
 
 val standardWeaponCatalog = listOf(
     StandardWeaponTemplate("club", "Club", "1d4", "Bludgeoning", "STR", "Light", mastery = "Slow"),
@@ -245,8 +303,7 @@ internal fun builtInKnownItemCatalog(): List<KnownItemUi> = buildList {
     standardWeaponCatalog.forEach { weapon ->
         weapon.supportedRulesets.forEach { ruleset ->
             val revision = if (ruleset == Ruleset.Fifth2014) "srd-5-1" else "srd-5-2-1"
-            val revisionWeapon = weapon.copy(
-                mastery = if (ruleset == Ruleset.Fifth2014) "" else weapon.mastery,
+            val revisionWeapon = weapon.forRuleset(ruleset).copy(
                 savingThrows = standardWeaponSavingThrows(weapon, ruleset),
             )
             add(KnownItemUi(
@@ -254,7 +311,7 @@ internal fun builtInKnownItemCatalog(): List<KnownItemUi> = buildList {
                 name = weapon.name,
                 type = KnownItemType.Weapon,
                 rarity = ItemRarity.Mundane,
-                details = listOf(weapon.damage, weapon.damageType, weapon.properties).filter(String::isNotBlank).joinToString(" · "),
+                details = listOf(revisionWeapon.damage, revisionWeapon.damageType, revisionWeapon.properties).filter(String::isNotBlank).joinToString(" · "),
                 source = KnownItemSource.BuiltIn,
                 supportedRulesets = setOf(ruleset),
                 weapon = revisionWeapon,
