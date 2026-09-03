@@ -4469,6 +4469,13 @@ class DndAppState(
         return true
     }
 
+    fun rollSheetDamage() {
+        val weapon = selectedCharacter?.weapons?.firstOrNull { it.id == sheetAttackWeaponId } ?: return
+        sheetDamageRoll = performDamage(weapon, critical = false).also { details ->
+            if (details.dice.isNotEmpty()) recordEvent(TurnEvent.RollRecorded(details.toDiceRoll(weapon.name)))
+        }
+    }
+
     fun resolveSheetAttack(outcome: AttackOutcome) {
         val weapon = selectedCharacter?.weapons?.firstOrNull { it.id == sheetAttackWeaponId } ?: return
         sheetAttackOutcome = outcome
@@ -4536,6 +4543,14 @@ class DndAppState(
     }
 
     fun rollDamage(weapon: WeaponUi, session: TurnSession, critical: Boolean) {
+        rollSessionDamage(weapon, session, critical, resolvesAttack = true)
+    }
+
+    fun rollDirectDamage(weapon: WeaponUi, session: TurnSession) {
+        rollSessionDamage(weapon, session, critical = false, resolvesAttack = false)
+    }
+
+    private fun rollSessionDamage(weapon: WeaponUi, session: TurnSession, critical: Boolean, resolvesAttack: Boolean) {
         val details = performDamage(weapon, critical)
         session.lastDamageDetails = details
         if (details.sides > 0) {
@@ -4548,8 +4563,11 @@ class DndAppState(
         }
         session.lastDamageRoll = "${details.total} ${details.damageType.lowercase()} · ${details.dice.joinToString(" + ")}$modifierText"
         if (details.dice.isNotEmpty()) session.record(TurnEvent.RollRecorded(details.toDiceRoll(weapon.name)))
-        session.unresolvedAttackCommitted = false
-        lastRollAction = { rollDamage(weapon, session, critical) }
+        if (resolvesAttack) session.unresolvedAttackCommitted = false
+        lastRollAction = {
+            if (resolvesAttack) rollDamage(weapon, session, critical)
+            else rollDirectDamage(weapon, session)
+        }
     }
 
     private fun AttackRollUi.toDiceRoll(label: String): DiceRoll = DiceRoll(
