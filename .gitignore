@@ -13,6 +13,7 @@ local.properties
 privateContent/
 private-local/
 local-content/
+/PlayersHandbook/
 *.dndpack
 captures/
 mockups/
