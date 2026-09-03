@@ -53,7 +53,7 @@ internal class UiRulesetPlugin private constructor(override val id: RulesetId) :
         return when (val reducer = turnReducer) {
             is FiveETurnReducer -> reducer.newTurn(
                 speedsFeet = speeds,
-                attacksPerAction = if (build.classes.any { it.classId == "fighter" && it.levels >= 5 }) 2 else 1,
+                attacksPerAction = attacksPerAction(build),
                 resources = resources,
             )
             is Pf2eTurnReducer -> reducer.newTurn(speeds, resources, characterId = build.id)
@@ -68,13 +68,16 @@ internal class UiRulesetPlugin private constructor(override val id: RulesetId) :
             RulesetId.FIFTH_EDITION_2014, RulesetId.FIFTH_EDITION_2024 -> FiveEBuildData(
                 ancestryId = character.ancestry.lowercase(),
                 backgroundId = "local",
-                classes = listOf(
+                classes = character.progression.groupingBy { it.className }.eachCount().map { (name, levels) ->
                     ClassLevel(
-                        character.className.lowercase(),
-                        character.level,
-                        character.subclass.takeUnless { it == "—" }?.lowercase(),
-                    ),
-                ),
+                        name.lowercase(),
+                        levels,
+                        character.subclassNamesByClass[name]?.lowercase()
+                            ?: character.subclass.takeUnless { it == "—" || !name.equals(character.className, true) }?.lowercase(),
+                    )
+                }.ifEmpty {
+                    listOf(ClassLevel(character.className.lowercase(), character.level, character.subclass.takeUnless { it == "—" }?.lowercase()))
+                },
                 abilities = abilities,
                 features = featureSelections,
             )
@@ -112,6 +115,20 @@ internal class UiRulesetPlugin private constructor(override val id: RulesetId) :
     )
 
     companion object {
+        private fun attacksPerAction(build: CharacterBuild): Int {
+            fun levels(name: String) = build.classes.firstOrNull {
+                it.classId.substringAfterLast(':').equals(name, true)
+            }?.levels ?: 0
+            val fighter = levels("fighter")
+            return when {
+                fighter >= 20 -> 4
+                fighter >= 11 -> 3
+                fighter >= 5 -> 2
+                listOf("barbarian", "monk", "paladin", "ranger").any { levels(it) >= 5 } -> 2
+                else -> 1
+            }
+        }
+
         fun forCharacter(character: CharacterUi) = UiRulesetPlugin(when (character.ruleset) {
             Ruleset.Fifth2024 -> RulesetId.FIFTH_EDITION_2024
             Ruleset.Fifth2014 -> RulesetId.FIFTH_EDITION_2014

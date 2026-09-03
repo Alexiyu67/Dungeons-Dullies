@@ -129,6 +129,7 @@ import app.dulliesanddungeons.domain.ActiveConcentration
 import app.dulliesanddungeons.domain.CharacterNote
 import app.dulliesanddungeons.domain.Recovery
 import app.dulliesanddungeons.domain.RollMode
+import app.dulliesanddungeons.domain.CombatContributionTiming
 import org.jetbrains.compose.resources.decodeToImageBitmap
 
 @Composable
@@ -158,6 +159,9 @@ internal fun CharacterSheetScreen(
     var longRestDialogOpen by remember(character.id) { mutableStateOf(false) }
     var characterDeletionRequested by remember(character.id) { mutableStateOf(false) }
     var diceRollerOpen by remember(character.id) { mutableStateOf(false) }
+    var potentialDialogKind by remember(character.id) { mutableStateOf<PotentialDialogKind?>(null) }
+    val attackPotential = CombatPotentialEngine.attacks(character, state.selectedConditions)
+    val castPotential = CombatPotentialEngine.casts(character)
     val expandedSections = remember(character.id) { mutableStateMapOf<String, Boolean>() }
     fun sectionExpanded(key: String): Boolean = expandedSections[key] ?: (key != "rests")
     fun toggleSection(key: String) { expandedSections[key] = !sectionExpanded(key) }
@@ -299,8 +303,13 @@ internal fun CharacterSheetScreen(
                 if (character.canCastSpells) {
                     item {
                         CollapsibleSectionHeader(state, state.t("Spells", "Zauber"), sectionExpanded("spells"), { toggleSection("spells") }) {
-                            IconButton(onClick = { state.beginEdit(section = EditorSection.Spells) }, modifier = Modifier.size(42.dp)) {
-                                Icon(Icons.Rounded.Edit, contentDescription = state.t("Edit spells", "Zauber bearbeiten"), Modifier.size(19.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (character.ruleset != Ruleset.Pf2eRemaster) {
+                                    PotentialBadge(state, state.t("Casts", "Zauber"), castPotential) { potentialDialogKind = PotentialDialogKind.Casts }
+                                }
+                                IconButton(onClick = { state.beginEdit(section = EditorSection.Spells) }, modifier = Modifier.size(42.dp)) {
+                                    Icon(Icons.Rounded.Edit, contentDescription = state.t("Edit spells", "Zauber bearbeiten"), Modifier.size(19.dp))
+                                }
                             }
                         }
                     }
@@ -339,10 +348,15 @@ internal fun CharacterSheetScreen(
 
                 item {
                     CollapsibleSectionHeader(state, state.t("Weapons", "Waffen"), sectionExpanded("weapons"), { toggleSection("weapons") }) {
-                        TextButton(onClick = { state.openItemBrowser() }) {
-                            Icon(Icons.Rounded.Add, contentDescription = null, Modifier.size(18.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text(state.t("Add", "Hinzufügen"))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (character.ruleset != Ruleset.Pf2eRemaster) {
+                                PotentialBadge(state, state.t("Attacks", "Angriffe"), attackPotential) { potentialDialogKind = PotentialDialogKind.Attacks }
+                            }
+                            TextButton(onClick = { state.openItemBrowser() }) {
+                                Icon(Icons.Rounded.Add, contentDescription = null, Modifier.size(18.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text(state.t("Add", "Hinzufügen"))
+                            }
                         }
                     }
                 }
@@ -572,7 +586,153 @@ internal fun CharacterSheetScreen(
     if (longRestDialogOpen) {
         LongRestDialog(state, character) { longRestDialogOpen = false }
     }
+    potentialDialogKind?.let { kind ->
+        val potential = if (kind == PotentialDialogKind.Attacks) attackPotential else castPotential
+        CombatPotentialDialog(state, kind, potential) { potentialDialogKind = null }
+    }
 }
+
+private enum class PotentialDialogKind { Attacks, Casts }
+
+@Composable
+private fun PotentialBadge(
+    state: DndAppState,
+    label: String,
+    potential: TurnPotentialUi,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.semantics {
+            role = Role.Button
+            contentDescription = state.t(
+                "$label per turn potential: ${potential.baseCount} normal plus ${potential.extraCount} extra. Show details.",
+                "$label pro Zug: ${potential.baseCount} normal plus ${potential.extraCount} zusätzlich. Details anzeigen.",
+            )
+        },
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        shape = RoundedCornerShape(13.dp),
+    ) {
+        Row(
+            Modifier.padding(horizontal = 9.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+        ) {
+            Text(label, style = MaterialTheme.typography.labelSmall)
+            Text(potential.compactLabel, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+            Icon(Icons.Rounded.Info, contentDescription = null, modifier = Modifier.size(14.dp))
+        }
+    }
+}
+
+@Composable
+private fun CombatPotentialDialog(
+    state: DndAppState,
+    kind: PotentialDialogKind,
+    potential: TurnPotentialUi,
+    onDismiss: () -> Unit,
+) {
+    val subject = if (kind == PotentialDialogKind.Attacks) state.t("Attack", "Angriffs") else state.t("Cast", "Zauber")
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(if (kind == PotentialDialogKind.Attacks) Icons.Rounded.SportsMma else Icons.Rounded.AutoAwesome, contentDescription = null) },
+        title = { Text(state.t("$subject potential · ${potential.compactLabel}", "$subject-Potenzial · ${potential.compactLabel}")) },
+        text = {
+            Column(
+                Modifier.heightIn(max = 570.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    state.t(
+                        "Maximum for one of your turns with full resources, valid owned gear, and the listed setup.",
+                        "Maximum für einen deiner Züge mit vollen Ressourcen, gültiger eigener Ausrüstung und dem aufgeführten Aufbau.",
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(state.t("BEST COMBINATION", "BESTE KOMBINATION"), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                PotentialTreeRow(
+                    connector = if (potential.bestSources.isEmpty()) "└─" else "├─",
+                    label = when (potential.baseLabel) {
+                        "Attack action" -> state.t("Attack action", "Angriffsaktion")
+                        "Cast a Spell action" -> state.t("Cast a Spell action", "Zauber-wirken-Aktion")
+                        "Magic action" -> state.t("Magic action", "Magieaktion")
+                        else -> potential.baseLabel
+                    },
+                    count = potential.baseCount,
+                    showPlus = false,
+                )
+                potential.bestSources.forEachIndexed { index, source ->
+                    PotentialTreeRow(
+                        connector = if (index == potential.bestSources.lastIndex) "└─" else "├─",
+                        label = source.label,
+                        count = source.count,
+                        detail = potentialDetail(state, source),
+                    )
+                }
+                if (potential.alternatives.isNotEmpty()) {
+                    HorizontalDivider()
+                    Text(state.t("ALTERNATIVES", "ALTERNATIVEN"), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                    Text(
+                        state.t("These use a conflicting action or require a different sequence.", "Diese benötigen eine kollidierende Aktion oder eine andere Reihenfolge."),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    potential.alternatives.forEach { source ->
+                        PotentialTreeRow("└─", source.label, source.count, potentialDetail(state, source))
+                    }
+                }
+                if (potential.variableSources.isNotEmpty()) {
+                    HorizontalDivider()
+                    Text(state.t("DEPENDS ON TARGETS", "ABHÄNGIG VON ZIELEN"), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                    potential.variableSources.forEach { source ->
+                        PotentialTreeRow("└─", source.label, null, potentialDetail(state, source))
+                    }
+                }
+                HorizontalDivider()
+                Text(
+                    state.t(
+                        "Reactions, save-only effects, summons, and attacks made by controlled creatures are not counted.",
+                        "Reaktionen, reine Rettungswurfeffekte, Beschwörungen und Angriffe kontrollierter Kreaturen werden nicht gezählt.",
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(state.t("Done", "Fertig")) } },
+    )
+}
+
+@Composable
+private fun PotentialTreeRow(connector: String, label: String, count: Int?, detail: String = "", showPlus: Boolean = true) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+        Text(connector, Modifier.width(28.dp), color = MaterialTheme.colorScheme.outline)
+        Column(Modifier.weight(1f)) {
+            Text(label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+            if (detail.isNotBlank()) Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Text(count?.let { if (showPlus) "+$it" else "$it" } ?: "?", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+    }
+}
+
+private fun potentialDetail(state: DndAppState, source: PotentialSourceUi): String = buildList {
+    add(when (source.timing) {
+        CombatContributionTiming.ATTACK_ACTION -> state.t("within the Attack action", "innerhalb der Angriffsaktion")
+        CombatContributionTiming.ACTION -> state.t("action", "Aktion")
+        CombatContributionTiming.BONUS_ACTION -> state.t("Bonus Action", "Bonusaktion")
+        CombatContributionTiming.EXTRA_ACTION -> state.t("additional action", "zusätzliche Aktion")
+        CombatContributionTiming.TRIGGERED -> state.t("triggered", "ausgelöst")
+    })
+    if (source.resourceCost > 0 && source.resourceName.isNotBlank()) add("${source.resourceCost} ${source.resourceName}")
+    if (source.requiresAttackAction) add(state.t("requires the Attack action", "benötigt die Angriffsaktion"))
+    if (source.requiresActionCantripForAnotherCast) add(state.t("other casts must be action cantrips", "andere Zauber müssen Aktions-Zaubertricks sein"))
+    if (source.requiresSetup) add(state.t("setup required", "Aufbau erforderlich"))
+    if (source.requiresHit) add(state.t("requires a hit", "Treffer erforderlich"))
+    if (source.requiresAdditionalTarget) add(state.t("additional target required", "zusätzliches Ziel erforderlich"))
+    if (source.note.isNotBlank() && source.note != source.label) add(source.note)
+}.joinToString(" · ")
 
 @Composable
 private fun ConcentrationBanner(state: DndAppState, concentration: ActiveConcentration) {
@@ -881,15 +1041,17 @@ private fun CustomFeatureEditorDialog(state: DndAppState, feature: FeatureUi?, o
     var name by remember(feature?.id) { mutableStateOf(feature?.name.orEmpty()) }
     var summary by remember(feature?.id) { mutableStateOf(feature?.summary.orEmpty()) }
     var notes by remember(feature?.id) { mutableStateOf(feature?.notes.orEmpty()) }
+    var combatContributions by remember(feature?.id) { mutableStateOf(feature?.combatContributions.orEmpty()) }
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Rounded.Stars, contentDescription = null) },
         title = { Text(if (feature == null) state.t("Add custom feature", "Eigenes Merkmal hinzufügen") else state.t("Edit custom feature", "Eigenes Merkmal bearbeiten")) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+            Column(Modifier.heightIn(max = 570.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(9.dp)) {
                 OutlinedTextField(name, { name = it.take(80) }, label = { Text(state.t("Name", "Name")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(summary, { summary = it.take(300) }, label = { Text(state.t("Short effect", "Kurzer Effekt")) }, modifier = Modifier.fillMaxWidth())
                 if (feature != null) OutlinedTextField(notes, { notes = it.take(500) }, label = { Text(state.t("Notes (optional)", "Notizen (optional)")) }, modifier = Modifier.fillMaxWidth())
+                CombatContributionEditor(state, combatContributions) { combatContributions = it }
             }
         },
         dismissButton = {
@@ -905,8 +1067,8 @@ private fun CustomFeatureEditorDialog(state: DndAppState, feature: FeatureUi?, o
         confirmButton = {
             Button(
                 onClick = {
-                    if (feature == null) state.addCustomFeature(name, summary)
-                    else state.updateCustomFeature(feature.id, name, summary, notes)
+                    if (feature == null) state.addCustomFeature(name, summary, combatContributions)
+                    else state.updateCustomFeature(feature.id, name, summary, notes, combatContributions)
                     onDismiss()
                 },
                 enabled = name.isNotBlank(),

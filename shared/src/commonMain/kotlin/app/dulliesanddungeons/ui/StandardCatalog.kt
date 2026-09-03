@@ -2,6 +2,7 @@ package app.dulliesanddungeons.ui
 
 import app.dulliesanddungeons.domain.Ability
 import app.dulliesanddungeons.domain.CoreModifier
+import app.dulliesanddungeons.domain.CombatContribution
 import app.dulliesanddungeons.domain.CoreStatistic
 import app.dulliesanddungeons.domain.DifficultyClass
 import app.dulliesanddungeons.domain.EffectActivation
@@ -65,6 +66,7 @@ data class StandardWeaponTemplate(
     val useCase: String = "",
     val savingThrows: List<SavingThrowPrompt> = emptyList(),
     val classification: WeaponClassification = standardWeaponClassification(id, properties, range),
+    val combatContributions: List<CombatContribution> = emptyList(),
 )
 
 private val simpleMeleeWeaponIds = setOf(
@@ -482,6 +484,7 @@ internal fun privateKnownItem(entry: PrivateEntryUi): KnownItemUi? {
                 itemBonus = entry.formulaInt("(?:item[ _-]?)?bonus")?.coerceIn(-5, 5) ?: 0,
                 needsAttunement = entry.formulaFlag("attunement", "attuned", "requires attunement"),
                 custom = true,
+                combatContributions = entry.combatContributions,
             )
         }
         return KnownItemUi(
@@ -518,6 +521,7 @@ internal fun privateKnownItem(entry: PrivateEntryUi): KnownItemUi? {
         needsAttunement = entry.formulaFlag("attunement", "attuned", "requires attunement"),
         armorClass = armorClass,
         shieldBonus = shieldBonus,
+        combatContributions = entry.combatContributions,
     )
     return KnownItemUi(
         id = "local-item:${entry.id}",

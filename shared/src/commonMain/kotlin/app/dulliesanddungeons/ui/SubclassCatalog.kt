@@ -222,7 +222,17 @@ private fun active(
 ) = FeatureSeed(level, name, summary, cost, recovery, effect, scaling, uses, suggest = true)
 
 private fun spell(level: Int, id: String, name: String, spellLevel: Int, summary: String) =
-    SubclassSpellGrantUi(level, SpellUi(id, name, spellLevel, summary, sourceKind = SpellSourceKind.FEATURE))
+    SubclassSpellGrantUi(
+        level,
+        SpellUi(
+            id,
+            name,
+            spellLevel,
+            summary,
+            sourceKind = SpellSourceKind.FEATURE,
+            activationCost = CombatPotentialEngine.standardSpellActivationCost("spell.${slug(name)}"),
+        ),
+    )
 
 /** Complete subclass index from the two CC-licensed fifth-edition SRDs. */
 internal object BuiltInSubclassCatalog {

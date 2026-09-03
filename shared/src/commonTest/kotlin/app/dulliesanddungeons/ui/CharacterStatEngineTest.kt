@@ -137,7 +137,7 @@ class CharacterStatEngineTest {
 
         restored.addEquipment(EquipmentUi("migration-token", "Migration Token"))
         val persisted = Json.decodeFromString<PersistedAppState>(store.storedValue!!)
-        assertEquals(3, persisted.schemaVersion)
+        assertEquals(4, persisted.schemaVersion)
     }
 }
 

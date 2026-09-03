@@ -28,7 +28,7 @@ interface LocalStateStore {
 
 @Serializable
 data class PersistedAppState(
-    val schemaVersion: Int = 3,
+    val schemaVersion: Int = 4,
     val language: UiLanguage = UiLanguage.English,
     val characters: List<CharacterDocument> = emptyList(),
     /** App-wide condition notices only; character effects live inside CharacterDocument.state. */
