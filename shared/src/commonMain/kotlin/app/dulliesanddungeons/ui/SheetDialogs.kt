@@ -529,6 +529,7 @@ internal fun PrivateContentDialog(state: DndAppState, onImportPrivateContent: ()
     var name by remember { mutableStateOf("") }
     var summary by remember { mutableStateOf("") }
     var formula by remember { mutableStateOf("") }
+    var combatContributions by remember { mutableStateOf(emptyList<app.dulliesanddungeons.domain.CombatContribution>()) }
     var expandedPackId by remember { mutableStateOf<String?>(null) }
     val kinds = listOf("Class", "Subclass", "Species", "Background", "Feat", "Feature", "Spell", "Creature", "Language", "Item", "Weapon", "Condition", "Action", "Resource", "Rule")
     AlertDialog(
@@ -607,8 +608,17 @@ internal fun PrivateContentDialog(state: DndAppState, onImportPrivateContent: ()
                 OutlinedTextField(name, { name = it.take(100) }, label = { Text(state.t("Name", "Name")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(summary, { summary = it.take(500) }, label = { Text(state.t("Summary", "Zusammenfassung")) }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(formula, { formula = it.take(80) }, label = { Text(state.t("Formula / automation (optional)", "Formel / Automatisierung (optional)")) }, modifier = Modifier.fillMaxWidth())
+                if (kind in setOf("Class", "Subclass", "Feat", "Feature", "Spell", "Item", "Weapon", "Action", "Rule")) {
+                    CombatContributionEditor(state, combatContributions) { combatContributions = it }
+                }
                 Button(
-                    onClick = { state.addPrivateEntry(PrivateEntryUi("", kind, name.trim(), summary.trim(), formula.trim())); name = ""; summary = ""; formula = "" },
+                    onClick = {
+                        state.addPrivateEntry(PrivateEntryUi("", kind, name.trim(), summary.trim(), formula.trim(), combatContributions = combatContributions))
+                        name = ""
+                        summary = ""
+                        formula = ""
+                        combatContributions = emptyList()
+                    },
                     enabled = name.isNotBlank(),
                     modifier = Modifier.fillMaxWidth(),
                 ) { Icon(Icons.Rounded.Add, contentDescription = null); Spacer(Modifier.width(6.dp)); Text(state.t("Add local entry", "Lokalen Eintrag hinzufügen")) }

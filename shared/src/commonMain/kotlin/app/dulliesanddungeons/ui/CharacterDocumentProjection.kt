@@ -239,6 +239,7 @@ internal fun CharacterUi.toDocument(characterConditions: List<ConditionUi> = emp
             notes = feature.notes,
             turnGuideEligible = feature.turnGuideEligible,
             effects = feature.effects,
+            combatContributions = feature.combatContributions,
         )
     }
     return CharacterDocument(
@@ -322,6 +323,7 @@ internal fun CharacterDocument.toCharacterUi(): CharacterUi {
             resourceDieSides = pool?.dieSides,
             turnGuideEligible = feature.turnGuideEligible,
             effects = feature.effects,
+            combatContributions = feature.combatContributions,
         )
     }
     val raw = CharacterUi(
@@ -621,6 +623,7 @@ private fun EquipmentUi.toDomain() = EquipmentItem(
     effects = effects,
     savingThrows = savingThrows,
     useCase = useCase,
+    combatContributions = combatContributions,
 )
 
 private fun EquipmentItem.toUi() = EquipmentUi(
@@ -649,6 +652,7 @@ private fun EquipmentItem.toUi() = EquipmentUi(
     effects = effects,
     savingThrows = savingThrows,
     useCase = useCase,
+    combatContributions = combatContributions,
 )
 
 private fun WeaponUi.toDomain(): WeaponRecord {
@@ -685,6 +689,7 @@ private fun WeaponUi.toDomain(): WeaponRecord {
         effects = effects,
         savingThrows = savingThrows,
         useCase = useCase,
+        combatContributions = combatContributions,
     )
 }
 
@@ -718,6 +723,7 @@ private fun WeaponRecord.toUi(build: CharacterBuild, proficiency: Int): WeaponUi
     effects = effects,
     savingThrows = savingThrows,
     useCase = useCase,
+    combatContributions = combatContributions,
 )
 }
 
@@ -738,6 +744,7 @@ private fun SpellUi.toDomain() = SpellRecord(
     savingThrows = savingThrows,
     spellAttack = spellAttack,
     spellcastingAbility = spellcastingAbility,
+    combatContributions = combatContributions,
 )
 
 private fun SpellRecord.toUi() = SpellUi(
@@ -757,6 +764,7 @@ private fun SpellRecord.toUi() = SpellUi(
     savingThrows = savingThrows,
     spellAttack = spellAttack,
     spellcastingAbility = spellcastingAbility,
+    combatContributions = combatContributions,
 )
 
 private fun QuickRollUi.toDomain() = QuickRollShortcut(

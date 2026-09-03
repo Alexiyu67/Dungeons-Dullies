@@ -14,6 +14,7 @@ import app.dulliesanddungeons.domain.ActivityRecord
 import app.dulliesanddungeons.domain.AttackOutcomeRecord
 import app.dulliesanddungeons.domain.CharacterNote
 import app.dulliesanddungeons.domain.CharacterProfile
+import app.dulliesanddungeons.domain.CombatContribution
 import app.dulliesanddungeons.domain.DiceExpression
 import app.dulliesanddungeons.domain.DiceRoll
 import app.dulliesanddungeons.domain.CoreModifier
@@ -195,6 +196,7 @@ data class EquipmentUi(
     val effects: List<CoreModifier> = emptyList(),
     val savingThrows: List<SavingThrowPrompt> = emptyList(),
     val useCase: String = "",
+    val combatContributions: List<CombatContribution> = emptyList(),
 )
 
 @Serializable
@@ -206,6 +208,7 @@ data class PrivateEntryUi(
     val formula: String = "",
     val sourceNote: String = "Local manual entry",
     val subclass: SubclassMechanicsUi? = null,
+    val combatContributions: List<CombatContribution> = emptyList(),
 )
 
 @Serializable
@@ -245,6 +248,7 @@ data class WeaponUi(
     val effects: List<CoreModifier> = emptyList(),
     val savingThrows: List<SavingThrowPrompt> = emptyList(),
     val useCase: String = "",
+    val combatContributions: List<CombatContribution> = emptyList(),
 )
 
 @Serializable
@@ -264,6 +268,7 @@ data class SpellUi(
     val savingThrows: List<SavingThrowPrompt> = emptyList(),
     val spellAttack: Boolean = false,
     val spellcastingAbility: Ability? = null,
+    val combatContributions: List<CombatContribution> = emptyList(),
 )
 
 @Serializable
@@ -308,6 +313,7 @@ data class FeatureUi(
     /** Passive, reaction-only, and table-facing features stay on the sheet without cluttering suggestions. */
     val turnGuideEligible: Boolean = true,
     val effects: List<CoreModifier> = emptyList(),
+    val combatContributions: List<CombatContribution> = emptyList(),
 )
 
 internal fun FeatureUi.isActivatable(): Boolean = remaining != null || actionCost != ActionCost()
@@ -640,15 +646,7 @@ class TurnSession(
     val ruleset = character.ruleset
     private val walkSpeed = character.effectiveSpeedFeet
     private val flySpeed = character.effectiveFlySpeedFeet
-    private val fighterLevel = character.progression.count { it.className == "Fighter" }.takeIf { it > 0 }
-        ?: character.level.takeIf { character.className == "Fighter" }
-        ?: 0
-    private val attacksPerAction = if (ruleset == Ruleset.Pf2eRemaster) 1 else when {
-        fighterLevel >= 20 -> 4
-        fighterLevel >= 11 -> 3
-        fighterLevel >= 5 -> 2
-        else -> 1
-    }
+    private val attacksPerAction = CombatPotentialEngine.attacksPerAction(character)
     var selectedSection by mutableStateOf(restored?.selectedSection ?: TurnSection.Overview)
     var movementUsed by mutableIntStateOf(restored?.movementUsed ?: 0)
     var flying by mutableStateOf(restored?.flying ?: false)
@@ -1012,7 +1010,7 @@ class DndAppState(
     private val restored = runCatching {
         initialStateJson?.let { json.decodeFromString<PersistedAppState>(it) }
     }.getOrNull()?.takeIf { persisted ->
-        persisted.schemaVersion in 2..3 && persisted.characters.all {
+        persisted.schemaVersion in 2..4 && persisted.characters.all {
             CharacterDocumentValidator.validate(it).isEmpty()
         }
     }
@@ -1306,10 +1304,10 @@ class DndAppState(
                 add(FeatureUi("indomitable", "Indomitable", "Reroll a failed saving throw and use the new result.", uses, uses, Recovery.LONG_REST, FeatureEffect.REROLL_SAVE))
             }
             creation.selectedFeatIds.mapNotNull(::privateEntryById).forEach { feat ->
-                add(FeatureUi("private-${feat.id}", feat.name, feat.summary, custom = true, notes = feat.sourceNote))
+                add(FeatureUi("private-${feat.id}", feat.name, feat.summary, custom = true, notes = feat.sourceNote, combatContributions = feat.combatContributions))
             }
             privateEntryForName("class", creation.className)?.let { classEntry ->
-                add(FeatureUi("private-class-${classEntry.id}", classEntry.name, classEntry.summary, custom = true, notes = classEntry.sourceNote))
+                add(FeatureUi("private-class-${classEntry.id}", classEntry.name, classEntry.summary, custom = true, notes = classEntry.sourceNote, combatContributions = classEntry.combatContributions))
             }
             subclassOption?.let { addAll(it.resolveFeatures(creation.level, proficiency, abilities = abilities)) }
             if (isEmpty()) add(FeatureUi("class-feature", creation.className, "Your level ${creation.level} class features are filtered by the selected content pack."))
@@ -2473,6 +2471,7 @@ class DndAppState(
                 prepared = spellClass == SrdSpellClass.SORCERER,
                 sourceKind = SpellSourceKind.CLASS,
                 sourceName = source,
+                activationCost = CombatPotentialEngine.standardSpellActivationCost(entry.id),
                 castPreviews = entry.castPreviews.associate { preview ->
                     preview.slotLevel to if (language == UiLanguage.German) preview.de else preview.en
                 },
@@ -3019,10 +3018,10 @@ class DndAppState(
                 addAll(it.resolveFeatures(newClassLevel, proficiencyForLevel(newLevel), character.features, newAbilities))
             }
             chosenFeat?.let(::privateEntryById)?.let { feat ->
-                add(FeatureUi("private-${feat.id}", feat.name, feat.summary, custom = true, notes = feat.sourceNote))
+                add(FeatureUi("private-${feat.id}", feat.name, feat.summary, custom = true, notes = feat.sourceNote, combatContributions = feat.combatContributions))
             }
             privateEntryForName("class", draft.className, character.ruleset)?.let { classEntry ->
-                add(FeatureUi("private-class-${classEntry.id}", classEntry.name, classEntry.summary, custom = true, notes = classEntry.sourceNote))
+                add(FeatureUi("private-class-${classEntry.id}", classEntry.name, classEntry.summary, custom = true, notes = classEntry.sourceNote, combatContributions = classEntry.combatContributions))
             }
         }
         val selectedSpells = selectedOptions.mapNotNull(GuidedLevelOptionUi::spell) + activeSubclass?.resolveSpells(newClassLevel).orEmpty()
@@ -3523,6 +3522,7 @@ class DndAppState(
             entry.summary,
             sourceName = entry.sourceNote,
             activationCost = entry.structuredSpellCost(creation.ruleset),
+            combatContributions = entry.combatContributions,
         )
     }
 
@@ -4726,6 +4726,7 @@ class DndAppState(
             longRangeFeet = template.range.substringAfter('/', "").filter(Char::isDigit).toIntOrNull(),
             savingThrows = standardWeaponSavingThrows(template, character.ruleset),
             useCase = template.useCase.ifBlank { weaponUseCase(template) },
+            combatContributions = template.combatContributions,
         )
         updateSelectedCharacter { it.copy(weapons = it.weapons + weapon) }
     }
@@ -4806,6 +4807,7 @@ class DndAppState(
             longRangeFeet = template.range.substringAfter('/', "").filter(Char::isDigit).toIntOrNull(),
             savingThrows = standardWeaponSavingThrows(template, creation.ruleset),
             useCase = template.useCase.ifBlank { weaponUseCase(template) },
+            combatContributions = template.combatContributions,
         )
     }
 
@@ -4952,19 +4954,30 @@ class DndAppState(
         updateSelectedCharacter { character -> character.copy(notes = character.notes.filterNot { it.id == noteId }) }
     }
 
-    fun addCustomFeature(name: String, summary: String) {
+    fun addCustomFeature(name: String, summary: String, combatContributions: List<CombatContribution> = emptyList()) {
         val cleanName = name.trim()
         if (cleanName.isBlank()) return
         updateSelectedCharacter { character ->
             val id = uniqueId(slug(cleanName), character.features.map { it.id })
-            character.copy(features = character.features + FeatureUi(id, cleanName, summary.trim(), custom = true))
+            character.copy(features = character.features + FeatureUi(id, cleanName, summary.trim(), custom = true, combatContributions = combatContributions))
         }
     }
 
-    fun updateCustomFeature(featureId: String, name: String, summary: String, notes: String = "") {
+    fun updateCustomFeature(
+        featureId: String,
+        name: String,
+        summary: String,
+        notes: String = "",
+        combatContributions: List<CombatContribution>? = null,
+    ) {
         updateSelectedCharacter { character ->
             character.copy(features = character.features.map { feature ->
-                if (feature.id == featureId && feature.custom) feature.copy(name = name.trim().ifBlank { feature.name }, summary = summary.trim(), notes = notes.trim()) else feature
+                if (feature.id == featureId && feature.custom) feature.copy(
+                    name = name.trim().ifBlank { feature.name },
+                    summary = summary.trim(),
+                    notes = notes.trim(),
+                    combatContributions = combatContributions ?: feature.combatContributions,
+                ) else feature
             })
         }
     }

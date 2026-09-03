@@ -466,6 +466,7 @@ data class WeaponRecord(
     val effects: List<CoreModifier> = emptyList(),
     val savingThrows: List<SavingThrowPrompt> = emptyList(),
     val useCase: String = "",
+    val combatContributions: List<CombatContribution> = emptyList(),
 )
 
 @Serializable
@@ -488,6 +489,7 @@ data class SpellRecord(
     val savingThrows: List<SavingThrowPrompt> = emptyList(),
     val spellAttack: Boolean = false,
     val spellcastingAbility: Ability? = null,
+    val combatContributions: List<CombatContribution> = emptyList(),
 )
 
 @Serializable
@@ -506,6 +508,7 @@ data class FeatureRecord(
     val turnGuideEligible: Boolean = true,
     val source: EntityRef? = null,
     val effects: List<CoreModifier> = emptyList(),
+    val combatContributions: List<CombatContribution> = emptyList(),
 )
 
 @Serializable
@@ -549,7 +552,7 @@ data class CharacterSheetData(
 
 @Serializable
 data class CharacterDocument(
-    val schemaVersion: Int = 1,
+    val schemaVersion: Int = 2,
     val build: CharacterBuild,
     val state: CharacterState,
     val progression: ProgressionLedger = ProgressionLedger(),
@@ -631,6 +634,7 @@ data class EquipmentItem(
     val effects: List<CoreModifier> = emptyList(),
     val savingThrows: List<SavingThrowPrompt> = emptyList(),
     val useCase: String = "",
+    val combatContributions: List<CombatContribution> = emptyList(),
 ) {
     val equipped: Boolean get() = location == EquipmentLocation.WORN ||
         location == EquipmentLocation.WIELDED ||
