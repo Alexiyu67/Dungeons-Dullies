@@ -63,6 +63,56 @@ class DndAppStateTest {
     }
 
     @Test
+    fun conditionPickerInfoCoversBuiltInOptionsInBothLanguages() {
+        val state = DndAppState(FakeStore())
+        val fiveEConditions = listOf(
+            "Blinded", "Charmed", "Deafened", "Exhaustion", "Frightened", "Grappled", "Incapacitated", "Inspiration",
+            "Invisible", "Paralyzed", "Petrified", "Poisoned", "Prone", "Restrained", "Stunned", "Unconscious", "Concentrating",
+        )
+        val fiveEEnglish = fiveEConditions.associateWith { condition ->
+            assertNotNull(state.conditionInfo(condition), "Missing English info for $condition")
+        }
+        assertTrue(assertNotNull(state.conditionInfo("Exhaustion", level = 2)).contains("-4"))
+        assertNull(state.conditionInfo("Custom effect"))
+
+        state.toggleLanguage()
+        fiveEConditions.forEach { condition ->
+            val german = assertNotNull(state.conditionInfo(condition), "Missing German info for $condition")
+            assertTrue(german != fiveEEnglish.getValue(condition), "German info should differ for $condition")
+        }
+
+        state.toggleLanguage()
+        val fiveEFrightened = assertNotNull(state.conditionInfo("Frightened"))
+        state.convert(Ruleset.Pf2eRemaster)
+        val pf2eConditions = listOf(
+            "Blinded", "Clumsy", "Confused", "Controlled", "Deafened", "Drained", "Enfeebled", "Frightened", "Grabbed",
+            "Immobilized", "Invisible", "Off-Guard", "Paralyzed", "Persistent Damage", "Prone", "Quickened", "Restrained",
+            "Sickened", "Slowed", "Stunned", "Unconscious",
+        )
+        val pf2eEnglish = pf2eConditions.associateWith { condition ->
+            assertNotNull(state.conditionInfo(condition), "Missing English info for $condition")
+        }
+        assertTrue(fiveEFrightened != pf2eEnglish.getValue("Frightened"))
+        assertNull(state.conditionInfo("Custom effect"))
+
+        state.toggleLanguage()
+        pf2eConditions.forEach { condition ->
+            val german = assertNotNull(state.conditionInfo(condition), "Missing German info for $condition")
+            assertTrue(german != pf2eEnglish.getValue(condition), "German info should differ for $condition")
+        }
+    }
+
+    @Test
+    fun addedPf2eConditionStoresItsRulesetSpecificInfo() {
+        val state = DndAppState(FakeStore())
+        state.convert(Ruleset.Pf2eRemaster)
+
+        state.addCondition("Clumsy")
+
+        assertEquals(state.conditionInfo("Clumsy"), state.selectedConditions.single { it.name == "Clumsy" }.explanation)
+    }
+
+    @Test
     fun inspirationRerollsEligibleD20AndLeavesOrdinaryRerollsNonConsuming() {
         val state = DndAppState(FakeStore())
         assertTrue(state.toggleInspiration())
