@@ -3,6 +3,8 @@ package app.dulliesanddungeons.ui
 import app.dulliesanddungeons.data.LocalStateStore
 import app.dulliesanddungeons.data.PersistedAppState
 import app.dulliesanddungeons.domain.ActionCost
+import app.dulliesanddungeons.domain.CoinDenomination
+import app.dulliesanddungeons.domain.CurrencyPurse
 import app.dulliesanddungeons.domain.PortraitCrop
 import app.dulliesanddungeons.domain.Recovery
 import app.dulliesanddungeons.domain.RollMode
@@ -1890,6 +1892,75 @@ class DndAppStateTest {
         val restored = restarted.selectedCharacter!!.resolvedSpellSlots.first { it.level == 1 }
         assertEquals(2, restored.remaining)
         assertEquals(4, restored.maximum)
+    }
+
+    @Test
+    fun currencyAdjustmentsPersistAndRejectInvalidBalances() {
+        val store = FakeStore()
+        val state = DndAppState(store)
+
+        assertTrue(state.adjustCurrency(CoinDenomination.GOLD, 25))
+        assertTrue(state.adjustCurrency(CoinDenomination.GOLD, -10))
+        assertFalse(state.adjustCurrency(CoinDenomination.GOLD, -16))
+        assertFalse(state.adjustCurrency(CoinDenomination.GOLD, Int.MAX_VALUE))
+        assertEquals(15, state.selectedCharacter!!.currency.balance(CoinDenomination.GOLD))
+
+        val restored = DndAppState(store)
+        assertEquals(15, restored.selectedCharacter!!.currency.balance(CoinDenomination.GOLD))
+    }
+
+    @Test
+    fun legacyGoldEquipmentMigratesIntoTheCurrencyPurse() {
+        val seed = DndAppState(FakeStore()).selectedCharacter!!
+        val legacy = seed.copy(
+            currency = CurrencyPurse(gold = 2),
+            equipmentItems = seed.resolvedEquipment + EquipmentUi(
+                id = "gold-pieces",
+                definitionId = "gold-pieces",
+                name = "Gold Pieces",
+                quantity = 11,
+            ),
+        )
+        val store = FakeStore(Json.encodeToString(PersistedAppState(characters = listOf(legacy.toDocument()))))
+
+        val restored = DndAppState(store)
+        assertEquals(13, restored.selectedCharacter!!.currency.balance(CoinDenomination.GOLD))
+        assertFalse(restored.selectedCharacter!!.resolvedEquipment.any { it.definitionId == "gold-pieces" })
+
+        assertTrue(restored.adjustCurrency(CoinDenomination.GOLD, 1))
+        val persisted = Json.decodeFromString<PersistedAppState>(assertNotNull(store.raw())).characters.single()
+        assertEquals(14, persisted.state.currency.balance(CoinDenomination.GOLD))
+        assertFalse(persisted.state.equipment.any { it.definitionId == "gold-pieces" })
+    }
+
+    @Test
+    fun currencyCatalogAndGlobalSearchOpenTheTypedAdjustmentPanel() {
+        val state = DndAppState(FakeStore())
+        val equipmentBefore = state.selectedCharacter!!.resolvedEquipment
+        val goldItem = state.knownItemCatalog().single { it.currencyDenomination == CoinDenomination.GOLD }
+
+        assertTrue(state.addKnownItem(goldItem))
+        assertEquals(CoinDenomination.GOLD, state.currencyAdjustmentDenomination)
+        assertEquals(equipmentBefore, state.selectedCharacter!!.resolvedEquipment)
+        state.closeCurrencyAdjustment()
+
+        val result = state.search("gold pieces").single {
+            it.kind == SearchResultKind.Currency && it.denomination == CoinDenomination.GOLD
+        }
+        state.handleSearchResult(result)
+        assertEquals(CoinDenomination.GOLD, state.currencyAdjustmentDenomination)
+    }
+
+    @Test
+    fun rulesetConversionTurnsElectrumIntoSilverForPf2e() {
+        val state = DndAppState(FakeStore())
+        assertTrue(state.adjustCurrency(CoinDenomination.ELECTRUM, 3))
+        assertTrue(state.adjustCurrency(CoinDenomination.SILVER, 2))
+
+        state.convert(Ruleset.Pf2eRemaster)
+
+        assertEquals(0, state.selectedCharacter!!.currency.balance(CoinDenomination.ELECTRUM))
+        assertEquals(17, state.selectedCharacter!!.currency.balance(CoinDenomination.SILVER))
     }
 
     @Test

@@ -2,6 +2,7 @@ package app.dulliesanddungeons.ui
 
 import app.dulliesanddungeons.data.LocalStateStore
 import app.dulliesanddungeons.domain.Ability
+import app.dulliesanddungeons.domain.CoinDenomination
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -160,7 +161,28 @@ class ItemCatalogAndCreationTest {
         val created = state.selectedCharacter!!
         assertTrue(created.weapons.any { it.name == "Longbow" })
         assertTrue(created.resolvedEquipment.any { it.name == "Studded Leather Armor" && it.worn })
-        assertTrue(created.resolvedEquipment.any { it.name == "Gold Pieces" && it.quantity == 11 })
+        assertEquals(11, created.currency.balance(CoinDenomination.GOLD))
+        assertFalse(created.resolvedEquipment.any { it.definitionId == "gold-pieces" })
+    }
+
+    @Test
+    fun currencyCatalogSearchesNamesAliasesAndRulesetDenominations() {
+        val catalog = builtInKnownItemCatalog()
+
+        val gold = filterKnownItems(catalog, Ruleset.Fifth2024, UiLanguage.English, query = "Gold").single {
+            it.currencyDenomination == CoinDenomination.GOLD
+        }
+        assertEquals(KnownItemType.Currency, gold.type)
+        assertTrue(filterKnownItems(catalog, Ruleset.Fifth2024, UiLanguage.English, query = "GP").any { it.id == gold.id })
+        assertTrue(filterKnownItems(catalog, Ruleset.Fifth2024, UiLanguage.German, query = "Silber").any {
+            it.currencyDenomination == CoinDenomination.SILVER
+        })
+        assertTrue(filterKnownItems(catalog, Ruleset.Fifth2024, UiLanguage.English, query = "Electrum").any {
+            it.currencyDenomination == CoinDenomination.ELECTRUM
+        })
+        assertFalse(filterKnownItems(catalog, Ruleset.Pf2eRemaster, UiLanguage.English, query = "Electrum").any {
+            it.currencyDenomination == CoinDenomination.ELECTRUM
+        })
     }
 }
 

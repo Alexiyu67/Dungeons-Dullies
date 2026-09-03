@@ -13,6 +13,7 @@ import app.dulliesanddungeons.domain.CharacterState
 import app.dulliesanddungeons.domain.CharacterRollbackSnapshot
 import app.dulliesanddungeons.domain.ChoiceSelection
 import app.dulliesanddungeons.domain.ClassLevel
+import app.dulliesanddungeons.domain.CoinDenomination
 import app.dulliesanddungeons.domain.CombatProfile
 import app.dulliesanddungeons.domain.ContentVersionRef
 import app.dulliesanddungeons.domain.CustomEntityKind
@@ -201,6 +202,7 @@ internal fun CharacterUi.toDocument(characterConditions: List<ConditionUi> = emp
         resources = resources,
         conditions = characterConditions.map { it.toDomain() },
         equipment = equipmentItems.map { it.toDomain() },
+        currency = currency,
         quickRolls = resolvedQuickRolls.map { it.toDomain() },
         activePlaySession = activePlaySession,
         savedPlaySessions = savedPlaySessions,
@@ -331,6 +333,16 @@ internal fun CharacterDocument.toCharacterUi(): CharacterUi {
             combatContributions = feature.combatContributions,
         )
     }
+    val legacyGoldItems = state.equipment.filter { item ->
+        item.definitionId == "gold-pieces" && item.quantity > 0
+    }
+    val migratedGold = state.currency.gold.toLong() + legacyGoldItems.sumOf { it.quantity.toLong() }
+    val migrateLegacyGold = legacyGoldItems.isNotEmpty() && migratedGold <= Int.MAX_VALUE
+    val resolvedCurrency = if (migrateLegacyGold) {
+        state.currency.withBalance(CoinDenomination.GOLD, migratedGold.toInt())
+    } else {
+        state.currency
+    }
     val raw = CharacterUi(
         id = build.id,
         name = build.name,
@@ -386,7 +398,8 @@ internal fun CharacterDocument.toCharacterUi(): CharacterUi {
         },
         spellSlotMaximumOverrides = state.spellSlotMaximumOverrides,
         features = featureUi,
-        equipmentItems = state.equipment.map { it.toUi() },
+        equipmentItems = state.equipment.filterNot { migrateLegacyGold && it in legacyGoldItems }.map { it.toUi() },
+        currency = resolvedCurrency,
         quickRolls = state.quickRolls.map { it.toUi() },
         progression = progressionUi,
         hitDieOverrides = (build.rules as? FiveEBuildData)?.classHitDieOverrides.orEmpty()
@@ -544,6 +557,7 @@ private fun CharacterDocument.toRollbackSnapshot() = CharacterRollbackSnapshot(
     conditions = state.conditions,
     equipment = state.equipment,
     quickRolls = state.quickRolls,
+    currency = state.currency,
     spellSlotMaximumOverrides = state.spellSlotMaximumOverrides,
     spellSlotSpentCounts = state.spellSlotSpentCounts,
     hasPlayedSinceLongRest = state.hasPlayedSinceLongRest,
@@ -566,6 +580,7 @@ private fun CharacterRollbackSnapshot.toDocument() = CharacterDocument(
         conditions = conditions,
         equipment = equipment,
         quickRolls = quickRolls,
+        currency = currency,
         spellSlotMaximumOverrides = spellSlotMaximumOverrides,
         spellSlotSpentCounts = spellSlotSpentCounts,
         hasPlayedSinceLongRest = hasPlayedSinceLongRest,

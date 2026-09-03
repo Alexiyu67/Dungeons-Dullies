@@ -4,6 +4,7 @@ import app.dulliesanddungeons.domain.Ability
 import app.dulliesanddungeons.domain.CalculationPart
 import app.dulliesanddungeons.domain.CharacterBuild
 import app.dulliesanddungeons.domain.CharacterState
+import app.dulliesanddungeons.domain.CoinDenomination
 import app.dulliesanddungeons.domain.DerivedStats
 import app.dulliesanddungeons.domain.FiveEBuildData
 import app.dulliesanddungeons.domain.FiveEHealthState
@@ -224,6 +225,13 @@ object CharacterValidator {
             }
             state.resources.filter { it.maximum < 0 || it.current !in 0..it.maximum }.forEach {
                 issues += ValidationIssue("resource.range", "Resource ${it.label} is outside its range", "resources.${it.id}")
+            }
+            CoinDenomination.entries.filter { state.currency.balance(it) < 0 }.forEach { denomination ->
+                issues += ValidationIssue(
+                    "currency.negative",
+                    "$denomination currency cannot be negative",
+                    "currency.${denomination.name.lowercase()}",
+                )
             }
         }
         return issues

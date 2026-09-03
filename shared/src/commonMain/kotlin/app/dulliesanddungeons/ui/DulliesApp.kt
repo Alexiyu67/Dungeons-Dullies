@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.FileOpen
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material3.AlertDialog
@@ -146,7 +147,7 @@ fun DulliesAndDungeonsApp(
             Box(Modifier.fillMaxSize().padding(padding)) {
                 Box(Modifier.fillMaxSize().then(if (state.dicePresentation != null) Modifier.blur(8.dp) else Modifier)) {
                     when (state.screen) {
-                        AppScreen.Characters -> CharacterListScreen(state)
+                        AppScreen.Characters -> CharacterListScreen(state, onImportPrivateContent)
                         AppScreen.CreateCharacter -> CharacterCreationScreen(state, onPickPortrait, onEditPortrait)
                         AppScreen.CharacterSheet -> CharacterSheetScreen(state, onPickPortrait, onEditPortrait)
                     }
@@ -170,6 +171,7 @@ fun DulliesAndDungeonsApp(
         if (state.hpAdjustOpen) HpAdjustDialog(state)
         if (state.quickRollEditorOpen) QuickRollEditorDialog(state)
         if (state.equipmentAddOpen) ItemBrowserDialog(state)
+        state.currencyAdjustmentDenomination?.let { CurrencyAdjustmentDialog(state, it) }
         if (state.privateContentOpen) PrivateContentDialog(state, onImportPrivateContent, onDownloadPrivateContentSchema)
         if (state.turnOpen) TurnAssistantDialog(state)
         if (state.sessionHistoryOpen) SessionHistoryDialog(state)
@@ -239,6 +241,19 @@ internal fun LanguageButton(state: DndAppState) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(Icons.Rounded.Language, contentDescription = state.t("Switch to German", "Zu Englisch wechseln"), modifier = Modifier.size(20.dp))
             Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+internal fun ImportButton(state: DndAppState, onClick: () -> Unit) {
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier.size(48.dp).semantics { role = Role.Button },
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(Icons.Rounded.FileOpen, contentDescription = state.t("Import data", "Daten importieren"), modifier = Modifier.size(20.dp))
+            Text(state.t("Import", "Import"), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
         }
     }
 }

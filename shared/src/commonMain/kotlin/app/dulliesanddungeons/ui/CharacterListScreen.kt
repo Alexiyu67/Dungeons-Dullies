@@ -49,7 +49,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 
 @Composable
-internal fun CharacterListScreen(state: DndAppState) {
+internal fun CharacterListScreen(state: DndAppState, onImportPrivateContent: () -> Unit) {
     var pendingDeletion by remember { mutableStateOf<CharacterUi?>(null) }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -66,6 +66,7 @@ internal fun CharacterListScreen(state: DndAppState) {
                     Text("Dullies & Dungeons", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                     Text(state.t("Your heroes", "Deine Held:innen"), style = MaterialTheme.typography.headlineLarge)
                 }
+                ImportButton(state, onImportPrivateContent)
                 LanguageButton(state)
             }
         }

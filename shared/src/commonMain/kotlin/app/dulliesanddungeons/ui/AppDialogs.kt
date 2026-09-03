@@ -36,6 +36,7 @@ import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.MedicalServices
 import androidx.compose.material.icons.rounded.NoteAlt
+import androidx.compose.material.icons.rounded.Paid
 import androidx.compose.material.icons.rounded.PauseCircle
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Psychology
@@ -209,6 +210,7 @@ private fun SearchResultCard(state: DndAppState, result: SearchResultUi) {
                         SearchResultKind.Rule -> Icons.Rounded.Info
                         SearchResultKind.Note -> Icons.Rounded.NoteAlt
                         SearchResultKind.Navigate -> Icons.Rounded.Search
+                        SearchResultKind.Currency -> Icons.Rounded.Paid
                     },
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,

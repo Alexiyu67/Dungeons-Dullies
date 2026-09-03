@@ -15,7 +15,9 @@ import app.dulliesanddungeons.domain.ActivityRecord
 import app.dulliesanddungeons.domain.AttackOutcomeRecord
 import app.dulliesanddungeons.domain.CharacterNote
 import app.dulliesanddungeons.domain.CharacterProfile
+import app.dulliesanddungeons.domain.CoinDenomination
 import app.dulliesanddungeons.domain.CombatContribution
+import app.dulliesanddungeons.domain.CurrencyPurse
 import app.dulliesanddungeons.domain.DiceExpression
 import app.dulliesanddungeons.domain.DiceRoll
 import app.dulliesanddungeons.domain.DerivedAttackGrant
@@ -382,6 +384,7 @@ data class CharacterUi(
     val spellSlotMaximumOverrides: Map<Int, Int> = emptyMap(),
     val features: List<FeatureUi>,
     val equipmentItems: List<EquipmentUi> = emptyList(),
+    val currency: CurrencyPurse = CurrencyPurse(),
     val quickRolls: List<QuickRollUi> = emptyList(),
     val progression: List<LevelProgressionUi> = emptyList(),
     val hitDieOverrides: Map<String, Int> = emptyMap(),
@@ -563,7 +566,7 @@ data class ConditionUi(
 internal fun ConditionUi.isInspiration(): Boolean =
     name.equals("Inspiration", ignoreCase = true) || id.substringAfterLast('-').equals("inspiration", ignoreCase = true)
 
-enum class SearchResultKind { Roll, Action, Rule, Note, Navigate }
+enum class SearchResultKind { Roll, Action, Rule, Note, Navigate, Currency }
 
 data class SearchResultUi(
     val id: String,
@@ -576,6 +579,7 @@ data class SearchResultUi(
     val resourceLabel: String? = null,
     val searchTerms: List<String> = emptyList(),
     val detailBody: String = "",
+    val denomination: CoinDenomination? = null,
 )
 
 @Serializable
@@ -1071,6 +1075,8 @@ class DndAppState(
     var quickRollEditorOpen by mutableStateOf(false)
     var equipmentAddOpen by mutableStateOf(false)
     var itemBrowserTarget by mutableStateOf(ItemBrowserTarget.Inventory)
+    var currencyAdjustmentDenomination by mutableStateOf<CoinDenomination?>(null)
+        private set
     var itemBrowserFeedback by mutableStateOf<String?>(null)
     var itemBrowserEditingEquipment by mutableStateOf<EquipmentUi?>(null)
         private set
@@ -1410,16 +1416,13 @@ class DndAppState(
             features = features,
             equipmentItems = listOfNotNull(startingArmor) + if (
                 creation.selectedStartingGearPackageId != null || creation.startingEquipment.isNotEmpty()
-            ) creation.startingEquipment + listOfNotNull(
-                creation.startingGoldPieces.takeIf { it > 0 }?.let { amount ->
-                    EquipmentUi("gold-pieces", "Gold Pieces", quantity = amount)
-                },
-            ) else listOf(
+            ) creation.startingEquipment else listOf(
                 EquipmentUi("explorers-pack", "Explorer's pack"),
                 EquipmentUi("bedroll", "Bedroll"),
                 EquipmentUi("hempen-rope", "Rope (50 ft)"),
                 EquipmentUi("torch", "Torch", EquipmentKind.CONSUMABLE, quantity = 10),
             ),
+            currency = CurrencyPurse(gold = creation.startingGoldPieces.coerceAtLeast(0)),
             profile = CharacterProfile(
                 characterDescription = creation.characterDescription.trim(),
                 motive = creation.motive.trim(),
@@ -2521,6 +2524,28 @@ class DndAppState(
         itemBrowserEditingWeapon = null
     }
 
+    fun openCurrencyAdjustment(denomination: CoinDenomination) {
+        if (selectedCharacter == null) return
+        closeItemBrowser()
+        searchOpen = false
+        currencyAdjustmentDenomination = denomination
+    }
+
+    fun closeCurrencyAdjustment() {
+        currencyAdjustmentDenomination = null
+    }
+
+    fun adjustCurrency(denomination: CoinDenomination, delta: Int): Boolean {
+        if (delta == 0) return false
+        val current = selectedCharacter ?: return false
+        val resultingBalance = current.currency.balance(denomination).toLong() + delta.toLong()
+        if (resultingBalance !in 0..Int.MAX_VALUE.toLong()) return false
+        updateSelectedCharacter { character ->
+            character.copy(currency = character.currency.withBalance(denomination, resultingBalance.toInt()))
+        }
+        return true
+    }
+
     fun selectCreationArmor(item: KnownItemUi) {
         if (item.type != KnownItemType.Armor) return
         creation.selectedStartingGearPackageId = null
@@ -2571,6 +2596,11 @@ class DndAppState(
     fun addKnownItem(item: KnownItemUi): Boolean {
         if (!item.complete) return false
         val addedName = when (item.type) {
+            KnownItemType.Currency -> {
+                val denomination = item.currencyDenomination ?: return false
+                openCurrencyAdjustment(denomination)
+                return true
+            }
             KnownItemType.Weapon -> {
                 val weapon = item.weapon ?: return false
                 addStandardWeapon(weapon)
@@ -5649,6 +5679,17 @@ class DndAppState(
 
     fun convert(target: Ruleset) {
         val source = selectedCharacter ?: return
+        val convertedCurrency = if (target == Ruleset.Pf2eRemaster && source.ruleset != Ruleset.Pf2eRemaster) {
+            val convertedSilver = source.currency.silver.toLong() + source.currency.electrum.toLong() * 5L
+            if (convertedSilver > Int.MAX_VALUE) {
+                showInfo(
+                    t("Currency is too large to convert", "Währungsbetrag ist zu groß zum Konvertieren"),
+                    t("Reduce the electrum or silver balance before converting this character.", "Verringere vor der Konvertierung den Elektrum- oder Silberbetrag."),
+                )
+                return
+            }
+            source.currency.copy(electrum = 0, silver = convertedSilver.toInt())
+        } else source.currency
         val convertedMaximum = if (target == Ruleset.Pf2eRemaster) source.level * 10 + 8 else source.maxHp
         val convertedReduction = source.maxHpReduction.coerceAtMost(convertedMaximum)
         val convertedHealth = source.copy(
@@ -5669,6 +5710,7 @@ class DndAppState(
             isDead = maximumDeath || source.isDead,
             deathReason = if (maximumDeath) "Maximum Hit Points are zero" else source.deathReason,
             armorClass = if (target == Ruleset.Pf2eRemaster) 10 + source.level + 4 else source.armorClass,
+            currency = convertedCurrency,
             activePlaySession = null,
             savedPlaySessions = emptyList(),
             notes = source.notes + CharacterNote(
@@ -5734,6 +5776,22 @@ class DndAppState(
             }
             add(SearchResultUi("stat-ac", t("Armor Class", "Rüstungsklasse"), character.armorClass.toString(), SearchResultKind.Navigate, t("Info", "Info")))
             add(SearchResultUi("stat-hp", t("Hit points", "Trefferpunkte"), "${character.hp}/${character.effectiveMaxHp}", SearchResultKind.Navigate, t("Info", "Info")))
+            coinDenominations(character.ruleset).forEach { denomination ->
+                add(
+                    SearchResultUi(
+                        id = "currency-${denomination.name.lowercase()}",
+                        title = "${denomination.localizedName(language)} (${denomination.shortCode})",
+                        subtitle = t(
+                            "Currency: ${character.currency.balance(denomination)} ${denomination.shortCode}",
+                            "Währung: ${character.currency.balance(denomination)} ${denomination.shortCode}",
+                        ),
+                        kind = SearchResultKind.Currency,
+                        actionLabel = t("Edit", "Bearbeiten"),
+                        searchTerms = denomination.searchTerms,
+                        denomination = denomination,
+                    ),
+                )
+            }
             addAll(knowledgeEntries())
             addAll(srdWikiEntries(character.ruleset))
             addAll(srdSpellWikiEntries(character.ruleset))
@@ -5841,7 +5899,7 @@ class DndAppState(
     }
 
     private fun builtInWikiItemEntries(ruleset: Ruleset): List<SearchResultUi> = builtInKnownItemCatalog()
-        .filter { it.compatibleWith(ruleset) }
+        .filter { it.compatibleWith(ruleset) && it.type != KnownItemType.Currency }
         .map { item ->
             val summary = item.details.ifBlank {
                 t("A ${item.type.name.lowercase()} in the built-in equipment catalog.", "Ein Eintrag der Kategorie ${item.type.name} im integrierten Ausrüstungskatalog.")
@@ -5974,6 +6032,7 @@ class DndAppState(
                 result.cost.toCostTokens() + result.resourceLabel?.let { listOf(CostTokenUi(CostTokenKind.Resource, labelOverride = it)) }.orEmpty(),
             )
             SearchResultKind.Note, SearchResultKind.Navigate -> showInfo(result.title, result.subtitle)
+            SearchResultKind.Currency -> result.denomination?.let(::openCurrencyAdjustment)
         }
         searchOpen = false
     }

@@ -25,7 +25,7 @@ internal fun filterKnownItems(
                     item.type.name,
                     item.rarity.name,
                     item.source.name,
-                ).any { it.contains(needle, ignoreCase = true) }
+                ).plus(item.searchTerms).any { it.contains(needle, ignoreCase = true) }
             )
     }
     val comparator = when (sort) {

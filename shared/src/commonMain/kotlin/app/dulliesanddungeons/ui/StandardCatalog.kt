@@ -1,6 +1,7 @@
 package app.dulliesanddungeons.ui
 
 import app.dulliesanddungeons.domain.Ability
+import app.dulliesanddungeons.domain.CoinDenomination
 import app.dulliesanddungeons.domain.CoreModifier
 import app.dulliesanddungeons.domain.CombatContribution
 import app.dulliesanddungeons.domain.CoreStatistic
@@ -13,7 +14,7 @@ import app.dulliesanddungeons.domain.WeaponClassification
 import app.dulliesanddungeons.domain.WeaponCombatType
 import app.dulliesanddungeons.domain.WeaponTrainingCategory
 
-enum class KnownItemType { Weapon, Armor, Gear, Tool, Consumable, Rations }
+enum class KnownItemType { Weapon, Armor, Gear, Tool, Consumable, Rations, Currency }
 
 enum class ItemRarity {
     Mundane,
@@ -45,6 +46,8 @@ data class KnownItemUi(
     val weapon: StandardWeaponTemplate? = null,
     val privateEntry: PrivateEntryUi? = null,
     val complete: Boolean = true,
+    val currencyDenomination: CoinDenomination? = null,
+    val searchTerms: List<String> = emptyList(),
 ) {
     fun compatibleWith(ruleset: Ruleset): Boolean = ruleset in supportedRulesets
 }
@@ -302,6 +305,7 @@ private val fifthEditionRulesets = setOf(Ruleset.Fifth2014, Ruleset.Fifth2024)
 private val everyRuleset = Ruleset.entries.toSet()
 
 internal fun builtInKnownItemCatalog(): List<KnownItemUi> = buildList {
+    addAll(currencyKnownItems())
     standardWeaponCatalog.forEach { weapon ->
         weapon.supportedRulesets.forEach { ruleset ->
             val revision = if (ruleset == Ruleset.Fifth2014) "srd-5-1" else "srd-5-2-1"
@@ -605,7 +609,7 @@ internal fun EquipmentKind.toKnownItemType(): KnownItemType = when (this) {
 }
 
 internal fun KnownItemType.toEquipmentKind(): EquipmentKind = when (this) {
-    KnownItemType.Weapon, KnownItemType.Gear -> EquipmentKind.GEAR
+    KnownItemType.Weapon, KnownItemType.Gear, KnownItemType.Currency -> EquipmentKind.GEAR
     KnownItemType.Armor -> EquipmentKind.ARMOR
     KnownItemType.Tool -> EquipmentKind.TOOL
     KnownItemType.Consumable -> EquipmentKind.CONSUMABLE

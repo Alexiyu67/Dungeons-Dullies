@@ -373,7 +373,10 @@ internal fun CharacterSheetScreen(
                         }
                     }
                 }
-                if (sectionExpanded("equipment")) item { EquipmentCard(state, character) }
+                if (sectionExpanded("equipment")) {
+                    item { CurrencyOverview(state, character) }
+                    item { EquipmentCard(state, character) }
+                }
 
                 item {
                     CollapsibleSectionHeader(state, state.t("Languages", "Sprachen"), sectionExpanded("languages"), { toggleSection("languages") }) {

@@ -385,7 +385,9 @@ private fun ItemCatalogPage(
     onAdd: (KnownItemUi) -> Unit,
     onInfo: (KnownItemUi) -> Unit,
 ) {
-    val catalog = state.knownItemCatalog()
+    val catalog = state.knownItemCatalog().filter { item ->
+        target == ItemBrowserTarget.Inventory || item.type != KnownItemType.Currency
+    }
     val visible = filterKnownItems(
         items = catalog,
         ruleset = ruleset,
@@ -455,13 +457,19 @@ private fun ItemCatalogPage(
                 val warning = state.itemCompatibilityHint(item, ruleset)
                 ItemResultCard(
                     state = state,
-                    name = item.name,
-                    metadata = "${itemTypeLabel(state, item.type)} · ${rarityLabel(state, item.rarity)} · ${sourceLabel(state, item.source)}",
+                    name = item.currencyDenomination?.let { denomination ->
+                        "${denomination.localizedName(state.language)} (${denomination.shortCode})"
+                    } ?: item.name,
+                    metadata = if (item.currencyDenomination != null) {
+                        itemTypeLabel(state, item.type)
+                    } else {
+                        "${itemTypeLabel(state, item.type)} · ${rarityLabel(state, item.rarity)} · ${sourceLabel(state, item.source)}"
+                    },
                     details = item.details,
                     warning = warning,
                     complete = item.complete,
                     onClick = { if (!item.complete) onIncomplete(item) else onAdd(item) },
-                    onInfo = { onInfo(item) },
+                    onInfo = if (item.currencyDenomination == null) {{ onInfo(item) }} else null,
                 )
             }
         }
@@ -906,6 +914,7 @@ private fun itemTypeLabel(state: DndAppState, type: KnownItemType): String = whe
     KnownItemType.Tool -> state.t("Tool", "Werkzeug")
     KnownItemType.Consumable -> state.t("Consumable", "Verbrauch")
     KnownItemType.Rations -> state.t("Rations", "Rationen")
+    KnownItemType.Currency -> state.t("Currency", "Währung")
 }
 
 private fun equipmentKindLabel(state: DndAppState, kind: EquipmentKind): String = itemTypeLabel(state, kind.toKnownItemType())

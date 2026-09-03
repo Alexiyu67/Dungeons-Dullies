@@ -636,6 +636,34 @@ enum class AttunementState { NOT_REQUIRED, UNATTUNED, ATTUNED, INVESTED }
 enum class EquipmentCategory { GEAR, ARMOR, TOOL, CONSUMABLE, RATIONS }
 
 @Serializable
+enum class CoinDenomination { PLATINUM, ELECTRUM, GOLD, SILVER, COPPER }
+
+@Serializable
+data class CurrencyPurse(
+    val platinum: Int = 0,
+    val electrum: Int = 0,
+    val gold: Int = 0,
+    val silver: Int = 0,
+    val copper: Int = 0,
+) {
+    fun balance(denomination: CoinDenomination): Int = when (denomination) {
+        CoinDenomination.PLATINUM -> platinum
+        CoinDenomination.ELECTRUM -> electrum
+        CoinDenomination.GOLD -> gold
+        CoinDenomination.SILVER -> silver
+        CoinDenomination.COPPER -> copper
+    }
+
+    fun withBalance(denomination: CoinDenomination, value: Int): CurrencyPurse = when (denomination) {
+        CoinDenomination.PLATINUM -> copy(platinum = value)
+        CoinDenomination.ELECTRUM -> copy(electrum = value)
+        CoinDenomination.GOLD -> copy(gold = value)
+        CoinDenomination.SILVER -> copy(silver = value)
+        CoinDenomination.COPPER -> copy(copper = value)
+    }
+}
+
+@Serializable
 data class EquipmentItem(
     /** Stable inventory-instance ID; several instances can reference the same definition. */
     val id: String,
@@ -745,6 +773,7 @@ data class CharacterRollbackSnapshot(
     val conditions: List<ActiveCondition>,
     val equipment: List<EquipmentItem>,
     val quickRolls: List<QuickRollShortcut>,
+    val currency: CurrencyPurse = CurrencyPurse(),
     val spellSlotMaximumOverrides: Map<Int, Int> = emptyMap(),
     val spellSlotSpentCounts: Map<Int, Int> = emptyMap(),
     val hasPlayedSinceLongRest: Boolean = false,
@@ -765,6 +794,7 @@ data class CharacterState(
     val resources: List<ResourcePool> = emptyList(),
     val conditions: List<ActiveCondition> = emptyList(),
     val equipment: List<EquipmentItem> = emptyList(),
+    val currency: CurrencyPurse = CurrencyPurse(),
     val quickRolls: List<QuickRollShortcut> = defaultQuickRolls(),
     val activeTurn: TurnDraft? = null,
     val activeLevelUp: LevelUpDraft? = null,

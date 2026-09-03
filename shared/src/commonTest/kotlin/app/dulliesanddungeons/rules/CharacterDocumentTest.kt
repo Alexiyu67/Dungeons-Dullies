@@ -7,10 +7,12 @@ import app.dulliesanddungeons.domain.CharacterProfile
 import app.dulliesanddungeons.domain.CharacterSheetData
 import app.dulliesanddungeons.domain.CharacterState
 import app.dulliesanddungeons.domain.ClassLevel
+import app.dulliesanddungeons.domain.CoinDenomination
 import app.dulliesanddungeons.domain.ContentDistribution
 import app.dulliesanddungeons.domain.ContentPackManifest
 import app.dulliesanddungeons.domain.CombatProfile
 import app.dulliesanddungeons.domain.DiceExpression
+import app.dulliesanddungeons.domain.CurrencyPurse
 import app.dulliesanddungeons.domain.FiveEBuildData
 import app.dulliesanddungeons.domain.FiveEHealthState
 import app.dulliesanddungeons.domain.MovementMode
@@ -39,6 +41,7 @@ class CharacterDocumentTest {
                 temporaryHitPoints = 3,
                 maximumHitPointReduction = 5,
                 health = FiveEHealthState(exhaustionLevel = 2),
+                currency = CurrencyPurse(platinum = 1, gold = 23, silver = 4, copper = 8),
             ),
             sheet = CharacterSheetData(
                 portraitSeed = 7,
@@ -65,6 +68,7 @@ class CharacterDocumentTest {
         assertEquals(document, restored)
         assertEquals(5, restored.build.level)
         assertEquals(40, restored.sheet.combat.baseSpeedsFeet.getValue(MovementMode.FLY))
+        assertEquals(23, restored.state.currency.balance(CoinDenomination.GOLD))
     }
 
     @Test
@@ -79,6 +83,24 @@ class CharacterDocumentTest {
 
         assertFalse("maximumHitPointReduction" in encoded)
         assertEquals(0, json.decodeFromString<CharacterDocument>(encoded).state.maximumHitPointReduction)
+        assertFalse("currency" in encoded)
+        assertEquals(CurrencyPurse(), json.decodeFromString<CharacterDocument>(encoded).state.currency)
+    }
+
+    @Test
+    fun negativeCurrencyIsRejectedByDocumentValidation() {
+        val build = sampleBuild()
+        val document = CharacterDocument(
+            build = build,
+            state = CharacterState(
+                characterId = build.id,
+                currentHitPoints = 10,
+                maximumHitPoints = 10,
+                currency = CurrencyPurse(silver = -1),
+            ),
+        )
+
+        assertTrue(CharacterDocumentValidator.validate(document).any { it.code == "currency.negative" })
     }
 
     @Test
