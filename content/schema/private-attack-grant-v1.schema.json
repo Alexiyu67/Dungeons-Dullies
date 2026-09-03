@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dullies-and-dungeons.local/schema/private-attack-grant-v1.schema.json",
+  "title": "Reviewed private derived attack grant",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "weaponMatch", "trigger", "cost"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,79}$" },
+    "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+    "supportedRulesets": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "enum": ["2014", "2024", "pf2e"] }
+    },
+    "parent": { "enum": ["same_weapon", "different_weapon", "unarmed_strike"] },
+    "weaponMatch": { "$ref": "#/$defs/weaponMatch" },
+    "triggerWeaponMatch": { "$ref": "#/$defs/weaponMatch" },
+    "trigger": {
+      "enum": [
+        "always",
+        "after_attack_action",
+        "after_attack_with_matching_weapon",
+        "after_hit_with_matching_weapon",
+        "creature_enters_reach",
+        "damaged_by_creature_in_reach",
+        "attacked_by_creature_in_reach",
+        "creature_misses_with_melee_attack",
+        "other_creature_near_target",
+        "while_raging_after_first_turn"
+      ]
+    },
+    "cost": { "$ref": "#/$defs/actionCost" },
+    "damageDice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["count", "sides"],
+      "properties": {
+        "count": { "type": "integer", "minimum": 1, "maximum": 20 },
+        "sides": { "enum": [1, 2, 4, 6, 8, 10, 12, 20, 100] },
+        "modifier": { "type": "integer", "minimum": -100, "maximum": 100 }
+      }
+    },
+    "damageType": { "type": "string", "maxLength": 40 },
+    "damageAbilityRule": { "enum": ["inherit", "omit_positive", "none"] },
+    "attackCount": { "type": "integer", "minimum": 1, "maximum": 10 },
+    "maxUsesPerTurn": { "type": "integer", "minimum": 1, "maximum": 20 },
+    "requiresDifferentTriggerWeapon": { "type": "boolean" },
+    "inheritItemBonus": { "type": "boolean" },
+    "inheritReach": { "type": "boolean" },
+    "timingHint": { "type": "string", "maxLength": 240 },
+    "details": { "type": "string", "maxLength": 500 }
+  },
+  "$defs": {
+    "weaponMatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "baseWeaponIds": { "$ref": "#/$defs/stringSet" },
+        "excludedBaseWeaponIds": { "$ref": "#/$defs/stringSet" },
+        "training": { "type": "array", "uniqueItems": true, "items": { "enum": ["simple", "martial", "custom", "none"] } },
+        "combatTypes": { "type": "array", "uniqueItems": true, "items": { "enum": ["melee", "ranged", "unarmed"] } },
+        "allPropertyIds": { "$ref": "#/$defs/stringSet" },
+        "anyPropertyIds": { "$ref": "#/$defs/stringSet" },
+        "excludedPropertyIds": { "$ref": "#/$defs/stringSet" }
+      }
+    },
+    "stringSet": {
+      "type": "array",
+      "maxItems": 50,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 80 }
+    },
+    "actionCost": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "actions": { "type": "integer", "minimum": 0, "maximum": 10 },
+        "bonusActions": { "type": "integer", "minimum": 0, "maximum": 1 },
+        "reactions": { "type": "integer", "minimum": 0, "maximum": 1 },
+        "attacks": { "type": "integer", "minimum": 0, "maximum": 10 },
+        "objectInteractions": { "type": "integer", "minimum": 0, "maximum": 10 },
+        "pf2eActions": { "type": "integer", "minimum": 0, "maximum": 3 },
+        "resources": {
+          "type": "object",
+          "propertyNames": { "pattern": "^[A-Za-z0-9._-]{1,80}$" },
+          "additionalProperties": { "type": "integer", "minimum": 1, "maximum": 20 }
+        }
+      }
+    }
+  }
+}

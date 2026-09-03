@@ -69,6 +69,23 @@ Generic `rule`, `content-pack`, generic PDF-derived, unreviewed, and unknown
 candidate kinds remain informational; they are never treated as character mechanics merely
 because a file or ZIP labels itself installable.
 
+### Reviewed derived attacks
+
+An `installable-content` manifest may include an `entries` array. Reviewed feat
+and feature entries can include `attackGrants` objects conforming to
+`content/schema/private-attack-grant-v1.schema.json`. These grants use stable
+weapon IDs and structured classifications; the app never derives automation by
+parsing private rules prose. Set the container manifest's
+`review.automationEligibleCount` to at least the number of entries that contain
+grants. Unreviewed candidate packs must keep that count at zero and cannot
+install attack automation.
+
+For edition-specific eligibility, use explicit `baseWeaponIds` or property
+matches such as `allPropertyIds: ["heavy", "reach"]`. A grant can override its
+damage dice and type while inheriting the parent weapon's attack ability, item
+bonus, and reach. Timing belongs in the short `timingHint`; longer private notes
+belong in `details` and are shown only after the player expands Details.
+
 Raw PDF, text, Markdown, and JSON input can only create the first kind. Renaming
 arbitrary JSON or a ZIP does not make it installable. Android additionally
 limits entry count, expanded bytes, and compression ratio, checks every digest,

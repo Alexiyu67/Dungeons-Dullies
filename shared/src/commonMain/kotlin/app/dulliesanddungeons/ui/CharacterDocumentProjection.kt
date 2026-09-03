@@ -239,6 +239,7 @@ internal fun CharacterUi.toDocument(characterConditions: List<ConditionUi> = emp
             notes = feature.notes,
             turnGuideEligible = feature.turnGuideEligible,
             effects = feature.effects,
+            attackGrants = feature.attackGrants,
         )
     }
     return CharacterDocument(
@@ -322,6 +323,7 @@ internal fun CharacterDocument.toCharacterUi(): CharacterUi {
             resourceDieSides = pool?.dieSides,
             turnGuideEligible = feature.turnGuideEligible,
             effects = feature.effects,
+            attackGrants = feature.attackGrants,
         )
     }
     val raw = CharacterUi(
@@ -480,7 +482,7 @@ internal fun TurnSessionSnapshotUi.toDomainTurnDraft(
             else -> RollMode.NORMAL
         },
         guideFlags = flags,
-        guideSelections = TurnGuideSelections(selectedWeaponId, selectedSpellId, selectedFeatureId),
+        guideSelections = TurnGuideSelections(selectedWeaponId, selectedSpellId, selectedFeatureId, selectedAttackOptionId),
         recordedActivityCount = eventCount,
         events = events,
         completedGuideStepIds = completedSuggestionIds.toSet(),
@@ -512,6 +514,7 @@ internal fun CharacterDocument.toTurnSessionSnapshotUi(): TurnSessionSnapshotUi?
         bonusActionUsed = TurnGuideFlag.BONUS_ACTION_USED in turn.guideFlags,
         reactionUsed = TurnGuideFlag.REACTION_USED in turn.guideFlags,
         selectedWeaponId = turn.guideSelections.weaponId,
+        selectedAttackOptionId = turn.guideSelections.attackOptionId,
         selectedSpellId = turn.guideSelections.spellId,
         selectedFeatureId = turn.guideSelections.featureId,
         advantage = turn.selectedRollMode == RollMode.ADVANTAGE,
@@ -685,6 +688,7 @@ private fun WeaponUi.toDomain(): WeaponRecord {
         effects = effects,
         savingThrows = savingThrows,
         useCase = useCase,
+        classification = resolvedClassification(),
     )
 }
 
@@ -718,6 +722,7 @@ private fun WeaponRecord.toUi(build: CharacterBuild, proficiency: Int): WeaponUi
     effects = effects,
     savingThrows = savingThrows,
     useCase = useCase,
+    classification = classification,
 )
 }
 

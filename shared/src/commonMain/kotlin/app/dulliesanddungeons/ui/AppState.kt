@@ -16,6 +16,7 @@ import app.dulliesanddungeons.domain.CharacterNote
 import app.dulliesanddungeons.domain.CharacterProfile
 import app.dulliesanddungeons.domain.DiceExpression
 import app.dulliesanddungeons.domain.DiceRoll
+import app.dulliesanddungeons.domain.DerivedAttackGrant
 import app.dulliesanddungeons.domain.CoreModifier
 import app.dulliesanddungeons.domain.DifficultyClass
 import app.dulliesanddungeons.domain.EquipmentLocation
@@ -29,6 +30,8 @@ import app.dulliesanddungeons.domain.RollMode
 import app.dulliesanddungeons.domain.RollRequest
 import app.dulliesanddungeons.domain.SavingThrowPrompt
 import app.dulliesanddungeons.domain.TurnEvent
+import app.dulliesanddungeons.domain.WeaponClassification
+import app.dulliesanddungeons.domain.WeaponTrainingCategory
 import app.dulliesanddungeons.rules.DiceNotation
 import app.dulliesanddungeons.rules.DicePoolRoll
 import app.dulliesanddungeons.rules.DiceRoller
@@ -206,6 +209,7 @@ data class PrivateEntryUi(
     val formula: String = "",
     val sourceNote: String = "Local manual entry",
     val subclass: SubclassMechanicsUi? = null,
+    val attackGrants: List<DerivedAttackGrant> = emptyList(),
 )
 
 @Serializable
@@ -245,6 +249,7 @@ data class WeaponUi(
     val effects: List<CoreModifier> = emptyList(),
     val savingThrows: List<SavingThrowPrompt> = emptyList(),
     val useCase: String = "",
+    val classification: WeaponClassification = WeaponClassification(),
 )
 
 @Serializable
@@ -308,6 +313,7 @@ data class FeatureUi(
     /** Passive, reaction-only, and table-facing features stay on the sheet without cluttering suggestions. */
     val turnGuideEligible: Boolean = true,
     val effects: List<CoreModifier> = emptyList(),
+    val attackGrants: List<DerivedAttackGrant> = emptyList(),
 )
 
 internal fun FeatureUi.isActivatable(): Boolean = remaining != null || actionCost != ActionCost()
@@ -578,6 +584,7 @@ data class TurnSessionSnapshotUi(
     val bonusActionUsed: Boolean = false,
     val reactionUsed: Boolean = false,
     val selectedWeaponId: String? = null,
+    val selectedAttackOptionId: String? = null,
     val selectedSpellId: String? = null,
     val selectedFeatureId: String? = null,
     val advantage: Boolean = false,
@@ -664,6 +671,7 @@ class TurnSession(
     var bonusActionUsed by mutableStateOf(restored?.bonusActionUsed ?: false)
     var reactionUsed by mutableStateOf(restored?.reactionUsed ?: false)
     var selectedWeaponId by mutableStateOf(restored?.selectedWeaponId ?: character.weapons.firstOrNull()?.id)
+    var selectedAttackOptionId by mutableStateOf(restored?.selectedAttackOptionId)
     var selectedSpellId by mutableStateOf(restored?.selectedSpellId ?: character.availableSpells.firstOrNull()?.id)
     var selectedFeatureId by mutableStateOf(restored?.selectedFeatureId)
     var advantage by mutableStateOf(restored?.advantage ?: false)
@@ -798,6 +806,15 @@ class TurnSession(
         record(TurnEvent.AttackMade(weaponId))
     }
 
+    fun commitDerivedAttack(option: ResolvedAttackOptionUi): Boolean {
+        val priorRolls = events.count { (it as? TurnEvent.AttackMade)?.attackOptionId == option.id }
+        val continuingMultiattack = priorRolls % option.attackCount != 0
+        val paidCost = if (continuingMultiattack) ActionCost() else option.cost
+        if (!commitCost(paidCost, option.id)) return false
+        record(TurnEvent.AttackMade(option.parentWeaponId, option.id, option.sourceId, paidCost))
+        return true
+    }
+
     fun grantExtraAction() {
         if (ruleset == Ruleset.Pf2eRemaster) pf2ActionsRemaining++ else extraActionsRemaining++
         record(TurnEvent.ActionUsed("extra-action-granted", ActionCost()))
@@ -837,6 +854,7 @@ class TurnSession(
         bonusActionUsed = bonusActionUsed,
         reactionUsed = reactionUsed,
         selectedWeaponId = selectedWeaponId,
+        selectedAttackOptionId = selectedAttackOptionId,
         selectedSpellId = selectedSpellId,
         selectedFeatureId = selectedFeatureId,
         advantage = advantage,
@@ -1065,11 +1083,13 @@ class DndAppState(
     var turnSession by mutableStateOf<TurnSession?>(null)
     var preselectedTurnSection by mutableStateOf<TurnSection?>(null)
     var sheetAttackWeaponId by mutableStateOf<String?>(null)
+    var sheetAttackOptionId by mutableStateOf<String?>(null)
     var sheetAttackRoll by mutableStateOf<AttackRollUi?>(null)
     var sheetAttackOutcome by mutableStateOf(AttackOutcome.Pending)
     var sheetDamageRoll by mutableStateOf<DamageRollUi?>(null)
     var dicePresentation by mutableStateOf<DicePresentationUi?>(null)
     private var dicePresentationId = 0
+    private var sheetAttackResourcesCommitted by mutableStateOf(false)
     private var lastRollAction: (() -> Unit)? = null
     var inlineFeatureFeedback by mutableStateOf<InlineFeatureFeedbackUi?>(null)
         private set
@@ -1291,6 +1311,19 @@ class DndAppState(
             )
         }
         val features = buildList {
+            if (creation.className == "Monk" && creation.ruleset != Ruleset.Pf2eRemaster) {
+                add(FeatureUi("martial-arts", "Martial Arts", "Use martial training with Monk weapons and Unarmed Strikes."))
+                if (creation.level >= 2) {
+                    add(FeatureUi(
+                        "focus-points",
+                        if (creation.ruleset == Ruleset.Fifth2014) "Ki Points" else "Focus Points",
+                        "${creation.level} points fuel Monk techniques.",
+                        creation.level,
+                        creation.level,
+                        Recovery.SHORT_REST,
+                    ))
+                }
+            }
             if (creation.className == "Fighter" && creation.ruleset != Ruleset.Pf2eRemaster) {
                 val uses = secondWindUses(creation.ruleset, creation.level)
                 add(FeatureUi("second-wind", "Second Wind", "Regain 1d10 + Fighter level (${creation.level}) HP.", uses, uses, Recovery.SHORT_REST, FeatureEffect.SECOND_WIND, ActionCost(bonusActions = 1)))
@@ -1306,7 +1339,7 @@ class DndAppState(
                 add(FeatureUi("indomitable", "Indomitable", "Reroll a failed saving throw and use the new result.", uses, uses, Recovery.LONG_REST, FeatureEffect.REROLL_SAVE))
             }
             creation.selectedFeatIds.mapNotNull(::privateEntryById).forEach { feat ->
-                add(FeatureUi("private-${feat.id}", feat.name, feat.summary, custom = true, notes = feat.sourceNote))
+                add(FeatureUi("private-${feat.id}", feat.name, feat.summary, custom = true, notes = feat.sourceNote, attackGrants = feat.attackGrants))
             }
             privateEntryForName("class", creation.className)?.let { classEntry ->
                 add(FeatureUi("private-class-${classEntry.id}", classEntry.name, classEntry.summary, custom = true, notes = classEntry.sourceNote))
@@ -2273,7 +2306,7 @@ class DndAppState(
         val ranks = creationProficiencyRanks()
         selected.weaponIds.forEachIndexed { index, weaponId ->
             standardWeaponCatalog.firstOrNull { it.id == weaponId }?.let { template ->
-                creation.startingWeapons += creationWeapon(template, abilities, ranks, index)
+                creation.startingWeapons += creationWeapon(template.forRuleset(creation.ruleset), abilities, ranks, index)
             }
         }
     }
@@ -2302,7 +2335,7 @@ class DndAppState(
     fun addCreationWeapon(template: StandardWeaponTemplate, magicBonus: Int): Boolean {
         creation.selectedStartingGearPackageId = null
         creation.startingWeapons += creationWeapon(
-            template.copy(itemBonus = magicBonus),
+            template.forRuleset(creation.ruleset).copy(itemBonus = magicBonus),
             abilityScoresForDraft(),
             creationProficiencyRanks(),
             creation.startingWeapons.size,
@@ -3019,7 +3052,7 @@ class DndAppState(
                 addAll(it.resolveFeatures(newClassLevel, proficiencyForLevel(newLevel), character.features, newAbilities))
             }
             chosenFeat?.let(::privateEntryById)?.let { feat ->
-                add(FeatureUi("private-${feat.id}", feat.name, feat.summary, custom = true, notes = feat.sourceNote))
+                add(FeatureUi("private-${feat.id}", feat.name, feat.summary, custom = true, notes = feat.sourceNote, attackGrants = feat.attackGrants))
             }
             privateEntryForName("class", draft.className, character.ruleset)?.let { classEntry ->
                 add(FeatureUi("private-class-${classEntry.id}", classEntry.name, classEntry.summary, custom = true, notes = classEntry.sourceNote))
@@ -4419,40 +4452,92 @@ class DndAppState(
         )
     }
 
-    fun openSheetAttack(weaponId: String) {
+    fun openSheetAttack(weaponId: String, attackOptionId: String? = null) {
         if (selectedCharacter?.weapons?.none { it.id == weaponId } != false) return
+        if (attackOptionId != null && selectedCharacter?.let { character ->
+                derivedAttackOptions(character, character.weapons.first { it.id == weaponId }).none { it.id == attackOptionId }
+            } != false
+        ) return
         sheetAttackWeaponId = weaponId
+        sheetAttackOptionId = attackOptionId
         sheetAttackRoll = null
         sheetAttackOutcome = AttackOutcome.Pending
         sheetDamageRoll = null
+        sheetAttackResourcesCommitted = false
     }
 
     fun closeSheetAttack() {
         sheetAttackWeaponId = null
+        sheetAttackOptionId = null
         sheetAttackRoll = null
         sheetAttackOutcome = AttackOutcome.Pending
         sheetDamageRoll = null
+        sheetAttackResourcesCommitted = false
+    }
+
+    internal fun currentSheetAttackOption(): ResolvedAttackOptionUi? {
+        val character = selectedCharacter ?: return null
+        val parent = character.weapons.firstOrNull { it.id == sheetAttackWeaponId } ?: return null
+        return derivedAttackOptions(character, parent).firstOrNull { it.id == sheetAttackOptionId }
+    }
+
+    internal fun currentSheetAttackWeapon(): WeaponUi? {
+        val character = selectedCharacter ?: return null
+        return currentSheetAttackOption()?.weapon ?: character.weapons.firstOrNull { it.id == sheetAttackWeaponId }
+    }
+
+    internal fun canRollCurrentSheetAttack(): Boolean {
+        val option = currentSheetAttackOption() ?: return currentSheetAttackWeapon() != null
+        if (sheetAttackResourcesCommitted) return true
+        val character = selectedCharacter ?: return false
+        return option.cost.resources.all { (resourceId, amount) ->
+            (character.features.firstOrNull { it.id == resourceId }?.remaining ?: 0) >= amount
+        }
+    }
+
+    private fun consumeSheetAttackResources(option: ResolvedAttackOptionUi?): Boolean {
+        if (option == null || sheetAttackResourcesCommitted || option.cost.resources.isEmpty()) return true
+        val character = selectedCharacter ?: return false
+        val pools = option.cost.resources.mapNotNull { (resourceId, amount) ->
+            character.features.firstOrNull { it.id == resourceId && it.remaining != null }
+                ?.let { Triple(resourceId, amount, it) }
+        }
+        if (pools.size != option.cost.resources.size || pools.any { (_, amount, feature) -> (feature.remaining ?: 0) < amount }) {
+            lastRoll = t("Not enough resources for ${option.weapon.name}.", "Nicht genügend Ressourcen für ${option.weapon.name}.")
+            return false
+        }
+        updateSelectedCharacter { current ->
+            current.copy(features = current.features.map { feature ->
+                val amount = option.cost.resources[feature.id]
+                if (amount != null && feature.remaining != null) feature.copy(remaining = (feature.remaining - amount).coerceAtLeast(0)) else feature
+            })
+        }
+        sheetAttackResourcesCommitted = true
+        return true
     }
 
     fun rollSheetAttack(mode: RollMode) {
         val character = selectedCharacter ?: return
-        val weapon = character.weapons.firstOrNull { it.id == sheetAttackWeaponId } ?: return
+        val option = currentSheetAttackOption()
+        if (!consumeSheetAttackResources(option)) return
+        val weapon = option?.weapon ?: character.weapons.firstOrNull { it.id == sheetAttackWeaponId } ?: return
         val details = performAttack(character, weapon, mode)
         sheetAttackRoll = details
         val naturalCritical = character.ruleset != Ruleset.Pf2eRemaster && details.natural >= character.criticalHitThreshold
         sheetAttackOutcome = if (naturalCritical) AttackOutcome.Critical else AttackOutcome.Pending
         sheetDamageRoll = if (naturalCritical) performDamage(weapon, critical = true) else null
-        recordEvent(TurnEvent.AttackMade(weapon.id))
+        val eventWeaponId = option?.parentWeaponId ?: weapon.id
+        recordEvent(TurnEvent.AttackMade(eventWeaponId, option?.id, option?.sourceId, option?.cost ?: ActionCost(attacks = 1)))
         recordEvent(TurnEvent.RollRecorded(details.toDiceRoll(weapon.name)))
         if (naturalCritical) {
-            recordEvent(TurnEvent.AttackResolved(weapon.id, AttackOutcomeRecord.CRITICAL))
+            recordEvent(TurnEvent.AttackResolved(eventWeaponId, AttackOutcomeRecord.CRITICAL, option?.id, option?.sourceId))
             sheetDamageRoll?.takeIf { it.dice.isNotEmpty() }?.let { recordEvent(TurnEvent.RollRecorded(it.toDiceRoll(weapon.name))) }
         }
     }
 
     fun rerollSheetAttackWithInspiration(): Boolean {
         val character = selectedCharacter ?: return false
-        val weapon = character.weapons.firstOrNull { it.id == sheetAttackWeaponId } ?: return false
+        val weapon = currentSheetAttackWeapon() ?: return false
         val previous = sheetAttackRoll ?: return false
         if (!canUseInspirationForSheetAttack || !consumeInspiration()) return false
 
@@ -4463,23 +4548,25 @@ class DndAppState(
         sheetDamageRoll = if (naturalCritical) performDamage(weapon, critical = true) else null
         recordEvent(TurnEvent.RollRecorded(details.toDiceRoll(weapon.name)))
         if (naturalCritical) {
-            recordEvent(TurnEvent.AttackResolved(weapon.id, AttackOutcomeRecord.CRITICAL))
+            val option = currentSheetAttackOption()
+            recordEvent(TurnEvent.AttackResolved(option?.parentWeaponId ?: weapon.id, AttackOutcomeRecord.CRITICAL, option?.id, option?.sourceId))
             sheetDamageRoll?.takeIf { it.dice.isNotEmpty() }?.let { recordEvent(TurnEvent.RollRecorded(it.toDiceRoll(weapon.name))) }
         }
         return true
     }
 
     fun rollSheetDamage() {
-        val weapon = selectedCharacter?.weapons?.firstOrNull { it.id == sheetAttackWeaponId } ?: return
+        val weapon = currentSheetAttackWeapon() ?: return
         sheetDamageRoll = performDamage(weapon, critical = false).also { details ->
             if (details.dice.isNotEmpty()) recordEvent(TurnEvent.RollRecorded(details.toDiceRoll(weapon.name)))
         }
     }
 
     fun resolveSheetAttack(outcome: AttackOutcome) {
-        val weapon = selectedCharacter?.weapons?.firstOrNull { it.id == sheetAttackWeaponId } ?: return
+        val weapon = currentSheetAttackWeapon() ?: return
+        val option = currentSheetAttackOption()
         sheetAttackOutcome = outcome
-        if (outcome != AttackOutcome.Pending) recordEvent(TurnEvent.AttackResolved(weapon.id, outcome.toRecord()))
+        if (outcome != AttackOutcome.Pending) recordEvent(TurnEvent.AttackResolved(option?.parentWeaponId ?: weapon.id, outcome.toRecord(), option?.id, option?.sourceId))
         sheetDamageRoll = when (outcome) {
             AttackOutcome.Hit -> performDamage(weapon, critical = false).also { if (it.dice.isNotEmpty()) recordEvent(TurnEvent.RollRecorded(it.toDiceRoll(weapon.name))) }
             AttackOutcome.Critical -> performDamage(weapon, critical = true).also { if (it.dice.isNotEmpty()) recordEvent(TurnEvent.RollRecorded(it.toDiceRoll(weapon.name))) }
@@ -4487,13 +4574,42 @@ class DndAppState(
         }
     }
 
-    fun rollAttack(weapon: WeaponUi, session: TurnSession, requestedMode: RollMode? = null) {
+    private fun consumeDerivedAttackResources(option: ResolvedAttackOptionUi, session: TurnSession): Boolean {
+        val priorRolls = session.events.count { (it as? TurnEvent.AttackMade)?.attackOptionId == option.id }
+        if (priorRolls % option.attackCount != 0 || option.cost.resources.isEmpty()) return true
+        val character = selectedCharacter ?: return false
+        val pools = option.cost.resources.mapNotNull { (resourceId, amount) ->
+            character.features.firstOrNull { it.id == resourceId && it.remaining != null }?.let { Triple(resourceId, amount, it) }
+        }
+        if (pools.size != option.cost.resources.size || pools.any { (_, amount, feature) -> (feature.remaining ?: 0) < amount }) {
+            lastRoll = t("Not enough resources for ${option.weapon.name}.", "Nicht genügend Ressourcen für ${option.weapon.name}.")
+            return false
+        }
+        updateSelectedCharacter { current ->
+            current.copy(features = current.features.map { feature ->
+                val amount = option.cost.resources[feature.id]
+                if (amount != null && feature.remaining != null) feature.copy(remaining = (feature.remaining - amount).coerceAtLeast(0)) else feature
+            })
+        }
+        return true
+    }
+
+    fun rollAttack(
+        weapon: WeaponUi,
+        session: TurnSession,
+        requestedMode: RollMode? = null,
+        attackOption: ResolvedAttackOptionUi? = null,
+    ) {
         val mode = requestedMode ?: when {
             session.advantage && !session.disadvantage -> RollMode.ADVANTAGE
             session.disadvantage && !session.advantage -> RollMode.DISADVANTAGE
             else -> RollMode.NORMAL
         }
         val character = selectedCharacter ?: return
+        if (attackOption != null && !attackOption.isAvailableIn(session, character)) {
+            lastRoll = attackOption.unavailableReason(session, character)
+            return
+        }
         val attackNumber = if (character.ruleset == Ruleset.Pf2eRemaster) {
             if (session.unresolvedAttackCommitted) session.pf2AttacksMade.coerceAtLeast(1) else session.pf2AttacksMade + 1
         } else 1
@@ -4527,19 +4643,35 @@ class DndAppState(
         val naturalCritical = character.ruleset != Ruleset.Pf2eRemaster && details.natural >= character.criticalHitThreshold
         session.attackOutcome = if (naturalCritical) AttackOutcome.Critical else AttackOutcome.Pending
         if (needsCommit) {
-            session.commitAttack(weapon.id)
+            if (attackOption == null) {
+                session.commitAttack(weapon.id)
+            } else {
+                if (!consumeDerivedAttackResources(attackOption, session) || !session.commitDerivedAttack(attackOption)) return
+            }
             session.unresolvedAttackCommitted = true
         }
         if (details.dice.isNotEmpty()) session.record(TurnEvent.RollRecorded(details.toDiceRoll(weapon.name)))
         if (naturalCritical) {
-            recordAttackOutcome(weapon, AttackOutcome.Critical, session)
+            recordAttackOutcome(weapon, AttackOutcome.Critical, session, attackOption)
             rollDamage(weapon, session, critical = true)
         }
-        lastRollAction = { rollAttack(weapon, session, mode) }
+        lastRollAction = { rollAttack(weapon, session, mode, attackOption) }
     }
 
-    fun recordAttackOutcome(weapon: WeaponUi, outcome: AttackOutcome, session: TurnSession) {
-        if (outcome != AttackOutcome.Pending) session.record(TurnEvent.AttackResolved(weapon.id, outcome.toRecord()))
+    fun recordAttackOutcome(
+        weapon: WeaponUi,
+        outcome: AttackOutcome,
+        session: TurnSession,
+        attackOption: ResolvedAttackOptionUi? = null,
+    ) {
+        if (outcome != AttackOutcome.Pending) session.record(
+            TurnEvent.AttackResolved(
+                attackOption?.parentWeaponId ?: weapon.id,
+                outcome.toRecord(),
+                attackOption?.id,
+                attackOption?.sourceId,
+            )
+        )
     }
 
     fun rollDamage(weapon: WeaponUi, session: TurnSession, critical: Boolean) {
@@ -4697,35 +4829,40 @@ class DndAppState(
 
     fun addStandardWeapon(template: StandardWeaponTemplate, magicBonus: Int = template.itemBonus) {
         val character = selectedCharacter ?: return
-        val abilityBonus = abilityModifier(character.abilities[template.ability] ?: 10)
-        val simpleWeaponIds = setOf("club", "dagger", "greatclub", "handaxe", "javelin", "light-hammer", "mace", "quarterstaff", "sickle", "spear", "light-crossbow", "dart", "shortbow", "sling")
-        val categoryId = if (template.id in simpleWeaponIds) "weapon:simple" else "weapon:martial"
-        val specificId = "weapon:${template.id}"
+        val resolvedTemplate = template.forRuleset(character.ruleset)
+        val abilityBonus = abilityModifier(character.abilities[resolvedTemplate.ability] ?: 10)
+        val categoryId = when (resolvedTemplate.classification.training) {
+            WeaponTrainingCategory.SIMPLE -> "weapon:simple"
+            WeaponTrainingCategory.MARTIAL -> "weapon:martial"
+            else -> "weapon:${resolvedTemplate.id}"
+        }
+        val specificId = "weapon:${resolvedTemplate.id}"
         val proficiencyId = categoryId.takeIf { it in character.proficiencyRanks || it in character.proficiencyIds } ?: specificId
         val rank = proficiencyRank(proficiencyId, character.proficiencyRanks, character.proficiencyIds)
         val proficiency = proficiencyModifier(character.ruleset, character.level, rank)
         val weapon = WeaponUi(
-            id = uniqueId(template.id, character.weapons.map { it.id }),
-            name = if (magicBonus > 0) "+$magicBonus ${template.name}" else template.name,
+            id = uniqueId(resolvedTemplate.id, character.weapons.map { it.id }),
+            name = if (magicBonus > 0) "+$magicBonus ${resolvedTemplate.name}" else resolvedTemplate.name,
             attackBonus = abilityBonus + proficiency + magicBonus,
-            damage = withAbilityDamage(template.damage, abilityBonus),
-            damageType = template.damageType,
-            properties = template.properties,
-            ability = template.ability,
+            damage = withAbilityDamage(resolvedTemplate.damage, abilityBonus + magicBonus),
+            damageType = resolvedTemplate.damageType,
+            properties = resolvedTemplate.properties,
+            ability = resolvedTemplate.ability,
             proficient = rank != null,
             proficiencyId = proficiencyId,
-            range = template.range,
-            mastery = template.mastery,
+            range = resolvedTemplate.range,
+            mastery = resolvedTemplate.mastery,
             itemBonus = magicBonus,
-            needsAttunement = template.needsAttunement,
-            custom = template.custom,
-            damageAbility = template.ability,
-            definitionId = template.id,
-            reachFeet = if ("reach" in template.properties.lowercase()) 10 else 5,
-            normalRangeFeet = template.range.substringBefore('/').filter(Char::isDigit).toIntOrNull(),
-            longRangeFeet = template.range.substringAfter('/', "").filter(Char::isDigit).toIntOrNull(),
-            savingThrows = standardWeaponSavingThrows(template, character.ruleset),
-            useCase = template.useCase.ifBlank { weaponUseCase(template) },
+            needsAttunement = resolvedTemplate.needsAttunement,
+            custom = resolvedTemplate.custom,
+            damageAbility = resolvedTemplate.ability,
+            definitionId = resolvedTemplate.id,
+            reachFeet = if ("reach" in resolvedTemplate.classification.propertyIds) 10 else 5,
+            normalRangeFeet = resolvedTemplate.range.substringBefore('/').filter(Char::isDigit).toIntOrNull(),
+            longRangeFeet = resolvedTemplate.range.substringAfter('/', "").filter(Char::isDigit).toIntOrNull(),
+            savingThrows = standardWeaponSavingThrows(resolvedTemplate, character.ruleset),
+            useCase = resolvedTemplate.useCase.ifBlank { weaponUseCase(resolvedTemplate) },
+            classification = resolvedTemplate.classification,
         )
         updateSelectedCharacter { it.copy(weapons = it.weapons + weapon) }
     }
@@ -4779,33 +4916,38 @@ class DndAppState(
         proficiencyRanks: Map<String, ProficiencyRank>,
         index: Int,
     ): WeaponUi {
-        val simpleWeaponIds = setOf("club", "dagger", "greatclub", "handaxe", "javelin", "light-hammer", "mace", "quarterstaff", "sickle", "spear", "light-crossbow", "dart", "shortbow", "sling")
-        val categoryId = if (template.id in simpleWeaponIds) "weapon:simple" else "weapon:martial"
-        val specificId = "weapon:${template.id}"
+        val resolvedTemplate = template.forRuleset(creation.ruleset)
+        val categoryId = when (resolvedTemplate.classification.training) {
+            WeaponTrainingCategory.SIMPLE -> "weapon:simple"
+            WeaponTrainingCategory.MARTIAL -> "weapon:martial"
+            else -> "weapon:${resolvedTemplate.id}"
+        }
+        val specificId = "weapon:${resolvedTemplate.id}"
         val proficiencyId = categoryId.takeIf { it in proficiencyRanks } ?: specificId
         val trained = proficiencyId in proficiencyRanks
         val proficiency = proficiencyModifier(creation.ruleset, creation.level, proficiencyRanks[proficiencyId])
-        val abilityBonus = abilityModifier(abilities[template.ability] ?: 10)
+        val abilityBonus = abilityModifier(abilities[resolvedTemplate.ability] ?: 10)
         return WeaponUi(
-            id = "starting-${template.id}-$index",
-            definitionId = template.id,
-            name = if (template.itemBonus > 0) "+${template.itemBonus} ${template.name}" else template.name,
-            attackBonus = abilityBonus + proficiency + template.itemBonus,
-            damage = withAbilityDamage(template.damage, abilityBonus + template.itemBonus),
-            damageType = template.damageType,
-            properties = template.properties,
-            ability = template.ability,
+            id = "starting-${resolvedTemplate.id}-$index",
+            definitionId = resolvedTemplate.id,
+            name = if (resolvedTemplate.itemBonus > 0) "+${resolvedTemplate.itemBonus} ${resolvedTemplate.name}" else resolvedTemplate.name,
+            attackBonus = abilityBonus + proficiency + resolvedTemplate.itemBonus,
+            damage = withAbilityDamage(resolvedTemplate.damage, abilityBonus + resolvedTemplate.itemBonus),
+            damageType = resolvedTemplate.damageType,
+            properties = resolvedTemplate.properties,
+            ability = resolvedTemplate.ability,
             proficient = trained,
             proficiencyId = proficiencyId,
-            itemBonus = template.itemBonus,
-            range = template.range,
-            mastery = if (creation.ruleset == Ruleset.Fifth2014) "" else template.mastery,
-            damageAbility = template.ability,
-            reachFeet = if ("reach" in template.properties.lowercase()) 10 else 5,
-            normalRangeFeet = template.range.substringBefore('/').filter(Char::isDigit).toIntOrNull(),
-            longRangeFeet = template.range.substringAfter('/', "").filter(Char::isDigit).toIntOrNull(),
-            savingThrows = standardWeaponSavingThrows(template, creation.ruleset),
-            useCase = template.useCase.ifBlank { weaponUseCase(template) },
+            itemBonus = resolvedTemplate.itemBonus,
+            range = resolvedTemplate.range,
+            mastery = resolvedTemplate.mastery,
+            damageAbility = resolvedTemplate.ability,
+            reachFeet = if ("reach" in resolvedTemplate.classification.propertyIds) 10 else 5,
+            normalRangeFeet = resolvedTemplate.range.substringBefore('/').filter(Char::isDigit).toIntOrNull(),
+            longRangeFeet = resolvedTemplate.range.substringAfter('/', "").filter(Char::isDigit).toIntOrNull(),
+            savingThrows = standardWeaponSavingThrows(resolvedTemplate, creation.ruleset),
+            useCase = resolvedTemplate.useCase.ifBlank { weaponUseCase(resolvedTemplate) },
+            classification = resolvedTemplate.classification,
         )
     }
 
