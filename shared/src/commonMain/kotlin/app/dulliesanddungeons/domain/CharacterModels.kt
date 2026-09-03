@@ -473,6 +473,20 @@ data class WeaponRecord(
 enum class SpellSourceKind { CLASS, FEATURE, ITEM, CUSTOM }
 
 @Serializable
+data class SpellRulesText(
+    val school: String = "",
+    val concentration: Boolean = false,
+    val ritual: Boolean = false,
+    val castingTime: String = "",
+    val range: String = "",
+    val components: String = "",
+    val duration: String = "",
+    val effect: String = "",
+    val durationRounds: Int? = null,
+    val source: String = "",
+)
+
+@Serializable
 data class SpellRecord(
     val id: String,
     val name: String,
@@ -489,6 +503,15 @@ data class SpellRecord(
     val savingThrows: List<SavingThrowPrompt> = emptyList(),
     val spellAttack: Boolean = false,
     val spellcastingAbility: Ability? = null,
+)
+
+@Serializable
+data class ActiveConcentration(
+    val spellId: String,
+    val spellName: String,
+    val spellLevel: Int,
+    val rulesText: SpellRulesText,
+    val remainingRounds: Int? = rulesText.durationRounds,
 )
 
 @Serializable
@@ -722,6 +745,7 @@ data class CharacterRollbackSnapshot(
     val spellSlotSpentCounts: Map<Int, Int> = emptyMap(),
     val hasPlayedSinceLongRest: Boolean = false,
     val maximumHitPointReduction: Int = 0,
+    val activeConcentration: ActiveConcentration? = null,
 )
 
 @Serializable
@@ -749,6 +773,7 @@ data class CharacterState(
     val spellSlotSpentCounts: Map<Int, Int> = emptyMap(),
     /** UX bookkeeping: a Long Rest is useful after at least one play activity. */
     val hasPlayedSinceLongRest: Boolean = false,
+    val activeConcentration: ActiveConcentration? = null,
 )
 
 fun defaultQuickRolls(): List<QuickRollShortcut> = listOf(

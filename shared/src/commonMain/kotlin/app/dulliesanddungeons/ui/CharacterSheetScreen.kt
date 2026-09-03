@@ -125,9 +125,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
+import app.dulliesanddungeons.domain.ActiveConcentration
+import app.dulliesanddungeons.domain.CharacterNote
 import app.dulliesanddungeons.domain.Recovery
 import app.dulliesanddungeons.domain.RollMode
-import app.dulliesanddungeons.domain.CharacterNote
 import org.jetbrains.compose.resources.decodeToImageBitmap
 
 @Composable
@@ -175,6 +176,9 @@ internal fun CharacterSheetScreen(
                 onEdit = state::beginEdit,
                 onDelete = { characterDeletionRequested = true },
             )
+            character.activeConcentration?.let { concentration ->
+                ConcentrationBanner(state, concentration)
+            }
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
@@ -567,6 +571,80 @@ internal fun CharacterSheetScreen(
     }
     if (longRestDialogOpen) {
         LongRestDialog(state, character) { longRestDialogOpen = false }
+    }
+}
+
+@Composable
+private fun ConcentrationBanner(state: DndAppState, concentration: ActiveConcentration) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.primaryContainer,
+        tonalElevation = 2.dp,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(
+                modifier = Modifier.weight(1f)
+                    .clickable(onClick = state::showActiveConcentrationDetails)
+                    .padding(start = 12.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Surface(
+                    modifier = Modifier.size(32.dp),
+                    shape = RoundedCornerShape(50),
+                    color = MaterialTheme.colorScheme.primary,
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Rounded.AutoAwesome,
+                            contentDescription = null,
+                            modifier = Modifier.size(17.dp),
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    }
+                }
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        state.t("CONCENTRATING", "KONZENTRATION"),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        concentration.spellName,
+                        style = MaterialTheme.typography.titleSmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        state.t(
+                            "${state.concentrationRemainingLabel(concentration)} remaining",
+                            "${state.concentrationRemainingLabel(concentration)} verbleibend",
+                        ),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                    )
+                }
+            }
+            IconButton(
+                onClick = { state.endConcentration() },
+                modifier = Modifier.size(48.dp),
+            ) {
+                Icon(
+                    Icons.Rounded.Close,
+                    contentDescription = state.t(
+                        "End concentration on ${concentration.spellName}",
+                        "Konzentration auf ${concentration.spellName} beenden",
+                    ),
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+            Spacer(Modifier.width(4.dp))
+        }
     }
 }
 

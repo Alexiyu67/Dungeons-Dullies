@@ -74,4 +74,34 @@ class SrdSpellCatalogTest {
         assertEquals("Minor Illusion", SrdSpellCatalog.find(SrdSpellRevision.SRD_5_2_1, "spell.minor-illusion")?.en?.name)
         assertEquals("Programmed Illusion", SrdSpellCatalog.find(SrdSpellRevision.SRD_5_2_1, "spell.programmed-illusion")?.en?.name)
     }
+
+    @Test
+    fun concentrationDetailsContainExactCastingFieldsDurationAndEffect() {
+        val details = SrdSpellDetailsCatalog.find(
+            SrdSpellRevision.SRD_5_2_1,
+            "spell.protection-from-evil-and-good",
+        )!!
+
+        assertEquals("Action", details.castingTime)
+        assertEquals("Touch", details.range)
+        assertTrue(details.components.contains("Holy Water worth 25+ GP"))
+        assertEquals("Concentration up to 10 minutes", details.duration)
+        assertEquals(100, details.durationRounds)
+        assertTrue(details.effect.contains("Disadvantage on attack rolls"))
+        assertTrue(details.effect.contains("Charmed or Frightened conditions"))
+    }
+
+    @Test
+    fun everyConcentrationSpellHasGeneratedDetails() {
+        SrdSpellCatalog.entries.filter { it.concentration }.forEach { spell ->
+            val details = SrdSpellDetailsCatalog.find(spell.revision, spell.id)
+            assertTrue(details != null, "Missing details for ${spell.revision}:${spell.id}")
+            assertTrue(details!!.castingTime.isNotBlank(), spell.id)
+            assertTrue(details.range.isNotBlank(), spell.id)
+            assertTrue(details.components.isNotBlank(), spell.id)
+            assertTrue(details.duration.isNotBlank(), spell.id)
+            assertTrue(details.effect.isNotBlank(), spell.id)
+            assertTrue(details.durationRounds > 0, spell.id)
+        }
+    }
 }

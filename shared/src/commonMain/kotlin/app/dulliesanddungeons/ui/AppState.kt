@@ -10,6 +10,7 @@ import app.dulliesanddungeons.data.LocalStateStore
 import app.dulliesanddungeons.data.PersistedAppState
 import app.dulliesanddungeons.domain.ActionCost
 import app.dulliesanddungeons.domain.Ability
+import app.dulliesanddungeons.domain.ActiveConcentration
 import app.dulliesanddungeons.domain.ActivityRecord
 import app.dulliesanddungeons.domain.AttackOutcomeRecord
 import app.dulliesanddungeons.domain.CharacterNote
@@ -29,6 +30,7 @@ import app.dulliesanddungeons.domain.Recovery
 import app.dulliesanddungeons.domain.RollMode
 import app.dulliesanddungeons.domain.RollRequest
 import app.dulliesanddungeons.domain.SavingThrowPrompt
+import app.dulliesanddungeons.domain.SpellRulesText
 import app.dulliesanddungeons.domain.TurnEvent
 import app.dulliesanddungeons.domain.WeaponClassification
 import app.dulliesanddungeons.domain.WeaponTrainingCategory
@@ -40,6 +42,7 @@ import app.dulliesanddungeons.rules.DerivedStatRules
 import app.dulliesanddungeons.rules.CharacterDocumentValidator
 import app.dulliesanddungeons.rules.SrdSpellCatalog
 import app.dulliesanddungeons.rules.SrdSpellCombatCatalog
+import app.dulliesanddungeons.rules.SrdSpellDetailsCatalog
 import app.dulliesanddungeons.rules.SrdSpellClass
 import app.dulliesanddungeons.rules.SrdSpellRevision
 import app.dulliesanddungeons.rules.SrdWikiCatalog
@@ -269,6 +272,7 @@ data class SpellUi(
     val savingThrows: List<SavingThrowPrompt> = emptyList(),
     val spellAttack: Boolean = false,
     val spellcastingAbility: Ability? = null,
+    val rulesText: SpellRulesText = SpellRulesText(),
 )
 
 @Serializable
@@ -384,6 +388,7 @@ data class CharacterUi(
     val activePlaySession: PlaySessionRecord? = null,
     val savedPlaySessions: List<PlaySessionRecord> = emptyList(),
     val hasPlayedSinceLongRest: Boolean = false,
+    val activeConcentration: ActiveConcentration? = null,
     /** Stable values before active item/weapon/condition effects are applied. */
     val baseAbilities: Map<String, Int> = emptyMap(),
     val baseSaves: Map<String, Int> = emptyMap(),
@@ -2498,6 +2503,7 @@ class DndAppState(
         val builtIn = SrdSpellCatalog.forClass(revision, spellClass).map { entry ->
             val text = if (language == UiLanguage.German) entry.de else entry.en
             val combat = SrdSpellCombatCatalog.find(revision, entry.id)
+            val details = SrdSpellDetailsCatalog.find(revision, entry.id)
             SpellUi(
                 id = entry.id,
                 name = text.name,
@@ -2513,6 +2519,18 @@ class DndAppState(
                     SavingThrowPrompt(Ability.valueOf(ability), DifficultyClass(useSpellcasting = true))
                 },
                 spellAttack = combat.spellAttack,
+                rulesText = SpellRulesText(
+                    school = entry.school,
+                    concentration = entry.concentration,
+                    ritual = entry.ritual,
+                    castingTime = details?.castingTime.orEmpty(),
+                    range = details?.range.orEmpty(),
+                    components = details?.components.orEmpty(),
+                    duration = details?.duration.orEmpty(),
+                    effect = details?.effect.orEmpty(),
+                    durationRounds = details?.durationRounds,
+                    source = details?.source ?: source,
+                ),
             )
         }
         return (builtIn + approvedPrivateSpellOptions(active)).distinctBy { it.id }
@@ -3734,12 +3752,13 @@ class DndAppState(
             "Max HP reduction set to $safeTarget · ${updated.hp}/${updated.effectiveMaxHp} HP",
             "Max.-TP-Senkung auf $safeTarget gesetzt · ${updated.hp}/${updated.effectiveMaxHp} TP",
         )
+        if (updated.stopsTurnGuide) endConcentration()
     }
 
     fun applyDamage(amount: Int, critical: Boolean): CharacterUi? {
         val safeAmount = amount.coerceAtLeast(0)
         if (safeAmount == 0) return selectedCharacter
-        return updateSelectedCharacter { character ->
+        val updated = updateSelectedCharacter { character ->
             if (character.isDead) return@updateSelectedCharacter character
             val afterTemporary = (safeAmount - character.temporaryHp).coerceAtLeast(0)
             val newTemporary = (character.temporaryHp - safeAmount).coerceAtLeast(0)
@@ -3782,6 +3801,11 @@ class DndAppState(
                 deathReason = if (instantDeath) "Massive damage" else null,
             )
         }
+        if (updated?.stopsTurnGuide == true) {
+            endConcentration()
+            return selectedCharacter
+        }
+        return updated
     }
 
     fun applyTurnDamage(amount: Int, critical: Boolean, session: TurnSession): CharacterUi? {
@@ -4095,6 +4119,105 @@ class DndAppState(
         return slotLevel != null && slotLevel in availableSpellSlotLevels(spell, character)
     }
 
+    private fun resolvedSpellRulesText(spell: SpellUi, ruleset: Ruleset): SpellRulesText {
+        if (ruleset == Ruleset.Pf2eRemaster) return spell.rulesText
+        val revision = if (ruleset == Ruleset.Fifth2014) SrdSpellRevision.SRD_5_1 else SrdSpellRevision.SRD_5_2_1
+        val stableId = if (spell.id.startsWith("spell.")) spell.id else "spell.${spell.id.replace('_', '-')}"
+        val entry = SrdSpellCatalog.find(revision, stableId)
+            ?: SrdSpellCatalog.entries.firstOrNull { candidate ->
+                candidate.revision == revision && candidate.en.name.equals(spell.name, ignoreCase = true)
+            }
+            ?: return spell.rulesText
+        val details = SrdSpellDetailsCatalog.find(revision, entry.id)
+        return SpellRulesText(
+            school = spell.rulesText.school.ifBlank { entry.school },
+            concentration = spell.rulesText.concentration || entry.concentration,
+            ritual = spell.rulesText.ritual || entry.ritual,
+            castingTime = spell.rulesText.castingTime.ifBlank { details?.castingTime.orEmpty() },
+            range = spell.rulesText.range.ifBlank { details?.range.orEmpty() },
+            components = spell.rulesText.components.ifBlank { details?.components.orEmpty() },
+            duration = spell.rulesText.duration.ifBlank { details?.duration.orEmpty() },
+            effect = spell.rulesText.effect.ifBlank { details?.effect.orEmpty() },
+            durationRounds = spell.rulesText.durationRounds ?: details?.durationRounds,
+            source = spell.rulesText.source.ifBlank { details?.source.orEmpty() },
+        )
+    }
+
+    private fun beginConcentration(spell: SpellUi, rulesText: SpellRulesText) {
+        val character = selectedCharacter ?: return
+        val previous = character.activeConcentration
+        val active = ActiveConcentration(
+            spellId = spell.id,
+            spellName = spell.name,
+            spellLevel = spell.level,
+            rulesText = rulesText,
+            remainingRounds = rulesText.durationRounds,
+        )
+        updateSelectedCharacter { it.copy(activeConcentration = active) }
+        previous?.let {
+            recordEvent(TurnEvent.ConditionRemoved("concentration:${it.spellId}"), it.spellName)
+        }
+        recordEvent(TurnEvent.ConditionApplied("concentration:${spell.id}"), spell.name)
+    }
+
+    fun endConcentration(): Boolean {
+        val active = selectedCharacter?.activeConcentration ?: return false
+        updateSelectedCharacter { it.copy(activeConcentration = null) }
+        recordEvent(TurnEvent.ConditionRemoved("concentration:${active.spellId}"), active.spellName)
+        return true
+    }
+
+    fun concentrationRemainingLabel(active: ActiveConcentration): String {
+        val rounds = active.remainingRounds ?: return active.rulesText.duration
+        val seconds = rounds * 6
+        val hours = seconds / 3_600
+        val minutes = seconds % 3_600 / 60
+        val remainder = seconds % 60
+        return if (hours > 0) {
+            "$hours:${minutes.toString().padStart(2, '0')}:${remainder.toString().padStart(2, '0')}"
+        } else {
+            "$minutes:${remainder.toString().padStart(2, '0')}"
+        }
+    }
+
+    fun concentrationSaveDc(damage: Int, ruleset: Ruleset = selectedCharacter?.ruleset ?: Ruleset.Fifth2024): Int {
+        val dc = maxOf(10, damage.coerceAtLeast(0) / 2)
+        return if (ruleset == Ruleset.Fifth2024) dc.coerceAtMost(30) else dc
+    }
+
+    fun showActiveConcentrationDetails() {
+        val active = selectedCharacter?.activeConcentration ?: return
+        val rules = active.rulesText
+        val classification = buildList {
+            add(if (active.spellLevel == 0) t("Cantrip", "Zaubertrick") else t("Level ${active.spellLevel}", "Grad ${active.spellLevel}"))
+            rules.school.takeIf(String::isNotBlank)?.let { add(localizedSpellSchool(it)) }
+            if (rules.ritual) add("Ritual")
+            add(t("Concentration", "Konzentration"))
+        }.joinToString(" · ")
+        val fields = buildList {
+            rules.castingTime.takeIf(String::isNotBlank)?.let { add("${t("Casting time", "Zeitaufwand")}: $it") }
+            rules.range.takeIf(String::isNotBlank)?.let { add("${t("Range", "Reichweite")}: $it") }
+            rules.components.takeIf(String::isNotBlank)?.let { add("${t("Components", "Komponenten")}: $it") }
+            rules.duration.takeIf(String::isNotBlank)?.let { add("${t("Duration", "Dauer")}: $it") }
+            active.remainingRounds?.let { add("${t("Remaining", "Verbleibend")}: ${concentrationRemainingLabel(active)}") }
+        }.joinToString("\n")
+        val body = buildList {
+            add(classification)
+            if (fields.isNotBlank()) add(fields)
+            rules.effect.takeIf(String::isNotBlank)?.let(::add)
+            rules.source.takeIf(String::isNotBlank)?.let { add(t("Source: $it · Spell Descriptions", "Quelle: $it · Zauberbeschreibungen")) }
+        }.joinToString("\n\n")
+        showInfo(active.spellName, body)
+    }
+
+    private fun advanceConcentration(character: CharacterUi): CharacterUi {
+        val active = character.activeConcentration ?: return character
+        val remaining = active.remainingRounds ?: return character
+        return character.copy(
+            activeConcentration = if (remaining <= 1) null else active.copy(remainingRounds = remaining - 1),
+        )
+    }
+
     fun castSpell(
         spell: SpellUi,
         slotLevel: Int? = null,
@@ -4103,6 +4226,7 @@ class DndAppState(
     ): Boolean {
         val character = selectedCharacter ?: return false
         if (spell !in character.availableSpells) return false
+        val rulesText = resolvedSpellRulesText(spell, character.ruleset)
         val resolvedSlotLevel = if (spell.level == 0) null else slotLevel
         if (spell.level > 0 && resolvedSlotLevel !in availableSpellSlotLevels(spell, character)) return false
         if (!actionCostAlreadyCommitted) {
@@ -4125,6 +4249,7 @@ class DndAppState(
         } else {
             t("${spell.name} cast with a level $resolvedSlotLevel slot", "${spell.name} mit Zauberplatz Grad $resolvedSlotLevel gewirkt")
         }
+        if (rulesText.concentration) beginConcentration(spell, rulesText)
         return true
     }
 
@@ -4236,6 +4361,7 @@ class DndAppState(
                     exhaustionLevel = (withRecoveredFeatures.exhaustionLevel - 1).coerceAtLeast(0),
                     spellSlots = withRecoveredFeatures.resolvedSpellSlots.map { it.copy(remaining = it.maximum) },
                     maxHpReduction = 0,
+                    activeConcentration = null,
                 )
                 withReducedExhaustion.copy(
                     hp = withReducedExhaustion.effectiveMaxHp,
@@ -4310,7 +4436,9 @@ class DndAppState(
         turnOpen = false
         updateSelectedCharacter { character ->
             val active = character.activePlaySession ?: return@updateSelectedCharacter character
-            character.copy(activePlaySession = active.copy(currentTurnNumber = active.currentTurnNumber + 1))
+            advanceConcentration(
+                character.copy(activePlaySession = active.copy(currentTurnNumber = active.currentTurnNumber + 1)),
+            )
         }
         persist()
     }
@@ -4327,7 +4455,9 @@ class DndAppState(
         turnSession = null
         updateSelectedCharacter { character ->
             val active = character.activePlaySession ?: return@updateSelectedCharacter character
-            character.copy(activePlaySession = active.copy(currentTurnNumber = active.currentTurnNumber + 1))
+            advanceConcentration(
+                character.copy(activePlaySession = active.copy(currentTurnNumber = active.currentTurnNumber + 1)),
+            )
         }
         turnOpen = false
         persist()

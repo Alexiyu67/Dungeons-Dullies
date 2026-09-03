@@ -1671,6 +1671,74 @@ class DndAppStateTest {
     }
 
     @Test
+    fun concentrationSpellPersistsAndAdvancesWithCompletedTurns() {
+        val seedState = DndAppState(FakeStore())
+        seedState.openCharacter("seed-wizard-5")
+        val protection = seedState.editableSpellCatalog()
+            .first { it.id == "spell.protection-from-evil-and-good" }
+            .copy(prepared = true)
+        val wizard = seedState.selectedCharacter!!.copy(spells = listOf(protection))
+        val store = FakeStore(Json.encodeToString(PersistedAppState(characters = listOf(wizard.toDocument()))))
+        val state = DndAppState(store)
+
+        val spell = state.selectedCharacter!!.availableSpells.single()
+        assertTrue(state.castSpell(spell, slotLevel = 1, session = null))
+        val active = assertNotNull(state.selectedCharacter!!.activeConcentration)
+        assertEquals(100, active.remainingRounds)
+        assertEquals("10:00", state.concentrationRemainingLabel(active))
+        assertTrue(active.rulesText.effect.contains("Disadvantage on attack rolls"))
+
+        val restored = DndAppState(store)
+        assertEquals(100, restored.selectedCharacter!!.activeConcentration?.remainingRounds)
+        restored.openTurn()
+        assertNotNull(restored.turnSession).commitAction("dodge")
+        assertTrue(restored.nextTurn())
+        val advanced = assertNotNull(restored.selectedCharacter!!.activeConcentration)
+        assertEquals(99, advanced.remainingRounds)
+        assertEquals("9:54", restored.concentrationRemainingLabel(advanced))
+
+        assertTrue(restored.endConcentration())
+        assertNull(restored.selectedCharacter!!.activeConcentration)
+    }
+
+    @Test
+    fun reachingZeroHitPointsEndsConcentrationWithoutAConstitutionSave() {
+        val seedState = DndAppState(FakeStore())
+        seedState.openCharacter("seed-wizard-5")
+        val protection = seedState.editableSpellCatalog()
+            .first { it.id == "spell.protection-from-evil-and-good" }
+            .copy(prepared = true)
+        val wizard = seedState.selectedCharacter!!.copy(spells = listOf(protection))
+        val state = DndAppState(FakeStore(Json.encodeToString(PersistedAppState(characters = listOf(wizard.toDocument())))))
+
+        assertTrue(state.castSpell(state.selectedCharacter!!.availableSpells.single(), slotLevel = 1, session = null))
+        state.setHitPoints(0)
+
+        assertNull(state.selectedCharacter!!.activeConcentration)
+        assertEquals(10, state.concentrationSaveDc(8, Ruleset.Fifth2024))
+        assertEquals(30, state.concentrationSaveDc(100, Ruleset.Fifth2024))
+        assertEquals(50, state.concentrationSaveDc(100, Ruleset.Fifth2014))
+    }
+
+    @Test
+    fun castingAnotherConcentrationSpellReplacesTheFirst() {
+        val seedState = DndAppState(FakeStore())
+        seedState.openCharacter("seed-wizard-5")
+        val spells = seedState.editableSpellCatalog()
+            .filter { it.id == "spell.protection-from-evil-and-good" || it.id == "spell.web" }
+            .map { it.copy(prepared = true) }
+        val wizard = seedState.selectedCharacter!!.copy(spells = spells)
+        val state = DndAppState(FakeStore(Json.encodeToString(PersistedAppState(characters = listOf(wizard.toDocument())))))
+
+        val protection = state.selectedCharacter!!.availableSpells.first { it.id == "spell.protection-from-evil-and-good" }
+        val web = state.selectedCharacter!!.availableSpells.first { it.id == "spell.web" }
+        assertTrue(state.castSpell(protection, slotLevel = 1, session = null))
+        assertTrue(state.castSpell(web, slotLevel = 2, session = null))
+
+        assertEquals("spell.web", state.selectedCharacter!!.activeConcentration?.spellId)
+    }
+
+    @Test
     fun sorcererCanConvertPointsIntoAnExpendedSpellSlot() {
         val state = DndAppState(FakeStore())
         state.openCharacter("seed-sorcerer-5")

@@ -21,9 +21,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.ArrowUpward
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Backpack
 import androidx.compose.material.icons.rounded.Casino
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.ExpandLess
@@ -192,6 +194,54 @@ internal fun HpAdjustDialog(state: DndAppState) {
                             Icons.Rounded.Add,
                             contentDescription = state.t("Increase $fieldLabel by 1", "$fieldLabel um 1 erhöhen"),
                         )
+                    }
+                }
+                character.activeConcentration?.let { concentration ->
+                    val damage = if (mode == HpAdjustmentMode.CURRENT) (-delta).coerceAtLeast(0) else 0
+                    val hint = when {
+                        damage > 0 && targetValue == 0 -> state.t(
+                            "Concentration ends at 0 HP",
+                            "Konzentration endet bei 0 TP",
+                        )
+                        damage > 0 -> state.t(
+                            "Concentration save · CON DC ${state.concentrationSaveDc(damage, character.ruleset)}",
+                            "Konzentrationswurf · KON SG ${state.concentrationSaveDc(damage, character.ruleset)}",
+                        )
+                        else -> state.t("Concentrating", "Konzentriert")
+                    }
+                    Surface(
+                        onClick = state::showActiveConcentrationDetails,
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = RoundedCornerShape(13.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 7.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(9.dp),
+                        ) {
+                            Icon(
+                                Icons.Rounded.AutoAwesome,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                            Column(Modifier.weight(1f)) {
+                                Text(hint, style = MaterialTheme.typography.labelLarge)
+                                Text(
+                                    "${concentration.spellName} · ${state.concentrationRemainingLabel(concentration)}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                            Icon(
+                                Icons.Rounded.ChevronRight,
+                                contentDescription = state.t("Open spell details", "Zauberdetails öffnen"),
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
                     }
                 }
             }

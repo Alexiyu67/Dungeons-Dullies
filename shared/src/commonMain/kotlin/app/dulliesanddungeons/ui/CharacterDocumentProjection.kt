@@ -205,6 +205,7 @@ internal fun CharacterUi.toDocument(characterConditions: List<ConditionUi> = emp
         spellSlotMaximumOverrides = spellSlotMaximumOverrides,
         spellSlotSpentCounts = spellSlots.associate { it.level to (it.maximum - it.remaining).coerceAtLeast(0) }.filterValues { it > 0 },
         hasPlayedSinceLongRest = hasPlayedSinceLongRest,
+        activeConcentration = activeConcentration,
     )
     val combat = CombatProfile(
         baseSpeedsFeet = buildMap {
@@ -413,6 +414,7 @@ internal fun CharacterDocument.toCharacterUi(): CharacterUi {
             state.resources.any { pool ->
                 pool.current < pool.maximum && pool.recoveryRules.any { it.trigger == app.dulliesanddungeons.domain.Recovery.SHORT_REST || it.trigger == app.dulliesanddungeons.domain.Recovery.LONG_REST }
             },
+        activeConcentration = state.activeConcentration,
         baseAbilities = abilitiesUi,
         baseSaves = combat.storedBaseSavingThrows.takeIf { it.isNotEmpty() }
             ?.mapKeys { (ability, _) -> ability.displayName }
@@ -541,6 +543,7 @@ private fun CharacterDocument.toRollbackSnapshot() = CharacterRollbackSnapshot(
     spellSlotSpentCounts = state.spellSlotSpentCounts,
     hasPlayedSinceLongRest = state.hasPlayedSinceLongRest,
     maximumHitPointReduction = state.maximumHitPointReduction,
+    activeConcentration = state.activeConcentration,
 )
 
 private fun CharacterRollbackSnapshot.toDocument() = CharacterDocument(
@@ -561,6 +564,7 @@ private fun CharacterRollbackSnapshot.toDocument() = CharacterDocument(
         spellSlotMaximumOverrides = spellSlotMaximumOverrides,
         spellSlotSpentCounts = spellSlotSpentCounts,
         hasPlayedSinceLongRest = hasPlayedSinceLongRest,
+        activeConcentration = activeConcentration,
     ),
 )
 
