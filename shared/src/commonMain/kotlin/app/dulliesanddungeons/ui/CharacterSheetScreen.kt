@@ -458,6 +458,10 @@ internal fun CharacterSheetScreen(
                         state.rollSheetAttack(RollMode.NORMAL)
                         state.dicePresentation = null
                     },
+                    onDamage = {
+                        state.rollSheetDamage()
+                        state.dicePresentation = null
+                    },
                     onOutcome = { outcome ->
                         state.resolveSheetAttack(outcome)
                         state.dicePresentation = null
@@ -2430,12 +2434,14 @@ internal fun AttackCard(
     outcome: AttackOutcome,
     canRoll: Boolean,
     onRoll: () -> Unit,
+    onDamage: () -> Unit,
     onOutcome: (AttackOutcome) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var detailsExpanded by remember(weapon.id) { mutableStateOf(false) }
     var rollAnimationCycle by remember(weapon.id) { mutableStateOf(0) }
     var rollSettled by remember(weapon.id) { mutableStateOf(false) }
+    var damageRollCycle by remember(weapon.id) { mutableStateOf(0) }
     val calculation = roll?.calculation ?: state.attackCalculation(character, weapon)
 
     Card(
@@ -2449,11 +2455,34 @@ internal fun AttackCard(
                 Spacer(Modifier.width(9.dp))
                 Column(Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(weapon.name, style = MaterialTheme.typography.titleLarge)
+                        Text(
+                            weapon.name,
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.titleLarge,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                         CostChip(state, CostTokenUi(CostTokenKind.Attack), available = canRoll)
                     }
-                    Text("${weapon.damage} ${weapon.damageType}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "${weapon.damage} ${weapon.damageType}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
+                TextButton(
+                    onClick = {
+                        rollSettled = true
+                        damageRollCycle++
+                        onDamage()
+                    },
+                    modifier = Modifier.semantics {
+                        contentDescription = state.t("Roll damage", "Schaden würfeln")
+                    },
+                    contentPadding = PaddingValues(horizontal = 8.dp),
+                ) { Text(state.t("Damage", "Schaden"), maxLines = 1) }
                 IconButton(onClick = onDismiss) { Icon(Icons.Rounded.Close, contentDescription = state.t("Close attack", "Angriff schließen")) }
             }
 
@@ -2571,7 +2600,7 @@ internal fun AttackCard(
                             Text(it.total.toString(), style = MaterialTheme.typography.headlineMedium)
                         }
                         if (it.dice.isNotEmpty() && it.sides > 0) {
-                            AnimatedDiceRow(it.sides, it.dice, animationKey = "damage-${weapon.id}-${it.dice}-${it.total}")
+                            AnimatedDiceRow(it.sides, it.dice, animationKey = "damage-${weapon.id}-$damageRollCycle-${it.dice}-${it.total}")
                         }
                     }
                 }

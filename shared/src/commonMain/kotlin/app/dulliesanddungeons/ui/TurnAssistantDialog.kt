@@ -753,6 +753,10 @@ private fun AttackTurnSection(state: DndAppState, character: CharacterUi, sessio
                 state.dicePresentation = null
                 session.markSuggestionComplete("attack")
             },
+            onDamage = {
+                state.rollDirectDamage(selected, session)
+                state.dicePresentation = null
+            },
             onOutcome = { outcome ->
                 session.attackOutcome = outcome
                 state.recordAttackOutcome(selected, outcome, session)

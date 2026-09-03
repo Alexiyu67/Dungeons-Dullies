@@ -1104,6 +1104,53 @@ class DndAppStateTest {
     }
 
     @Test
+    fun directSheetDamageIsNormalAndPreservesAttackState() {
+        val state = DndAppState(FakeStore())
+        val weapon = assertNotNull(state.selectedCharacter).weapons.first()
+
+        state.openSheetAttack(weapon.id)
+        state.rollSheetDamage()
+
+        assertFalse(assertNotNull(state.sheetDamageRoll).critical)
+        assertNull(state.sheetAttackRoll)
+        assertEquals(AttackOutcome.Pending, state.sheetAttackOutcome)
+
+        state.rollSheetAttack(RollMode.NORMAL)
+        state.resolveSheetAttack(AttackOutcome.Critical)
+        val attack = assertNotNull(state.sheetAttackRoll)
+
+        state.rollSheetDamage()
+
+        assertEquals(attack, state.sheetAttackRoll)
+        assertEquals(AttackOutcome.Critical, state.sheetAttackOutcome)
+        assertFalse(assertNotNull(state.sheetDamageRoll).critical)
+    }
+
+    @Test
+    fun directTurnDamageRecordsOnlyTheRollAndPreservesAttackResources() {
+        val state = DndAppState(FakeStore())
+        val weapon = assertNotNull(state.selectedCharacter).weapons.first()
+        state.openTurn()
+        val session = assertNotNull(state.turnSession)
+        session.unresolvedAttackCommitted = true
+        session.attackOutcome = AttackOutcome.Critical
+        val actionUsed = session.actionUsed
+        val attacksRemaining = session.attacksRemaining
+        val eventsBefore = session.events.size
+
+        state.rollDirectDamage(weapon, session)
+
+        assertFalse(assertNotNull(session.lastDamageDetails).critical)
+        assertTrue(session.unresolvedAttackCommitted)
+        assertEquals(AttackOutcome.Critical, session.attackOutcome)
+        assertEquals(actionUsed, session.actionUsed)
+        assertEquals(attacksRemaining, session.attacksRemaining)
+        assertEquals(eventsBefore + 1, session.events.size)
+        assertTrue(session.events.last() is TurnEvent.RollRecorded)
+        assertFalse("attack" in session.completedSuggestionIds)
+    }
+
+    @Test
     fun secondWindRespectsTheEffectiveMaximumHpFrom2014Exhaustion() {
         val fighter = DndAppState(FakeStore()).selectedCharacter!!.copy(
             ruleset = Ruleset.Fifth2014,
