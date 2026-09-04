@@ -1381,10 +1381,10 @@ class DndAppState(
                 add(FeatureUi("indomitable", "Indomitable", "Reroll a failed saving throw and use the new result.", uses, uses, Recovery.LONG_REST, FeatureEffect.REROLL_SAVE))
             }
             creation.selectedFeatIds.mapNotNull(::privateEntryById).forEach { feat ->
-                add(FeatureUi("private-${feat.id}", feat.name, feat.summary, custom = true, notes = feat.sourceNote, attackGrants = feat.attackGrants, combatContributions = feat.combatContributions))
+                add(feat.toPrivateFeature().copy(id = "private-${feat.id}"))
             }
             privateEntryForName("class", creation.className)?.let { classEntry ->
-                add(FeatureUi("private-class-${classEntry.id}", classEntry.name, classEntry.summary, custom = true, notes = classEntry.sourceNote, combatContributions = classEntry.combatContributions))
+                add(classEntry.toPrivateFeature().copy(id = "private-class-${classEntry.id}"))
             }
             addAll(automaticPrivateFeatures(
                 creation.className,
@@ -2301,8 +2301,8 @@ class DndAppState(
                     SubclassOptionUi(
                         id = entry.id,
                         name = entry.name,
-                        summaryEnglish = entry.summary,
-                        summaryGerman = entry.summary,
+                        summaryEnglish = entry.privateContentSummary(),
+                        summaryGerman = entry.privateContentSummary(),
                         mechanics = mechanics,
                         local = true,
                         sourceNote = entry.sourceNote,
@@ -2398,7 +2398,7 @@ class DndAppState(
         "feat",
         character?.ruleset ?: creation.ruleset,
     ).map { entry ->
-        FeatOptionUi(entry.id, entry.name, entry.summary, t("Approved private content", "Freigegebener privater Inhalt"))
+        FeatOptionUi(entry.id, entry.name, entry.privateContentSummary(), t("Approved private content", "Freigegebener privater Inhalt"))
     }
 
     fun creationSpellOptions(): List<SpellUi> = approvedPrivateSpellOptions(null)
@@ -3234,10 +3234,10 @@ class DndAppState(
                 addAll(it.resolveFeatures(newClassLevel, proficiencyForLevel(newLevel), character.features, newAbilities))
             }
             chosenFeat?.let(::privateEntryById)?.let { feat ->
-                add(FeatureUi("private-${feat.id}", feat.name, feat.summary, custom = true, notes = feat.sourceNote, attackGrants = feat.attackGrants, combatContributions = feat.combatContributions))
+                add(feat.toPrivateFeature().copy(id = "private-${feat.id}"))
             }
             privateEntryForName("class", draft.className, character.ruleset)?.let { classEntry ->
-                add(FeatureUi("private-class-${classEntry.id}", classEntry.name, classEntry.summary, custom = true, notes = classEntry.sourceNote, combatContributions = classEntry.combatContributions))
+                add(classEntry.toPrivateFeature().copy(id = "private-class-${classEntry.id}"))
             }
         }
         val selectedSpells = selectedOptions.mapNotNull(GuidedLevelOptionUi::spell) + activeSubclass?.resolveSpells(newClassLevel).orEmpty()
@@ -5480,7 +5480,7 @@ class DndAppState(
         return FeatureUi(
             id = "private-$id",
             name = name,
-            summary = summary,
+            summary = privateContentSummary(),
             remaining = resource?.maximum,
             maximum = resource?.maximum,
             recovery = resource?.recovery ?: Recovery.MANUAL,
@@ -5506,9 +5506,9 @@ class DndAppState(
                 entry.mechanics.grantAutomatically &&
                 (entry.mechanics.unlockLevel ?: 1) <= level &&
                 (
-                    entry.mechanics.parentClassId == classId ||
-                        entry.mechanics.parentSpeciesId == speciesId ||
-                        entry.mechanics.parentSubclassId == subclassId
+                    (classId != null && entry.mechanics.parentClassId == classId) ||
+                        (speciesId != null && entry.mechanics.parentSpeciesId == speciesId) ||
+                        (subclassId != null && entry.mechanics.parentSubclassId == subclassId)
                     )
         }.map { it.toPrivateFeature() }
     }
@@ -5950,7 +5950,11 @@ class DndAppState(
         .filter { it.appliesTo(ruleset) }
         .map { entry ->
             val category = entry.normalizedKind().replaceFirstChar { it.titlecase() }
-            val summary = entry.summary.ifBlank { t("Private local Wiki entry.", "Privater lokaler Wiki-Eintrag.") }
+            val summary = if (
+                entry.normalizedKind() in setOf("feature", "feat", "resource")
+            ) entry.privateContentSummary() else entry.summary.ifBlank {
+                t("Private local Wiki entry.", "Privater lokaler Wiki-Eintrag.")
+            }
             val details = buildList {
                 add(summary)
                 if (entry.formula.isNotBlank()) add("Details: ${entry.formula}")
@@ -5962,7 +5966,7 @@ class DndAppState(
                 subtitle = t("Local · $category · $summary", "Lokal · $category · $summary"),
                 kind = SearchResultKind.Rule,
                 actionLabel = t("Info", "Info"),
-                searchTerms = listOf(entry.name, entry.kind, category, entry.summary, entry.formula, entry.sourceNote, "local", "private", "lokal", "privat"),
+                searchTerms = listOf(entry.name, entry.kind, category, summary, entry.summary, entry.formula, entry.sourceNote, "local", "private", "lokal", "privat"),
                 detailBody = details,
             )
         }
