@@ -10,11 +10,19 @@ data class StartingGearPackageUi(
     val goldOnly: Boolean = false,
 ) {
     fun summary(): String = if (goldOnly) "$goldPieces GP" else buildList {
-        addAll(weaponIds.map(::gearDisplayName))
+        addAll(weaponIds.withQuantities().map { (id, quantity) ->
+            gearDisplayName(id) + if (quantity > 1) " ×$quantity" else ""
+        })
         armorId?.let { add(gearDisplayName(it)) }
         addAll(equipmentIds.map(::gearDisplayName))
         if (goldPieces > 0) add("$goldPieces GP")
     }.joinToString(", ")
+}
+
+internal fun List<String>.withQuantities(): List<Pair<String, Int>> {
+    val counts = linkedMapOf<String, Int>()
+    forEach { id -> counts[id] = (counts[id] ?: 0) + 1 }
+    return counts.map { it.key to it.value }
 }
 
 internal fun startingGearPackages(ruleset: Ruleset, className: String): List<StartingGearPackageUi> {

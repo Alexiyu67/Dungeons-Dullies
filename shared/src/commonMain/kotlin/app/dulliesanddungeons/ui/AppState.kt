@@ -264,6 +264,8 @@ data class WeaponUi(
     val useCase: String = "",
     val classification: WeaponClassification = WeaponClassification(),
     val combatContributions: List<CombatContribution> = emptyList(),
+    /** Number of interchangeable copies represented by this single combat entry. */
+    val quantity: Int = 1,
 )
 
 @Serializable
@@ -2429,9 +2431,10 @@ class DndAppState(
         }
         val abilities = abilityScoresForDraft()
         val ranks = creationProficiencyRanks()
-        selected.weaponIds.forEachIndexed { index, weaponId ->
+        selected.weaponIds.withQuantities().forEachIndexed { index, (weaponId, quantity) ->
             standardWeaponCatalog.firstOrNull { it.id == weaponId }?.let { template ->
                 creation.startingWeapons += creationWeapon(template.forRuleset(creation.ruleset), abilities, ranks, index)
+                    .copy(quantity = quantity)
             }
         }
     }
@@ -2491,6 +2494,13 @@ class DndAppState(
     fun removeCreationWeapon(itemId: String) {
         creation.selectedStartingGearPackageId = null
         creation.startingWeapons.removeAll { it.id == itemId }
+    }
+
+    fun updateCreationWeaponQuantity(itemId: String, quantity: Int) {
+        val index = creation.startingWeapons.indexOfFirst { it.id == itemId }
+        if (index < 0) return
+        creation.selectedStartingGearPackageId = null
+        creation.startingWeapons[index] = creation.startingWeapons[index].copy(quantity = quantity.coerceIn(1, 999))
     }
 
     private fun clearCreationStartingGear() {
