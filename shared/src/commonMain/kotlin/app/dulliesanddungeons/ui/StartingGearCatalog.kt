@@ -14,7 +14,7 @@ data class StartingGearPackageUi(
             gearDisplayName(id) + if (quantity > 1) " ×$quantity" else ""
         })
         armorId?.let { add(gearDisplayName(it)) }
-        addAll(equipmentIds.map(::gearDisplayName))
+        addAll(groupedGearDisplayNames(equipmentIds))
         if (goldPieces > 0) add("$goldPieces GP")
     }.joinToString(", ")
 }
@@ -75,3 +75,11 @@ internal fun startingGearPackages(ruleset: Ruleset, className: String): List<Sta
 private fun gearDisplayName(id: String): String = id.split('-').joinToString(" ") { part ->
     part.replaceFirstChar { it.uppercase() }
 }
+
+private fun groupedGearDisplayNames(ids: List<String>): List<String> = ids
+    .groupingBy { it }
+    .eachCount()
+    .map { (id, quantity) ->
+        val name = gearDisplayName(id)
+        if (quantity == 1) name else "$name ×$quantity"
+    }
