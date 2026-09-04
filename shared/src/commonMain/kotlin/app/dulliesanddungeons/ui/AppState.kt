@@ -1253,17 +1253,38 @@ class DndAppState(
     }
 
     fun finishCreate() {
+        if (creation.name.isBlank()) {
+            creation.step = CreationStep.Identity.ordinal
+            showInfo(
+                t("Add a name", "Namen hinzufügen"),
+                t("Enter a name for your hero.", "Gib deinem Charakter einen Namen."),
+            )
+            return
+        }
+        if (!creationSubclassSelectionValid()) {
+            creation.step = CreationStep.Build.ordinal
+            showInfo(
+                t("Choose a subclass", "W\u00e4hle eine Unterklasse"),
+                t("A subclass is required at this class level.", "Auf dieser Klassenstufe ist eine Unterklasse erforderlich."),
+            )
+            return
+        }
         if (!creationProficiencySelectionValid()) {
+            creation.step = CreationStep.Details.ordinal
             showInfo(
                 t("Complete proficiency choices", "Fertigkeitswahlen abschließen"),
                 t("Choose a background and complete every required skill choice.", "Wähle einen Hintergrund und schließe alle erforderlichen Fertigkeitswahlen ab."),
             )
             return
         }
-        if (!creationSubclassSelectionValid()) {
+        if (!creationGearSelectionValid()) {
+            creation.step = CreationStep.Gear.ordinal
             showInfo(
-                t("Choose a subclass", "W\u00e4hle eine Unterklasse"),
-                t("A subclass is required at this class level.", "Auf dieser Klassenstufe ist eine Unterklasse erforderlich."),
+                t("Choose starting gear", "Startausrüstung wählen"),
+                t(
+                    "Choose a starting gear package or customize the starting equipment.",
+                    "Wähle ein Startausrüstungspaket oder passe die Startausrüstung an.",
+                ),
             )
             return
         }

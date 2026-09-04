@@ -1,6 +1,7 @@
 package app.dulliesanddungeons.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -16,6 +17,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBack
@@ -38,7 +41,6 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
@@ -48,21 +50,38 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
-private const val LAST_CREATION_STEP = 6
+internal enum class CreationStep(
+    val englishLabel: String,
+    val germanLabel: String,
+) {
+    Rules("Rules", "Regeln"),
+    Identity("Identity", "Identität"),
+    Build("Build", "Konzept"),
+    LevelAndStats("Level & stats", "Stufe & Werte"),
+    Details("Details", "Details"),
+    Gear("Gear", "Ausrüstung"),
+    Review("Review", "Überblick"),
+}
+
+private val LAST_CREATION_STEP = CreationStep.entries.lastIndex
 
 @Composable
 internal fun CharacterCreationScreen(
@@ -71,45 +90,57 @@ internal fun CharacterCreationScreen(
     onEditPortrait: (PortraitPickTarget) -> Unit,
 ) {
     val draft = state.creation
+    val currentStep = CreationStep.entries[draft.step.coerceIn(0, LAST_CREATION_STEP)]
+    val contentState = rememberLazyListState()
+    val navigateToStep: (CreationStep) -> Unit = { step -> draft.step = step.ordinal }
+    LaunchedEffect(draft.step) {
+        contentState.scrollToItem(0)
+    }
     Column(Modifier.fillMaxSize()) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = {
-                if (draft.step == 0) state.screen = AppScreen.Characters else draft.step--
+                if (currentStep == CreationStep.Rules) state.screen = AppScreen.Characters
+                else navigateToStep(CreationStep.entries[currentStep.ordinal - 1])
             }, modifier = Modifier.size(48.dp)) {
                 Icon(Icons.Rounded.ArrowBack, contentDescription = state.t("Go back", "Zurück"))
             }
             Column(Modifier.weight(1f)) {
                 Text(state.t("Create your hero", "Held:in erstellen"), style = MaterialTheme.typography.titleLarge)
                 Text(
-                    state.t("Step ${draft.step + 1} of ${LAST_CREATION_STEP + 1}", "Schritt ${draft.step + 1} von ${LAST_CREATION_STEP + 1}"),
+                    state.t(
+                        "Step ${currentStep.ordinal + 1} of ${CreationStep.entries.size} · ${currentStep.englishLabel}",
+                        "Schritt ${currentStep.ordinal + 1} von ${CreationStep.entries.size} · ${currentStep.germanLabel}",
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             LanguageButton(state)
         }
-        LinearProgressIndicator(
-            progress = { (draft.step + 1f) / (LAST_CREATION_STEP + 1f) },
-            modifier = Modifier.fillMaxWidth(),
+        CreationProgressStepper(
+            state = state,
+            currentStep = currentStep,
+            onStepSelected = navigateToStep,
         )
 
         LazyColumn(
             modifier = Modifier.weight(1f).fillMaxWidth(),
+            state = contentState,
             contentPadding = PaddingValues(20.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             item {
-                when (draft.step) {
-                    0 -> RulesetStep(state)
-                    1 -> IdentityStep(state, onPickPortrait, onEditPortrait)
-                    2 -> BuildStep(state)
-                    3 -> LevelAndStatsStep(state)
-                    4 -> DetailsStep(state)
-                    5 -> GearStep(state)
-                    else -> ReviewStep(state, onEditPortrait)
+                when (currentStep) {
+                    CreationStep.Rules -> RulesetStep(state)
+                    CreationStep.Identity -> IdentityStep(state, onPickPortrait, onEditPortrait)
+                    CreationStep.Build -> BuildStep(state)
+                    CreationStep.LevelAndStats -> LevelAndStatsStep(state)
+                    CreationStep.Details -> DetailsStep(state)
+                    CreationStep.Gear -> GearStep(state)
+                    CreationStep.Review -> ReviewStep(state, onEditPortrait)
                 }
             }
         }
@@ -120,26 +151,107 @@ internal fun CharacterCreationScreen(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (draft.step > 0) {
-                    OutlinedButton(onClick = { draft.step-- }, modifier = Modifier.height(52.dp)) {
+                if (currentStep != CreationStep.Rules) {
+                    OutlinedButton(
+                        onClick = { navigateToStep(CreationStep.entries[currentStep.ordinal - 1]) },
+                        modifier = Modifier.height(52.dp),
+                    ) {
                         Text(state.t("Back", "Zurück"))
                     }
                 }
                 Button(
                     onClick = {
-                        if (draft.step < LAST_CREATION_STEP) draft.step++ else state.finishCreate()
+                        if (currentStep != CreationStep.Review) {
+                            navigateToStep(CreationStep.entries[currentStep.ordinal + 1])
+                        } else {
+                            state.finishCreate()
+                        }
                     },
-                    enabled = (draft.step != 1 || draft.name.isNotBlank()) &&
-                        (draft.step != 4 || state.creationProficiencySelectionValid()) &&
-                        (draft.step != 5 || state.creationGearSelectionValid()) &&
-                        (draft.step != LAST_CREATION_STEP ||
-                            state.creationSubclassSelectionValid() && state.creationProficiencySelectionValid()),
+                    enabled = currentStep == CreationStep.Review ||
+                        (currentStep != CreationStep.Identity || draft.name.isNotBlank()) &&
+                        (currentStep != CreationStep.Details || state.creationProficiencySelectionValid()) &&
+                        (currentStep != CreationStep.Gear || state.creationGearSelectionValid()),
                     modifier = Modifier.weight(1f).height(52.dp),
                     shape = RoundedCornerShape(16.dp),
                 ) {
-                    Text(if (draft.step == LAST_CREATION_STEP) state.t("Create character", "Charakter erstellen") else state.t("Continue", "Weiter"))
+                    Text(if (currentStep == CreationStep.Review) state.t("Create character", "Charakter erstellen") else state.t("Continue", "Weiter"))
                     Spacer(Modifier.width(6.dp))
-                    Icon(if (draft.step == LAST_CREATION_STEP) Icons.Rounded.Check else Icons.Rounded.ChevronRight, contentDescription = null)
+                    Icon(if (currentStep == CreationStep.Review) Icons.Rounded.Check else Icons.Rounded.ChevronRight, contentDescription = null)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CreationProgressStepper(
+    state: DndAppState,
+    currentStep: CreationStep,
+    onStepSelected: (CreationStep) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        CreationStep.entries.forEach { step ->
+            val isCurrent = step == currentStep
+            val isEarlier = step.ordinal < currentStep.ordinal
+            val label = state.t(step.englishLabel, step.germanLabel)
+            val currentSuffix = if (isCurrent) state.t(", current", ", aktuell") else ""
+            Surface(
+                onClick = { onStepSelected(step) },
+                modifier = Modifier
+                    .weight(1f)
+                    .height(48.dp)
+                    .semantics(mergeDescendants = true) {
+                        contentDescription = state.t(
+                            "Step ${step.ordinal + 1} of ${CreationStep.entries.size}: $label$currentSuffix",
+                            "Schritt ${step.ordinal + 1} von ${CreationStep.entries.size}: $label$currentSuffix",
+                        )
+                        role = Role.Button
+                        selected = isCurrent
+                    },
+                color = androidx.compose.ui.graphics.Color.Transparent,
+            ) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    if (step != CreationStep.Rules) {
+                        Surface(
+                            modifier = Modifier.align(Alignment.CenterStart).fillMaxWidth(0.5f).height(2.dp),
+                            color = if (step.ordinal <= currentStep.ordinal) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.outlineVariant
+                            },
+                        ) {}
+                    }
+                    if (step != CreationStep.Review) {
+                        Surface(
+                            modifier = Modifier.align(Alignment.CenterEnd).fillMaxWidth(0.5f).height(2.dp),
+                            color = if (step.ordinal < currentStep.ordinal) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.outlineVariant
+                            },
+                        ) {}
+                    }
+                    Surface(
+                        modifier = Modifier.size(28.dp),
+                        shape = CircleShape,
+                        color = when {
+                            isCurrent -> MaterialTheme.colorScheme.primary
+                            isEarlier -> MaterialTheme.colorScheme.primaryContainer
+                            else -> MaterialTheme.colorScheme.surfaceVariant
+                        },
+                        contentColor = when {
+                            isCurrent -> MaterialTheme.colorScheme.onPrimary
+                            isEarlier -> MaterialTheme.colorScheme.primary
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    ) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text("${step.ordinal + 1}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
             }
         }

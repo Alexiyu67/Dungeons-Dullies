@@ -58,6 +58,8 @@ class SubclassCreationTest {
 
         state.finishCreateWithRequiredProficiencies()
         assertEquals(before, state.characters.size)
+        assertEquals(CreationStep.Build.ordinal, state.creation.step)
+        assertEquals("Choose a subclass", state.infoTitle)
 
         val champion = state.creationSubclassOptions().single { it.name == "Champion" }
         state.selectCreationSubclass(champion.id)

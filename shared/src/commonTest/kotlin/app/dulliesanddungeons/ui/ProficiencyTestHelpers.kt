@@ -27,7 +27,31 @@ internal fun DndAppState.completeRequiredCreationProficiencies() {
     check(creationProficiencySelectionValid())
 }
 
+internal fun DndAppState.completeRequiredCreationGear() {
+    if (creationGearSelectionValid()) return
+    val armorId = when (creation.ruleset) {
+        Ruleset.Pf2eRemaster -> when (creation.className) {
+            "Champion" -> "pf2e-half-plate"
+            "Fighter" -> "pf2e-scale-mail"
+            "Cleric" -> "pf2e-chain-shirt"
+            "Rogue", "Ranger", "Bard", "Druid", "Alchemist" -> "pf2e-leather-armor"
+            else -> null
+        }
+        else -> when (creation.className) {
+            "Fighter", "Paladin" -> "chain-mail"
+            "Cleric", "Ranger" -> "scale-mail"
+            "Rogue", "Bard", "Druid", "Warlock" -> "leather-armor"
+            else -> null
+        }
+    }
+    creation.startingArmorChoice = armorId
+        ?.let { StartingArmorChoice.Known("equipment:$it") }
+        ?: StartingArmorChoice.Unarmored
+    check(creationGearSelectionValid())
+}
+
 internal fun DndAppState.finishCreateWithRequiredProficiencies() {
     completeRequiredCreationProficiencies()
+    completeRequiredCreationGear()
     finishCreate()
 }

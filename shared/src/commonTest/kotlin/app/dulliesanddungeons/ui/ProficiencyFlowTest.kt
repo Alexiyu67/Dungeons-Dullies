@@ -23,6 +23,43 @@ class ProficiencyFlowTest {
         assertEquals(countBefore, state.characters.size)
         assertFalse(state.creationProficiencySelectionValid())
         assertEquals("Complete proficiency choices", state.infoTitle)
+        assertEquals(CreationStep.Details.ordinal, state.creation.step)
+    }
+
+    @Test
+    fun creationGuidesReviewToTheEarliestIncompleteStep() {
+        val state = DndAppState(ProficiencyStore())
+        val countBefore = state.characters.size
+        state.beginCreate()
+        state.creation.step = CreationStep.Review.ordinal
+
+        state.finishCreate()
+
+        assertEquals(countBefore, state.characters.size)
+        assertEquals(CreationStep.Identity.ordinal, state.creation.step)
+        assertEquals("Add a name", state.infoTitle)
+
+        state.creation.name = "Pathfinder"
+        state.creation.step = CreationStep.Review.ordinal
+        state.finishCreate()
+
+        assertEquals(countBefore, state.characters.size)
+        assertEquals(CreationStep.Details.ordinal, state.creation.step)
+        assertEquals("Complete proficiency choices", state.infoTitle)
+
+        state.completeRequiredCreationProficiencies()
+        state.creation.step = CreationStep.Review.ordinal
+        state.finishCreate()
+
+        assertEquals(countBefore, state.characters.size)
+        assertEquals(CreationStep.Gear.ordinal, state.creation.step)
+        assertEquals("Choose starting gear", state.infoTitle)
+
+        state.completeRequiredCreationGear()
+        state.creation.step = CreationStep.Review.ordinal
+        state.finishCreate()
+
+        assertEquals(countBefore + 1, state.characters.size)
     }
 
     @Test
@@ -40,6 +77,7 @@ class ProficiencyFlowTest {
         assertTrue(state.creationClassSkillOptions().none { it.id == "skill:athletics" })
         state.creationClassSkillOptions().take(2).forEach { state.toggleCreationClassSkill(it.id) }
         assertTrue(state.creationProficiencySelectionValid())
+        state.completeRequiredCreationGear()
         state.finishCreate()
 
         val character = assertNotNull(state.selectedCharacter)
@@ -108,6 +146,7 @@ class ProficiencyFlowTest {
         assertEquals(7, state.creationSkillIncreaseCount())
         assertEquals(7, state.creationSkillIncreaseCost())
         assertTrue(state.creationProficiencyRanks().values.any { it == ProficiencyRank.LEGENDARY })
+        state.completeRequiredCreationGear()
         state.finishCreate()
 
         val character = assertNotNull(state.selectedCharacter)
@@ -131,6 +170,7 @@ class ProficiencyFlowTest {
         state.selectCreationClass("Rogue")
         state.creation.name = "Nim"
         state.completeRequiredCreationProficiencies()
+        state.completeRequiredCreationGear()
         state.finishCreate()
         val before = assertNotNull(state.selectedCharacter)
 
@@ -160,6 +200,7 @@ class ProficiencyFlowTest {
         val subclass = state.creationSubclassOptions().first()
         state.selectCreationSubclass(subclass.id)
         state.completeRequiredCreationProficiencies()
+        state.completeRequiredCreationGear()
         state.finishCreate()
         val previousRanks = assertNotNull(state.selectedCharacter).proficiencyRanks
 
