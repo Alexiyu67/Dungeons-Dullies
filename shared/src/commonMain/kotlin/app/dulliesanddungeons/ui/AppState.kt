@@ -142,7 +142,7 @@ data class CreationPreviewUi(
     val startingArmor: String,
 )
 
-internal data class CreationSpellSelectionUi(
+data class CreationSpellSelectionUi(
     val options: List<SpellUi>,
     val selected: List<SpellUi>,
     val fixed: List<SpellUi> = emptyList(),
@@ -2210,6 +2210,7 @@ class DndAppState(
         val unavailable = creationBackgroundGrantedSkillIds() + creation.backgroundSkillIds + definition.fixedSkillIds
         if (creation.classSkillIds.size != creationClassSkillCount()) return false
         if (creation.classSkillIds.any { it !in definition.classSkillIds || it in unavailable }) return false
+        if (definition.requiredOneOfSkillGroups.any { group -> creation.classSkillIds.none { it in group } }) return false
         if (creation.featSkillIds.size != creationFeatSkillCount()) return false
         if (creation.featSkillIds.any { it in creationBackgroundGrantedSkillIds() || it in creation.backgroundSkillIds || it in creation.classSkillIds }) return false
         return creationSkillIncreaseCost() == creationSkillIncreaseCount()
@@ -2429,6 +2430,14 @@ class DndAppState(
     /** Legacy catalog accessor retained for local-content management and tests. */
     fun creationSpellOptions(): List<SpellUi> = approvedPrivateSpellOptions(null)
 
+    internal fun localizedCreationSpellLabel(label: String): String = when (label) {
+        "Known spells" -> t("Known spells", "Bekannte Zauber")
+        "Prepared spells" -> t("Prepared spells", "Vorbereitete Zauber")
+        "Spellbook" -> t("Spellbook", "Zauberbuch")
+        "Granted spells" -> t("Granted spells", "Gewährte Zauber")
+        else -> label
+    }
+
     fun creationSpellSelection(): CreationSpellSelectionUi? {
         val limits = CreationSpellRules.limits(
             creation.ruleset,
@@ -2445,6 +2454,7 @@ class DndAppState(
             )
         }.orEmpty()
         val privateOptions = approvedPrivateEntries("spell")
+            .filter { limits != null }
             .filter { entry -> classEntryId != null && classEntryId in entry.mechanics.classIds }
             .mapNotNull(::privateSpell)
             .filter { spell -> limits == null || spell.level <= limits.maxSpellLevel }
@@ -2462,7 +2472,7 @@ class DndAppState(
             cantripLimit = limits?.cantripLimit ?: 0,
             leveledSpellLimit = limits?.leveledSpellLimit ?: 0,
             preparedLimit = limits?.preparedLimit,
-            leveledLabel = limits?.leveledLabel ?: t("Granted spells", "Gewährte Zauber"),
+            leveledLabel = localizedCreationSpellLabel(limits?.leveledLabel ?: "Granted spells"),
         )
     }
 

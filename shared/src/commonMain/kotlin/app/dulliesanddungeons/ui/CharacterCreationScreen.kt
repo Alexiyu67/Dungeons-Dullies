@@ -231,7 +231,8 @@ internal fun CharacterCreationScreen(
                     },
                     enabled = currentStep == CreationStep.Review ||
                         (currentStep != CreationStep.Identity || draft.name.isNotBlank()) &&
-                        (currentStep != CreationStep.Details || state.creationProficiencySelectionValid()) &&
+                        (currentStep != CreationStep.Details ||
+                            state.creationProficiencySelectionValid() && state.creationSpellSelectionValid()) &&
                         (currentStep != CreationStep.Gear || state.creationGearSelectionValid()),
                     modifier = Modifier.weight(1f).height(52.dp),
                     shape = RoundedCornerShape(16.dp),
@@ -827,6 +828,14 @@ private fun DetailsStep(
             ),
             pulseSignal = classSkillLimitPulse,
         )
+        classDefinition.requiredOneOfSkillGroups.forEach { group ->
+            val names = group.mapNotNull { id -> rankSkillOptions.firstOrNull { it.id == id }?.name }
+            Text(
+                state.t("Include one of: ", "Wähle mindestens eine davon: ") + names.joinToString(" / "),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         classDefinition.fixedSkillIds.mapNotNull { id -> rankSkillOptions.firstOrNull { it.id == id } }.forEach { skill ->
             CreationSkillChoiceCard(
                 state = state,

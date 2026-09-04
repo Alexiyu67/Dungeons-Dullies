@@ -30,6 +30,9 @@ class CreationSpellRulesTest {
         )
         assertEquals(2, CreationSpellRules.limits(Ruleset.Fifth2024, "Paladin", 1, neutral)?.leveledSpellLimit)
         assertEquals(2, CreationSpellRules.limits(Ruleset.Fifth2024, "Ranger", 1, neutral)?.leveledSpellLimit)
+        assertEquals(4, CreationSpellRules.limits(Ruleset.Fifth2024, "Paladin", 3, neutral)?.leveledSpellLimit)
+        assertEquals(16, CreationSpellRules.limits(Ruleset.Fifth2024, "Cleric", 12, neutral)?.leveledSpellLimit)
+        assertEquals(21, CreationSpellRules.limits(Ruleset.Fifth2024, "Wizard", 16, neutral)?.preparedLimit)
     }
 
     @Test

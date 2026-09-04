@@ -81,7 +81,7 @@ internal object CreationSpellRules {
             SrdSpellClass.RANGER -> limits(spellClass, 0, RANGER_2024[level], halfMax, "Prepared spells")
             SrdSpellClass.SORCERER -> limits(spellClass, if (level >= 10) 6 else if (level >= 4) 5 else 4, SORCERER_2024[level], fullMax, "Prepared spells")
             SrdSpellClass.WARLOCK -> limits(spellClass, if (level >= 10) 4 else if (level >= 4) 3 else 2, WARLOCK_2014[level], fullMax.coerceAtMost(5), "Prepared spells")
-            SrdSpellClass.WIZARD -> limits(spellClass, standardCantrips, 6 + (level - 1) * 2, fullMax, "Spellbook", FULL_PREPARED_2024[level])
+            SrdSpellClass.WIZARD -> limits(spellClass, standardCantrips, 6 + (level - 1) * 2, fullMax, "Spellbook", WIZARD_PREPARED_2024[level])
         }
     }
 
@@ -101,10 +101,11 @@ internal object CreationSpellRules {
     private val SORCERER_2014 = counts(2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 12, 13, 13, 14, 14, 15, 15, 15, 15)
     private val WARLOCK_2014 = counts(2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15)
     private val RANGER_2014 = counts(0, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11)
-    private val FULL_PREPARED_2024 = counts(4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 19, 20, 21, 22, 22, 22)
-    private val SORCERER_2024 = counts(2, 4, 6, 7, 9, 10, 11, 12, 14, 15, 16, 17, 17, 18, 18, 19, 19, 20, 21, 22)
-    private val PALADIN_2024 = counts(2, 3, 3, 3, 5, 5, 6, 6, 9, 9, 10, 10, 11, 11, 12, 12, 14, 14, 15, 15)
-    private val RANGER_2024 = counts(2, 3, 3, 4, 5, 6, 6, 7, 9, 9, 10, 10, 11, 11, 12, 12, 14, 14, 15, 15)
+    private val FULL_PREPARED_2024 = counts(4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 17, 18, 18, 19, 20, 21, 22)
+    private val SORCERER_2024 = counts(2, 4, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 17, 18, 18, 19, 20, 21, 22)
+    private val PALADIN_2024 = counts(2, 3, 4, 5, 6, 6, 7, 7, 9, 9, 10, 10, 11, 11, 12, 12, 14, 14, 15, 15)
+    private val RANGER_2024 = counts(2, 3, 4, 5, 6, 6, 7, 7, 9, 9, 10, 10, 11, 11, 12, 12, 14, 14, 15, 15)
+    private val WIZARD_PREPARED_2024 = counts(4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 18, 19, 21, 22, 23, 24, 25)
 
     private fun counts(vararg values: Int): IntArray = intArrayOf(0, *values)
 }

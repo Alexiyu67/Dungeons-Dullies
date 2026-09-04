@@ -28,6 +28,7 @@ internal data class ClassProficiencyDefinitionUi(
     val classSkillIds: Set<String>,
     val classSkillCount: Int,
     val fixedSkillIds: Set<String> = emptySet(),
+    val requiredOneOfSkillGroups: List<Set<String>> = emptyList(),
     val pf2AdditionalSkills: Int = 0,
     val automaticRanks: Map<String, ProficiencyRank> = emptyMap(),
 )
@@ -139,23 +140,23 @@ internal object ProficiencyCatalog {
     }
 
     fun classDefinition(ruleset: Ruleset, className: String): ClassProficiencyDefinitionUi =
-        if (ruleset == Ruleset.Pf2eRemaster) pf2eClass(className) else fiveEClass(className)
+        if (ruleset == Ruleset.Pf2eRemaster) pf2eClass(className) else fiveEClass(ruleset, className)
 
-    private fun fiveEClass(className: String): ClassProficiencyDefinitionUi {
+    private fun fiveEClass(ruleset: Ruleset, className: String): ClassProficiencyDefinitionUi {
         val any = fiveESkills.mapTo(linkedSetOf()) { it.id }
         val data = when (className) {
             "Barbarian" -> Triple(2, ids("animal-handling", "athletics", "intimidation", "nature", "perception", "survival"), setOf("STR", "CON"))
             "Bard" -> Triple(3, any, setOf("DEX", "CHA"))
             "Cleric" -> Triple(2, ids("history", "insight", "medicine", "persuasion", "religion"), setOf("WIS", "CHA"))
             "Druid" -> Triple(2, ids("arcana", "animal-handling", "insight", "medicine", "nature", "perception", "religion", "survival"), setOf("INT", "WIS"))
-            "Fighter" -> Triple(2, ids("acrobatics", "animal-handling", "athletics", "history", "insight", "intimidation", "perception", "survival"), setOf("STR", "CON"))
+            "Fighter" -> Triple(2, ids("acrobatics", "animal-handling", "athletics", "history", "insight", "intimidation", "perception", "survival") + if (ruleset == Ruleset.Fifth2024) ids("persuasion") else emptySet(), setOf("STR", "CON"))
             "Monk" -> Triple(2, ids("acrobatics", "athletics", "history", "insight", "religion", "stealth"), setOf("STR", "DEX"))
             "Paladin" -> Triple(2, ids("athletics", "insight", "intimidation", "medicine", "persuasion", "religion"), setOf("WIS", "CHA"))
             "Ranger" -> Triple(3, ids("animal-handling", "athletics", "insight", "investigation", "nature", "perception", "stealth", "survival"), setOf("STR", "DEX"))
-            "Rogue" -> Triple(4, ids("acrobatics", "athletics", "deception", "insight", "intimidation", "investigation", "perception", "performance", "persuasion", "sleight-of-hand", "stealth"), setOf("DEX", "INT"))
+            "Rogue" -> Triple(4, ids("acrobatics", "athletics", "deception", "insight", "intimidation", "investigation", "perception", "persuasion", "sleight-of-hand", "stealth") + if (ruleset == Ruleset.Fifth2014) ids("performance") else emptySet(), setOf("DEX", "INT"))
             "Sorcerer" -> Triple(2, ids("arcana", "deception", "insight", "intimidation", "persuasion", "religion"), setOf("CON", "CHA"))
             "Warlock" -> Triple(2, ids("arcana", "deception", "history", "intimidation", "investigation", "nature", "religion"), setOf("WIS", "CHA"))
-            "Wizard" -> Triple(2, ids("arcana", "history", "insight", "investigation", "medicine", "religion"), setOf("INT", "WIS"))
+            "Wizard" -> Triple(2, ids("arcana", "history", "insight", "investigation", "medicine", "religion") + if (ruleset == Ruleset.Fifth2024) ids("nature") else emptySet(), setOf("INT", "WIS"))
             else -> Triple(2, any, emptySet())
         }
         val automatic = buildMap {
@@ -194,6 +195,7 @@ internal object ProficiencyCatalog {
 
     private fun pf2eClass(className: String): ClassProficiencyDefinitionUi {
         val fixed: Set<String>
+        var requiredOneOf: List<Set<String>> = emptyList()
         val additional: Int
         val saveRanks: Map<String, ProficiencyRank>
         val perception: ProficiencyRank
@@ -203,14 +205,14 @@ internal object ProficiencyCatalog {
             "Alchemist" -> { fixed = ids("crafting"); additional = 3; saveRanks = saves(ProficiencyRank.EXPERT, ProficiencyRank.TRAINED, ProficiencyRank.TRAINED); perception = ProficiencyRank.TRAINED; weaponRanks = weapons(simple = ProficiencyRank.TRAINED); armorRanks = armor(light = ProficiencyRank.TRAINED, unarmored = ProficiencyRank.TRAINED) }
             "Barbarian" -> { fixed = ids("athletics"); additional = 3; saveRanks = saves(ProficiencyRank.EXPERT, ProficiencyRank.TRAINED, ProficiencyRank.TRAINED); perception = ProficiencyRank.EXPERT; weaponRanks = weapons(simple = ProficiencyRank.TRAINED, martial = ProficiencyRank.TRAINED); armorRanks = armor(light = ProficiencyRank.TRAINED, medium = ProficiencyRank.TRAINED, unarmored = ProficiencyRank.TRAINED) }
             "Bard" -> { fixed = ids("occultism", "performance"); additional = 4; saveRanks = saves(ProficiencyRank.TRAINED, ProficiencyRank.TRAINED, ProficiencyRank.EXPERT); perception = ProficiencyRank.EXPERT; weaponRanks = weapons(simple = ProficiencyRank.TRAINED, martial = ProficiencyRank.TRAINED); armorRanks = armor(light = ProficiencyRank.TRAINED, unarmored = ProficiencyRank.TRAINED) }
-            "Champion" -> { fixed = ids("religion"); additional = 2; saveRanks = saves(ProficiencyRank.EXPERT, ProficiencyRank.TRAINED, ProficiencyRank.EXPERT); perception = ProficiencyRank.TRAINED; weaponRanks = weapons(simple = ProficiencyRank.TRAINED, martial = ProficiencyRank.TRAINED); armorRanks = armor(light = ProficiencyRank.TRAINED, medium = ProficiencyRank.TRAINED, heavy = ProficiencyRank.TRAINED, unarmored = ProficiencyRank.TRAINED) }
-            "Cleric" -> { fixed = ids("religion"); additional = 2; saveRanks = saves(ProficiencyRank.TRAINED, ProficiencyRank.TRAINED, ProficiencyRank.EXPERT); perception = ProficiencyRank.TRAINED; weaponRanks = weapons(simple = ProficiencyRank.TRAINED); armorRanks = armor(light = ProficiencyRank.TRAINED, medium = ProficiencyRank.TRAINED, unarmored = ProficiencyRank.TRAINED) }
-            "Druid" -> { fixed = ids("nature"); additional = 2; saveRanks = saves(ProficiencyRank.TRAINED, ProficiencyRank.TRAINED, ProficiencyRank.EXPERT); perception = ProficiencyRank.TRAINED; weaponRanks = weapons(simple = ProficiencyRank.TRAINED); armorRanks = armor(light = ProficiencyRank.TRAINED, medium = ProficiencyRank.TRAINED, unarmored = ProficiencyRank.TRAINED) }
-            "Fighter" -> { fixed = ids("athletics"); additional = 3; saveRanks = saves(ProficiencyRank.EXPERT, ProficiencyRank.EXPERT, ProficiencyRank.TRAINED); perception = ProficiencyRank.EXPERT; weaponRanks = weapons(simple = ProficiencyRank.EXPERT, martial = ProficiencyRank.EXPERT, advanced = ProficiencyRank.TRAINED); armorRanks = armor(light = ProficiencyRank.TRAINED, medium = ProficiencyRank.TRAINED, heavy = ProficiencyRank.TRAINED, unarmored = ProficiencyRank.TRAINED) }
-            "Monk" -> { fixed = ids("acrobatics"); additional = 4; saveRanks = saves(ProficiencyRank.EXPERT, ProficiencyRank.EXPERT, ProficiencyRank.EXPERT); perception = ProficiencyRank.TRAINED; weaponRanks = mapOf("weapon:unarmed" to ProficiencyRank.EXPERT, "weapon:simple" to ProficiencyRank.TRAINED); armorRanks = armor(unarmored = ProficiencyRank.EXPERT) }
+            "Champion" -> { fixed = ids("religion"); additional = 3; saveRanks = saves(ProficiencyRank.EXPERT, ProficiencyRank.TRAINED, ProficiencyRank.EXPERT); perception = ProficiencyRank.TRAINED; weaponRanks = weapons(simple = ProficiencyRank.TRAINED, martial = ProficiencyRank.TRAINED); armorRanks = armor(light = ProficiencyRank.TRAINED, medium = ProficiencyRank.TRAINED, heavy = ProficiencyRank.TRAINED, unarmored = ProficiencyRank.TRAINED) }
+            "Cleric" -> { fixed = ids("religion"); additional = 3; saveRanks = saves(ProficiencyRank.TRAINED, ProficiencyRank.TRAINED, ProficiencyRank.EXPERT); perception = ProficiencyRank.TRAINED; weaponRanks = weapons(simple = ProficiencyRank.TRAINED); armorRanks = armor(light = ProficiencyRank.TRAINED, medium = ProficiencyRank.TRAINED, unarmored = ProficiencyRank.TRAINED) }
+            "Druid" -> { fixed = ids("nature"); additional = 3; saveRanks = saves(ProficiencyRank.TRAINED, ProficiencyRank.TRAINED, ProficiencyRank.EXPERT); perception = ProficiencyRank.TRAINED; weaponRanks = weapons(simple = ProficiencyRank.TRAINED); armorRanks = armor(light = ProficiencyRank.TRAINED, medium = ProficiencyRank.TRAINED, unarmored = ProficiencyRank.TRAINED) }
+            "Fighter" -> { fixed = emptySet(); requiredOneOf = listOf(ids("acrobatics", "athletics")); additional = 4; saveRanks = saves(ProficiencyRank.EXPERT, ProficiencyRank.EXPERT, ProficiencyRank.TRAINED); perception = ProficiencyRank.EXPERT; weaponRanks = weapons(simple = ProficiencyRank.EXPERT, martial = ProficiencyRank.EXPERT, advanced = ProficiencyRank.TRAINED); armorRanks = armor(light = ProficiencyRank.TRAINED, medium = ProficiencyRank.TRAINED, heavy = ProficiencyRank.TRAINED, unarmored = ProficiencyRank.TRAINED) }
+            "Monk" -> { fixed = emptySet(); additional = 4; saveRanks = saves(ProficiencyRank.EXPERT, ProficiencyRank.EXPERT, ProficiencyRank.EXPERT); perception = ProficiencyRank.TRAINED; weaponRanks = mapOf("weapon:unarmed" to ProficiencyRank.EXPERT, "weapon:simple" to ProficiencyRank.TRAINED); armorRanks = armor(unarmored = ProficiencyRank.EXPERT) }
             "Ranger" -> { fixed = ids("nature", "survival"); additional = 4; saveRanks = saves(ProficiencyRank.EXPERT, ProficiencyRank.EXPERT, ProficiencyRank.TRAINED); perception = ProficiencyRank.EXPERT; weaponRanks = weapons(simple = ProficiencyRank.TRAINED, martial = ProficiencyRank.TRAINED); armorRanks = armor(light = ProficiencyRank.TRAINED, medium = ProficiencyRank.TRAINED, unarmored = ProficiencyRank.TRAINED) }
-            "Rogue" -> { fixed = ids("stealth"); additional = 7; saveRanks = saves(ProficiencyRank.TRAINED, ProficiencyRank.EXPERT, ProficiencyRank.EXPERT); perception = ProficiencyRank.EXPERT; weaponRanks = weapons(simple = ProficiencyRank.TRAINED, martial = ProficiencyRank.TRAINED); armorRanks = armor(light = ProficiencyRank.TRAINED, unarmored = ProficiencyRank.TRAINED) }
-            "Sorcerer" -> { fixed = ids("arcana"); additional = 2; saveRanks = saves(ProficiencyRank.TRAINED, ProficiencyRank.TRAINED, ProficiencyRank.EXPERT); perception = ProficiencyRank.TRAINED; weaponRanks = weapons(simple = ProficiencyRank.TRAINED); armorRanks = armor(unarmored = ProficiencyRank.TRAINED) }
+            "Rogue" -> { fixed = ids("stealth"); additional = 8; saveRanks = saves(ProficiencyRank.TRAINED, ProficiencyRank.EXPERT, ProficiencyRank.EXPERT); perception = ProficiencyRank.EXPERT; weaponRanks = weapons(simple = ProficiencyRank.TRAINED, martial = ProficiencyRank.TRAINED); armorRanks = armor(light = ProficiencyRank.TRAINED, unarmored = ProficiencyRank.TRAINED) }
+            "Sorcerer" -> { fixed = emptySet(); additional = 4; saveRanks = saves(ProficiencyRank.TRAINED, ProficiencyRank.TRAINED, ProficiencyRank.EXPERT); perception = ProficiencyRank.TRAINED; weaponRanks = weapons(simple = ProficiencyRank.TRAINED); armorRanks = armor(unarmored = ProficiencyRank.TRAINED) }
             "Wizard" -> { fixed = ids("arcana"); additional = 2; saveRanks = saves(ProficiencyRank.TRAINED, ProficiencyRank.TRAINED, ProficiencyRank.EXPERT); perception = ProficiencyRank.TRAINED; weaponRanks = weapons(simple = ProficiencyRank.TRAINED); armorRanks = armor(unarmored = ProficiencyRank.TRAINED) }
             else -> { fixed = emptySet(); additional = 3; saveRanks = saves(ProficiencyRank.TRAINED, ProficiencyRank.TRAINED, ProficiencyRank.TRAINED); perception = ProficiencyRank.TRAINED; weaponRanks = weapons(simple = ProficiencyRank.TRAINED); armorRanks = armor(unarmored = ProficiencyRank.TRAINED) }
         }
@@ -218,6 +220,7 @@ internal object ProficiencyCatalog {
             classSkillIds = pf2eSkills.filterNot { it.id == "skill:perception" }.mapTo(linkedSetOf()) { it.id },
             classSkillCount = 0,
             fixedSkillIds = fixed,
+            requiredOneOfSkillGroups = requiredOneOf,
             pf2AdditionalSkills = additional,
             automaticRanks = buildMap {
                 putAll(saveRanks)

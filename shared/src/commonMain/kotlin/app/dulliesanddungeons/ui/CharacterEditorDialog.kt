@@ -364,6 +364,7 @@ private fun SpellsEditor(state: DndAppState, draft: CharacterEditorDraft) {
     val catalogCharacter = character.copy(className = catalogClassName, ruleset = draft.ruleset, progression = emptyList())
     val isWizard = catalogClassName.equals("Wizard", true)
     val usualLimits = CreationSpellRules.limits(draft.ruleset, catalogClassName, draft.level, draft.abilities.toMap())
+    val usualLeveledLabel = usualLimits?.let { state.localizedCreationSpellLabel(it.leveledLabel).lowercase() }.orEmpty()
     val catalog = state.editableSpellCatalog(catalogCharacter)
     var search by remember { mutableStateOf("") }
     var levelFilter by remember { mutableStateOf<Int?>(null) }
@@ -444,8 +445,8 @@ private fun SpellsEditor(state: DndAppState, draft: CharacterEditorDraft) {
                 )
             } else {
                 state.t(
-                    "Usual limit: ${usualLimits.cantripLimit} cantrips and ${usualLimits.leveledSpellLimit} ${usualLimits.leveledLabel.lowercase()} from the $catalogClassName list${usualLimits.preparedLimit?.let { ", $it prepared" }.orEmpty()}. Off-list or extra additions remain allowed and are saved as overrides.",
-                    "Übliche Grenze: ${usualLimits.cantripLimit} Zaubertricks und ${usualLimits.leveledSpellLimit} ${usualLimits.leveledLabel.lowercase()} aus der $catalogClassName-Liste${usualLimits.preparedLimit?.let { ", $it vorbereitet" }.orEmpty()}. Listenfremde oder zusätzliche Zauber bleiben erlaubt und werden als Abweichung gespeichert.",
+                    "Usual limit: ${usualLimits.cantripLimit} cantrips and ${usualLimits.leveledSpellLimit} $usualLeveledLabel from the $catalogClassName list${usualLimits.preparedLimit?.let { ", $it prepared" }.orEmpty()}. Off-list or extra additions remain allowed and are saved as overrides.",
+                    "Übliche Grenze: ${usualLimits.cantripLimit} Zaubertricks und ${usualLimits.leveledSpellLimit} $usualLeveledLabel aus der $catalogClassName-Liste${usualLimits.preparedLimit?.let { ", $it vorbereitet" }.orEmpty()}. Listenfremde oder zusätzliche Zauber bleiben erlaubt und werden als Abweichung gespeichert.",
                 )
             },
         )
