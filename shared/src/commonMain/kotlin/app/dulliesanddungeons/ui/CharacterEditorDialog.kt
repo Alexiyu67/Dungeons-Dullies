@@ -360,14 +360,11 @@ private fun CombatEditor(state: DndAppState, draft: CharacterEditorDraft) {
 @Composable
 private fun SpellsEditor(state: DndAppState, draft: CharacterEditorDraft) {
     val character = draft.original
-    val catalogClassName = when {
-        draft.className.equals("Wizard", true) || draft.className.equals("Sorcerer", true) -> draft.className
-        character.progression.any { it.className.equals("Wizard", true) } -> "Wizard"
-        character.progression.any { it.className.equals("Sorcerer", true) } -> "Sorcerer"
-        else -> draft.className
-    }
+    val catalogClassName = draft.className
     val catalogCharacter = character.copy(className = catalogClassName, ruleset = draft.ruleset, progression = emptyList())
     val isWizard = catalogClassName.equals("Wizard", true)
+    val usualLimits = CreationSpellRules.limits(draft.ruleset, catalogClassName, draft.level, draft.abilities.toMap())
+    val usualLeveledLabel = usualLimits?.let { state.localizedCreationSpellLabel(it.leveledLabel).lowercase() }.orEmpty()
     val catalog = state.editableSpellCatalog(catalogCharacter)
     var search by remember { mutableStateOf("") }
     var levelFilter by remember { mutableStateOf<Int?>(null) }
@@ -440,19 +437,16 @@ private fun SpellsEditor(state: DndAppState, draft: CharacterEditorDraft) {
                     FilterChip(selected = sourceFilter == id, onClick = { sourceFilter = id }, label = { Text(label) })
                 }
         }
-        val classSpells = draft.spells.filter { it.sourceKind == SpellSourceKind.CLASS }
-        val preparedCount = classSpells.count { it.prepared && it.level > 0 }
-        val wizardSuggested = (character.level + editorModifier(character.abilities["INT"] ?: 10)).coerceAtLeast(1)
         EditorNotice(
-            if (isWizard) {
+            if (usualLimits == null) {
                 state.t(
-                    "Spellbook ${classSpells.size} · prepared $preparedCount (usual maximum $wizardSuggested). Changes are allowed at any time; your table may normally limit when spells are added or prepared.",
-                    "Zauberbuch ${classSpells.size} · vorbereitet $preparedCount (übliches Maximum $wizardSuggested). Änderungen sind jederzeit möglich; am Spieltisch kann der Zeitpunkt normalerweise begrenzt sein.",
+                    "This build does not normally select class spells at this level. Editor additions are allowed and saved as overrides.",
+                    "Dieser Build wählt auf dieser Stufe normalerweise keine Klassenzauber. Ergänzungen im Editor sind erlaubt und werden als Abweichung gespeichert.",
                 )
             } else {
                 state.t(
-                    "${classSpells.size} known spells. Changes are allowed at any time; Sorcerers normally learn or replace spells when leveling up.",
-                    "${classSpells.size} bekannte Zauber. Änderungen sind jederzeit möglich; Zauberer lernen oder ersetzen Zauber normalerweise beim Stufenaufstieg.",
+                    "Usual limit: ${usualLimits.cantripLimit} cantrips and ${usualLimits.leveledSpellLimit} $usualLeveledLabel from the $catalogClassName list${usualLimits.preparedLimit?.let { ", $it prepared" }.orEmpty()}. Off-list or extra additions remain allowed and are saved as overrides.",
+                    "Übliche Grenze: ${usualLimits.cantripLimit} Zaubertricks und ${usualLimits.leveledSpellLimit} $usualLeveledLabel aus der $catalogClassName-Liste${usualLimits.preparedLimit?.let { ", $it vorbereitet" }.orEmpty()}. Listenfremde oder zusätzliche Zauber bleiben erlaubt und werden als Abweichung gespeichert.",
                 )
             },
         )

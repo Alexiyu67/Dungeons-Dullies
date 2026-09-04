@@ -779,6 +779,7 @@ private fun CustomWeaponPage(state: DndAppState, initial: KnownItemUi?, editing:
     var properties by remember(initial?.id, editing?.id) { mutableStateOf(editing?.properties ?: template?.properties ?: entry?.formulaValue("properties").orEmpty()) }
     var mastery by remember(initial?.id, editing?.id) { mutableStateOf(editing?.mastery ?: template?.mastery ?: entry?.formulaValue("mastery").orEmpty()) }
     var itemBonusText by remember(initial?.id, editing?.id) { mutableStateOf((editing?.itemBonus ?: template?.itemBonus ?: 0).toString()) }
+    var quantityText by remember(initial?.id, editing?.id) { mutableStateOf((editing?.quantity ?: 1).toString()) }
     var attunement by remember(initial?.id, editing?.id) { mutableStateOf(editing?.needsAttunement ?: (template?.needsAttunement == true)) }
     var equipped by remember(initial?.id, editing?.id) { mutableStateOf(editing?.equipped == true) }
     var reachText by remember(initial?.id, editing?.id) {
@@ -826,6 +827,7 @@ private fun CustomWeaponPage(state: DndAppState, initial: KnownItemUi?, editing:
         OutlinedTextField(properties, { properties = it.take(120) }, label = { Text(state.t("Properties", "Eigenschaften")) }, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(mastery, { mastery = it.take(40) }, label = { Text(state.t("Mastery", "Meisterschaft")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(itemBonusText, { itemBonusText = it.filter { character -> character.isDigit() || character == '-' }.take(2) }, label = { Text(state.t("Magic/item bonus", "Magie-/Gegenstandsbonus")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(quantityText, { quantityText = it.filter(Char::isDigit).take(3) }, label = { Text(state.t("Quantity", "Menge")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
         Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = RoundedCornerShape(13.dp)) {
             Text(state.t("Attack bonus ${browserSigned(attackBonus)}", "Angriffsbonus ${browserSigned(attackBonus)}"), Modifier.fillMaxWidth().padding(12.dp), style = MaterialTheme.typography.labelLarge)
         }
@@ -885,6 +887,7 @@ private fun CustomWeaponPage(state: DndAppState, initial: KnownItemUi?, editing:
                             combatType = if (properties.contains("ammunition", true)) WeaponCombatType.RANGED else WeaponCombatType.MELEE,
                             propertyIds = normalizedWeaponPropertyIds(properties),
                         ),
+                        quantity = quantityText.toIntOrNull()?.coerceIn(1, 999) ?: 1,
                     )
                 state.itemBrowserFeedback = state.t("Added ${name.trim()}", "${name.trim()} hinzugefügt")
                 if (state.itemBrowserTarget == ItemBrowserTarget.StartingGear) {

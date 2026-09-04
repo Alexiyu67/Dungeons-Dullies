@@ -56,6 +56,7 @@ class CharacterDocumentTest {
                         attackAbility = Ability.DEXTERITY,
                         damage = DiceExpression(1, 8),
                         damageType = "piercing",
+                        quantity = 8,
                     ),
                 ),
                 spells = listOf(SpellRecord("misty_step", "Misty Step", level = 2)),
@@ -69,6 +70,7 @@ class CharacterDocumentTest {
         assertEquals(5, restored.build.level)
         assertEquals(40, restored.sheet.combat.baseSpeedsFeet.getValue(MovementMode.FLY))
         assertEquals(23, restored.state.currency.balance(CoinDenomination.GOLD))
+        assertEquals(8, restored.sheet.weapons.single().quantity)
     }
 
     @Test

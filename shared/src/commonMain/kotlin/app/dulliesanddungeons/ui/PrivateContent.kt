@@ -46,13 +46,74 @@ fun PrivateContentEntryUi.toPrivateEntry(
     id = id,
     kind = kind,
     name = name,
-    summary = summary,
+    summary = resolvedPrivateContentSummary(kind, summary, mechanics),
     sourceNote = "Imported data",
     aliases = aliases,
     mechanics = mechanics,
     sourcePackId = packId,
     sourcePackVersion = packVersion,
 )
+
+/**
+ * Keeps authored rules summaries intact while replacing known import placeholders with an honest
+ * mechanics-only synopsis. Missing effect text is called out explicitly rather than inferred from
+ * a feature name.
+ */
+internal fun PrivateEntryUi.privateContentSummary(): String =
+    resolvedPrivateContentSummary(kind, summary, mechanics)
+
+private fun resolvedPrivateContentSummary(
+    kind: String,
+    summary: String,
+    mechanics: PrivateMechanicsUi,
+): String {
+    val supplied = summary.trim()
+    if (supplied.isNotEmpty() && !GENERIC_FEATURE_SUMMARY.matches(supplied)) return supplied
+    if (kind.trim().lowercase() !in SUMMARY_FALLBACK_KINDS) return supplied
+
+    val facts = buildList {
+        mechanics.actionCost.toImportSummary()?.let(::add)
+        mechanics.resource?.let { resource ->
+            val uses = if (resource.maximum == 1) "1 use" else "${resource.maximum} uses"
+            add("Tracks $uses; ${resource.recovery.importSummary()} recovery")
+        }
+    }
+    val missingEffect = "Effect details were not supplied by the imported content pack."
+    return if (facts.isEmpty()) missingEffect else facts.joinToString(". ", postfix = ". $missingEffect")
+}
+
+private fun ActionCost.toImportSummary(): String? {
+    val timings = buildList {
+        if (actions > 0) add(actions.countedLabel("Action"))
+        if (bonusActions > 0) add(bonusActions.countedLabel("Bonus Action"))
+        if (reactions > 0) add(reactions.countedLabel("Reaction"))
+        if (attacks > 0) add(attacks.countedLabel("Attack"))
+        if (objectInteractions > 0) add(objectInteractions.countedLabel("Object Interaction"))
+        if (pf2eActions > 0) add(pf2eActions.countedLabel("PF2e Action"))
+    }
+    val resourceCosts = resources.entries
+        .filter { it.value > 0 }
+        .joinToString { (id, amount) -> "$amount ${id.toReadableImportName()}" }
+        .takeIf(String::isNotEmpty)
+    return buildList {
+        if (timings.isNotEmpty()) add("Activation: ${timings.joinToString()}")
+        resourceCosts?.let { add("Costs: $it") }
+    }.joinToString(". ").takeIf(String::isNotEmpty)
+}
+
+private fun Int.countedLabel(label: String): String = if (this == 1) label else "$this ${label}s"
+
+private fun String.toReadableImportName(): String = split('-', '_')
+    .filter(String::isNotBlank)
+    .joinToString(" ") { word -> word.replaceFirstChar { it.uppercase() } }
+
+private fun Recovery.importSummary(): String = when (this) {
+    Recovery.TURN_START -> "Turn Start"
+    Recovery.SHORT_REST -> "Short Rest"
+    Recovery.LONG_REST -> "Long Rest"
+    Recovery.DAILY_PREPARATION -> "Daily Preparation"
+    Recovery.MANUAL -> "manual"
+}
 
 @Serializable
 data class PrivateResourceMechanicsUi(
@@ -189,6 +250,13 @@ private fun validateActionCost(cost: ActionCost) {
 
 private val PRIVATE_ID = Regex("^[a-z0-9][a-z0-9._-]{1,79}$")
 private val PRIVATE_VERSION = Regex("^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[a-z0-9.-]+)?$")
+private val GENERIC_FEATURE_SUMMARY = Regex(
+    "^(?:.+?\\s+)?feature\\s+(?:unlocked|gained)\\s+at\\s+class\\s+level\\s+\\d+\\.?$",
+    RegexOption.IGNORE_CASE,
+)
+private val SUMMARY_FALLBACK_KINDS = setOf(
+    "feat", "feature", "class feature", "species feature", "racial feature", "trait", "resource",
+)
 private val PRIVATE_ABILITIES = setOf("STR", "DEX", "CON", "INT", "WIS", "CHA")
 private val PRIVATE_ITEM_TYPES = setOf("weapon", "armor", "shield", "gear", "tool", "consumable", "rations", "mount", "vehicle", "magic-item")
 private val PRIVATE_ENTRY_KINDS = setOf(

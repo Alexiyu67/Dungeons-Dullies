@@ -142,6 +142,16 @@ data class CreationPreviewUi(
     val startingArmor: String,
 )
 
+data class CreationSpellSelectionUi(
+    val options: List<SpellUi>,
+    val selected: List<SpellUi>,
+    val fixed: List<SpellUi> = emptyList(),
+    val cantripLimit: Int = 0,
+    val leveledSpellLimit: Int = 0,
+    val preparedLimit: Int? = null,
+    val leveledLabel: String = "Spells",
+)
+
 data class CreationAbilitySourceUi(
     val label: String,
     val amount: Int,
@@ -264,6 +274,8 @@ data class WeaponUi(
     val useCase: String = "",
     val classification: WeaponClassification = WeaponClassification(),
     val combatContributions: List<CombatContribution> = emptyList(),
+    /** Number of interchangeable copies represented by this single combat entry. */
+    val quantity: Int = 1,
 )
 
 @Serializable
@@ -1277,6 +1289,17 @@ class DndAppState(
             )
             return
         }
+        if (!creationSpellSelectionValid()) {
+            creation.step = CreationStep.Details.ordinal
+            showInfo(
+                t("Complete spell choices", "Zauberwahlen abschließen"),
+                t(
+                    "Choose the required number of legal cantrips and spells for this build.",
+                    "Wähle die erforderliche Anzahl legaler Zaubertricks und Zauber für diesen Build.",
+                ),
+            )
+            return
+        }
         if (!creationGearSelectionValid()) {
             creation.step = CreationStep.Gear.ordinal
             showInfo(
@@ -1289,8 +1312,12 @@ class DndAppState(
             return
         }
         val id = "character-${characters.size + 1}-${Random.nextInt(10_000)}"
-        val caster = isCasterClass(creation.ruleset, creation.className) ||
-            privateEntryForName("class", creation.className)?.mechanics?.caster == true
+        val caster = CreationSpellRules.limits(
+            creation.ruleset,
+            creation.className,
+            creation.level,
+            abilityScoresForDraft(),
+        ) != null || privateEntryForName("class", creation.className)?.mechanics?.caster == true
         val portraitResult = creation.portraitBytes?.let { portraitBytes ->
             PortraitEditResult(
                 sourceBytes = creation.portraitSourceBytes ?: portraitBytes,
@@ -1379,10 +1406,10 @@ class DndAppState(
                 add(FeatureUi("indomitable", "Indomitable", "Reroll a failed saving throw and use the new result.", uses, uses, Recovery.LONG_REST, FeatureEffect.REROLL_SAVE))
             }
             creation.selectedFeatIds.mapNotNull(::privateEntryById).forEach { feat ->
-                add(FeatureUi("private-${feat.id}", feat.name, feat.summary, custom = true, notes = feat.sourceNote, attackGrants = feat.attackGrants, combatContributions = feat.combatContributions))
+                add(feat.toPrivateFeature().copy(id = "private-${feat.id}"))
             }
             privateEntryForName("class", creation.className)?.let { classEntry ->
-                add(FeatureUi("private-class-${classEntry.id}", classEntry.name, classEntry.summary, custom = true, notes = classEntry.sourceNote, combatContributions = classEntry.combatContributions))
+                add(classEntry.toPrivateFeature().copy(id = "private-class-${classEntry.id}"))
             }
             addAll(automaticPrivateFeatures(
                 creation.className,
@@ -1431,9 +1458,7 @@ class DndAppState(
             saves = saves,
             languages = creation.languages.toList().ifEmpty { listOf("Common") },
             weapons = weapons,
-            spells = (startingSpellsFor(creation.ruleset, caster) +
-                creation.selectedSpellIds.mapNotNull(::privateSpellById) +
-                subclassOption?.resolveSpells(creation.level).orEmpty()).distinctBy { it.id },
+            spells = resolvedCreationSpells(),
             features = features,
             equipmentItems = listOfNotNull(startingArmor) + if (
                 creation.selectedStartingGearPackageId != null || creation.startingEquipment.isNotEmpty()
@@ -1985,6 +2010,7 @@ class DndAppState(
         val safeLevel = level.coerceIn(1, 20)
         if (safeLevel == creation.level) return
         creation.level = safeLevel
+        trimCreationSpellSelection()
         creation.subclassAdvisory = creationSubclassAdvisory()
         creation.rolledHpGains.clear()
         if (creation.skillRankChoices.isNotEmpty()) {
@@ -2029,6 +2055,7 @@ class DndAppState(
         creation.subclassName = ""
         creation.subclassAdvisory = null
         creation.rolledHpGains.clear()
+        creation.selectedSpellIds.clear()
         creation.classSkillIds.clear()
         creation.featSkillIds.clear()
         creation.skillRankChoices.clear()
@@ -2183,6 +2210,7 @@ class DndAppState(
         val unavailable = creationBackgroundGrantedSkillIds() + creation.backgroundSkillIds + definition.fixedSkillIds
         if (creation.classSkillIds.size != creationClassSkillCount()) return false
         if (creation.classSkillIds.any { it !in definition.classSkillIds || it in unavailable }) return false
+        if (definition.requiredOneOfSkillGroups.any { group -> creation.classSkillIds.none { it in group } }) return false
         if (creation.featSkillIds.size != creationFeatSkillCount()) return false
         if (creation.featSkillIds.any { it in creationBackgroundGrantedSkillIds() || it in creation.backgroundSkillIds || it in creation.classSkillIds }) return false
         return creationSkillIncreaseCost() == creationSkillIncreaseCount()
@@ -2299,8 +2327,8 @@ class DndAppState(
                     SubclassOptionUi(
                         id = entry.id,
                         name = entry.name,
-                        summaryEnglish = entry.summary,
-                        summaryGerman = entry.summary,
+                        summaryEnglish = entry.privateContentSummary(),
+                        summaryGerman = entry.privateContentSummary(),
                         mechanics = mechanics,
                         local = true,
                         sourceNote = entry.sourceNote,
@@ -2396,10 +2424,118 @@ class DndAppState(
         "feat",
         character?.ruleset ?: creation.ruleset,
     ).map { entry ->
-        FeatOptionUi(entry.id, entry.name, entry.summary, t("Approved private content", "Freigegebener privater Inhalt"))
+        FeatOptionUi(entry.id, entry.name, entry.privateContentSummary(), t("Approved private content", "Freigegebener privater Inhalt"))
     }
 
+    /** Legacy catalog accessor retained for local-content management and tests. */
     fun creationSpellOptions(): List<SpellUi> = approvedPrivateSpellOptions(null)
+
+    internal fun localizedCreationSpellLabel(label: String): String = when (label) {
+        "Known spells" -> t("Known spells", "Bekannte Zauber")
+        "Prepared spells" -> t("Prepared spells", "Vorbereitete Zauber")
+        "Spellbook" -> t("Spellbook", "Zauberbuch")
+        "Granted spells" -> t("Granted spells", "Gewährte Zauber")
+        else -> label
+    }
+
+    fun creationSpellSelection(): CreationSpellSelectionUi? {
+        val limits = CreationSpellRules.limits(
+            creation.ruleset,
+            creation.className,
+            creation.level,
+            abilityScoresForDraft(),
+        )
+        val classEntryId = privateEntryForName("class", creation.className)?.id
+        val builtIn = limits?.let { rule ->
+            srdSpellCatalog(
+                ruleset = creation.ruleset,
+                spellClasses = setOf(rule.spellClass),
+                maximumLevel = rule.maxSpellLevel,
+            )
+        }.orEmpty()
+        val privateOptions = approvedPrivateEntries("spell")
+            .filter { limits != null }
+            .filter { entry -> classEntryId != null && classEntryId in entry.mechanics.classIds }
+            .mapNotNull(::privateSpell)
+            .filter { spell -> limits == null || spell.level <= limits.maxSpellLevel }
+        val options = (builtIn + privateOptions).distinctBy { it.id }
+            .sortedWith(compareBy<SpellUi> { it.level }.thenBy { it.name.lowercase() }.thenBy { it.id })
+        val selected = creation.selectedSpellIds.mapNotNull { selectedId ->
+            options.firstOrNull { spellSelectionKey(it) == selectedId || it.id == selectedId }
+        }.distinctBy { it.id }
+        val fixed = creationGrantedSpells()
+        if (limits == null && options.isEmpty() && fixed.isEmpty()) return null
+        return CreationSpellSelectionUi(
+            options = options,
+            selected = selected,
+            fixed = fixed,
+            cantripLimit = limits?.cantripLimit ?: 0,
+            leveledSpellLimit = limits?.leveledSpellLimit ?: 0,
+            preparedLimit = limits?.preparedLimit,
+            leveledLabel = localizedCreationSpellLabel(limits?.leveledLabel ?: "Granted spells"),
+        )
+    }
+
+    fun toggleCreationSpell(spellId: String): Boolean {
+        val selection = creationSpellSelection() ?: return false
+        val spell = selection.options.firstOrNull { it.id == spellId || spellSelectionKey(it) == spellId } ?: return false
+        val key = spellSelectionKey(spell)
+        if (key in creation.selectedSpellIds) {
+            creation.selectedSpellIds.remove(key)
+            return true
+        }
+        val selectedAtLevel = selection.selected.count { (it.level == 0) == (spell.level == 0) }
+        val limit = if (spell.level == 0) selection.cantripLimit else selection.leveledSpellLimit
+        if (selectedAtLevel >= limit) return false
+        creation.selectedSpellIds += key
+        return true
+    }
+
+    fun removeCreationSpell(spellId: String) {
+        val selection = creationSpellSelection() ?: return
+        val spell = selection.selected.firstOrNull { it.id == spellId || spellSelectionKey(it) == spellId } ?: return
+        creation.selectedSpellIds.remove(spellSelectionKey(spell))
+    }
+
+    fun creationSpellSelectionValid(): Boolean {
+        val selection = creationSpellSelection() ?: return true
+        if (selection.options.isEmpty()) return true
+        return selection.selected.count { it.level == 0 } == selection.cantripLimit &&
+            selection.selected.count { it.level > 0 } == selection.leveledSpellLimit
+    }
+
+    private fun trimCreationSpellSelection() {
+        val selection = creationSpellSelection() ?: run {
+            creation.selectedSpellIds.clear()
+            return
+        }
+        val allowedCantrips = selection.selected.filter { it.level == 0 }.take(selection.cantripLimit)
+        val allowedLeveled = selection.selected.filter { it.level > 0 }.take(selection.leveledSpellLimit)
+        creation.selectedSpellIds.clear()
+        creation.selectedSpellIds += (allowedCantrips + allowedLeveled).map(::spellSelectionKey)
+    }
+
+    private fun spellSelectionKey(spell: SpellUi): String = spell.id.removePrefix("private-")
+
+    private fun resolvedCreationSpells(): List<SpellUi> {
+        val selection = creationSpellSelection() ?: return (
+            creationGrantedSpells() + creation.selectedSpellIds.mapNotNull(::privateSpellById)
+        ).distinctBy { it.id }
+        var preparedLeveled = 0
+        val selected = selection.selected.map { spell ->
+            val prepared = when {
+                spell.level == 0 -> true
+                selection.preparedLimit == null -> true
+                preparedLeveled < selection.preparedLimit -> {
+                    preparedLeveled += 1
+                    true
+                }
+                else -> false
+            }
+            spell.copy(prepared = prepared, sourceKind = SpellSourceKind.CLASS, sourceName = creation.className)
+        }
+        return (selection.fixed + selected).distinctBy { it.id }
+    }
 
     fun creationGearPackages(): List<StartingGearPackageUi> = startingGearPackages(creation.ruleset, creation.className)
 
@@ -2429,9 +2565,10 @@ class DndAppState(
         }
         val abilities = abilityScoresForDraft()
         val ranks = creationProficiencyRanks()
-        selected.weaponIds.forEachIndexed { index, weaponId ->
+        selected.weaponIds.withQuantities().forEachIndexed { index, (weaponId, quantity) ->
             standardWeaponCatalog.firstOrNull { it.id == weaponId }?.let { template ->
                 creation.startingWeapons += creationWeapon(template.forRuleset(creation.ruleset), abilities, ranks, index)
+                    .copy(quantity = quantity)
             }
         }
     }
@@ -2491,6 +2628,13 @@ class DndAppState(
     fun removeCreationWeapon(itemId: String) {
         creation.selectedStartingGearPackageId = null
         creation.startingWeapons.removeAll { it.id == itemId }
+    }
+
+    fun updateCreationWeaponQuantity(itemId: String, quantity: Int) {
+        val index = creation.startingWeapons.indexOfFirst { it.id == itemId }
+        if (index < 0) return
+        creation.selectedStartingGearPackageId = null
+        creation.startingWeapons[index] = creation.startingWeapons[index].copy(quantity = quantity.coerceIn(1, 999))
     }
 
     private fun clearCreationStartingGear() {
@@ -2640,14 +2784,21 @@ class DndAppState(
     fun editableSpellCatalog(character: CharacterUi? = selectedCharacter): List<SpellUi> {
         val active = character ?: return emptyList()
         if (active.ruleset == Ruleset.Pf2eRemaster) return approvedPrivateSpellOptions(active)
-        val spellClass = when {
-            active.className.equals("Wizard", true) || active.progression.any { it.className.equals("Wizard", true) } -> SrdSpellClass.WIZARD
-            active.isSorcerer -> SrdSpellClass.SORCERER
-            else -> return approvedPrivateSpellOptions(active)
-        }
-        val revision = if (active.ruleset == Ruleset.Fifth2014) SrdSpellRevision.SRD_5_1 else SrdSpellRevision.SRD_5_2_1
+        val builtIn = srdSpellCatalog(active.ruleset, SrdSpellClass.entries.toSet(), maximumLevel = 9)
+        return (builtIn + approvedPrivateSpellOptions(active)).distinctBy { it.id }
+    }
+
+    private fun srdSpellCatalog(
+        ruleset: Ruleset,
+        spellClasses: Set<SrdSpellClass>,
+        maximumLevel: Int,
+    ): List<SpellUi> {
+        if (ruleset == Ruleset.Pf2eRemaster) return emptyList()
+        val revision = if (ruleset == Ruleset.Fifth2014) SrdSpellRevision.SRD_5_1 else SrdSpellRevision.SRD_5_2_1
         val source = if (revision == SrdSpellRevision.SRD_5_1) "SRD 5.1" else "SRD 5.2.1"
-        val builtIn = SrdSpellCatalog.forClass(revision, spellClass).map { entry ->
+        return SrdSpellCatalog.entries.filter { entry ->
+            entry.revision == revision && entry.level <= maximumLevel && entry.classes.any { it in spellClasses }
+        }.map { entry ->
             val text = if (language == UiLanguage.German) entry.de else entry.en
             val combat = SrdSpellCombatCatalog.find(revision, entry.id)
             val details = SrdSpellDetailsCatalog.find(revision, entry.id)
@@ -2656,7 +2807,7 @@ class DndAppState(
                 name = text.name,
                 level = entry.level,
                 summary = text.summary,
-                prepared = spellClass == SrdSpellClass.SORCERER,
+                prepared = true,
                 sourceKind = SpellSourceKind.CLASS,
                 sourceName = source,
                 activationCost = CombatPotentialEngine.standardSpellActivationCost(entry.id),
@@ -2681,7 +2832,6 @@ class DndAppState(
                 ),
             )
         }
-        return (builtIn + approvedPrivateSpellOptions(active)).distinctBy { it.id }
     }
 
     fun approvedPrivateSpellOptions(character: CharacterUi?): List<SpellUi> = approvedPrivateEntries(
@@ -3224,10 +3374,10 @@ class DndAppState(
                 addAll(it.resolveFeatures(newClassLevel, proficiencyForLevel(newLevel), character.features, newAbilities))
             }
             chosenFeat?.let(::privateEntryById)?.let { feat ->
-                add(FeatureUi("private-${feat.id}", feat.name, feat.summary, custom = true, notes = feat.sourceNote, attackGrants = feat.attackGrants, combatContributions = feat.combatContributions))
+                add(feat.toPrivateFeature().copy(id = "private-${feat.id}"))
             }
             privateEntryForName("class", draft.className, character.ruleset)?.let { classEntry ->
-                add(FeatureUi("private-class-${classEntry.id}", classEntry.name, classEntry.summary, custom = true, notes = classEntry.sourceNote, combatContributions = classEntry.combatContributions))
+                add(classEntry.toPrivateFeature().copy(id = "private-class-${classEntry.id}"))
             }
         }
         val selectedSpells = selectedOptions.mapNotNull(GuidedLevelOptionUi::spell) + activeSubclass?.resolveSpells(newClassLevel).orEmpty()
@@ -3691,21 +3841,6 @@ class DndAppState(
         }
     } else 30
 
-    private fun startingSpellsFor(ruleset: Ruleset, caster: Boolean): List<SpellUi> {
-        if (!caster) return emptyList()
-        return if (ruleset == Ruleset.Pf2eRemaster) {
-            listOf(
-                SpellUi("ignition", "Ignition", 0, "Cantrip · fire spell attack", activationCost = ActionCost(pf2eActions = 2), spellAttack = true),
-                SpellUi("shield-cantrip", "Shield", 0, "Cantrip · raise a magical shield", activationCost = ActionCost(pf2eActions = 1)),
-            )
-        } else {
-            listOf(
-                SpellUi("firebolt", "Fire Bolt", 0, "Ranged spell attack · 120 ft", spellAttack = true),
-                SpellUi("shield", "Shield", 1, "+5 AC until your next turn", activationCost = ActionCost(reactions = 1)),
-            )
-        }
-    }
-
     private fun approvedPrivateEntries(kind: String, ruleset: Ruleset = creation.ruleset): List<PrivateEntryUi> = privateEntries
         .filter { it.normalizedKind() == kind }
         .filter { it.appliesTo(ruleset) }
@@ -3720,6 +3855,48 @@ class DndAppState(
     private fun privateSpellById(id: String): SpellUi? = privateEntryById(id)
         ?.takeIf { it.normalizedKind() == "spell" && it.appliesTo(creation.ruleset) }
         ?.let(::privateSpell)
+
+    private fun creationGrantedSpells(): List<SpellUi> {
+        val ancestryEntry = privateEntryForName("ancestry", creation.ancestry)
+        val classEntry = privateEntryForName("class", creation.className)
+        val subclassEntry = selectedCreationSubclass()?.let { selected ->
+            privateEntryForName("subclass", selected.name) ?: privateEntryById(selected.id)
+        }
+        val privateGranted = listOfNotNull(ancestryEntry, classEntry, subclassEntry)
+            .flatMap { owner -> owner.mechanics.grantedSpellIds.map { owner to it } }
+            .distinctBy { it.second }
+            .mapNotNull { (owner, id) -> privateSpellById(id)?.copy(sourceKind = SpellSourceKind.FEATURE, sourceName = owner.name) }
+        val ancestrySpellIds = when (creation.ruleset) {
+            Ruleset.Fifth2014 -> when (creation.ancestry) {
+                "Tiefling" -> listOf("spell.thaumaturgy")
+                else -> emptyList()
+            }
+            Ruleset.Fifth2024 -> when (creation.ancestry) {
+                "Aasimar" -> listOf("spell.light")
+                "Tiefling" -> listOf("spell.thaumaturgy")
+                else -> emptyList()
+            }
+            Ruleset.Pf2eRemaster -> emptyList()
+        }
+        val ancestryGranted = ancestrySpellIds.mapNotNull { id ->
+            srdSpellCatalog(creation.ruleset, SrdSpellClass.entries.toSet(), maximumLevel = 0)
+                .firstOrNull { it.id == id }
+                ?.copy(sourceKind = SpellSourceKind.FEATURE, sourceName = creation.ancestry)
+        }
+        val subclassGranted = selectedCreationSubclass()?.resolveSpells(creation.level).orEmpty()
+            .map { it.copy(sourceKind = SpellSourceKind.FEATURE, sourceName = creation.subclassName) }
+        val classGrantedIds = if (creation.ruleset == Ruleset.Fifth2024) when (creation.className) {
+            "Druid" -> listOf("spell.speak-with-animals")
+            "Ranger" -> listOf("spell.hunters-mark")
+            else -> emptyList()
+        } else emptyList()
+        val classGranted = classGrantedIds.mapNotNull { id ->
+            srdSpellCatalog(creation.ruleset, SrdSpellClass.entries.toSet(), maximumLevel = 9)
+                .firstOrNull { it.id == id }
+                ?.copy(sourceKind = SpellSourceKind.FEATURE, sourceName = creation.className)
+        }
+        return (ancestryGranted + classGranted + privateGranted + subclassGranted).distinctBy { it.id }
+    }
 
     private fun privateSpell(entry: PrivateEntryUi): SpellUi? {
         if (entry.normalizedKind() != "spell") return null
@@ -5470,7 +5647,7 @@ class DndAppState(
         return FeatureUi(
             id = "private-$id",
             name = name,
-            summary = summary,
+            summary = privateContentSummary(),
             remaining = resource?.maximum,
             maximum = resource?.maximum,
             recovery = resource?.recovery ?: Recovery.MANUAL,
@@ -5496,9 +5673,9 @@ class DndAppState(
                 entry.mechanics.grantAutomatically &&
                 (entry.mechanics.unlockLevel ?: 1) <= level &&
                 (
-                    entry.mechanics.parentClassId == classId ||
-                        entry.mechanics.parentSpeciesId == speciesId ||
-                        entry.mechanics.parentSubclassId == subclassId
+                    (classId != null && entry.mechanics.parentClassId == classId) ||
+                        (speciesId != null && entry.mechanics.parentSpeciesId == speciesId) ||
+                        (subclassId != null && entry.mechanics.parentSubclassId == subclassId)
                     )
         }.map { it.toPrivateFeature() }
     }
@@ -5940,7 +6117,11 @@ class DndAppState(
         .filter { it.appliesTo(ruleset) }
         .map { entry ->
             val category = entry.normalizedKind().replaceFirstChar { it.titlecase() }
-            val summary = entry.summary.ifBlank { t("Private local Wiki entry.", "Privater lokaler Wiki-Eintrag.") }
+            val summary = if (
+                entry.normalizedKind() in setOf("feature", "feat", "resource")
+            ) entry.privateContentSummary() else entry.summary.ifBlank {
+                t("Private local Wiki entry.", "Privater lokaler Wiki-Eintrag.")
+            }
             val details = buildList {
                 add(summary)
                 if (entry.formula.isNotBlank()) add("Details: ${entry.formula}")
@@ -5952,7 +6133,7 @@ class DndAppState(
                 subtitle = t("Local · $category · $summary", "Lokal · $category · $summary"),
                 kind = SearchResultKind.Rule,
                 actionLabel = t("Info", "Info"),
-                searchTerms = listOf(entry.name, entry.kind, category, entry.summary, entry.formula, entry.sourceNote, "local", "private", "lokal", "privat"),
+                searchTerms = listOf(entry.name, entry.kind, category, summary, entry.summary, entry.formula, entry.sourceNote, "local", "private", "lokal", "privat"),
                 detailBody = details,
             )
         }
