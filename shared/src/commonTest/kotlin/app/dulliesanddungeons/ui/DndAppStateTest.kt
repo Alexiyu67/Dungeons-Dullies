@@ -573,6 +573,80 @@ class DndAppStateTest {
     }
 
     @Test
+    fun rolledAbilityScoresCanBeReassignedAndSaved() {
+        val state = DndAppState(FakeStore())
+        state.beginCreate()
+        state.creation.name = "Bryn"
+        state.creation.className = "Fighter"
+        state.creation.statMethod = StatMethod.Rolled
+        state.creation.rolledScores += listOf(15, 14, 13, 12, 10, 8)
+
+        val recommended = state.creationAbilityBreakdowns().associate { it.ability to it.baseScore }
+        assertEquals(15, recommended["STR"])
+        assertEquals(8, recommended["INT"])
+
+        assertTrue(state.swapCreationRolledScores("STR", "INT"))
+        val reassigned = state.creationAbilityBreakdowns().associate { it.ability to it.baseScore }
+        assertEquals(8, reassigned["STR"])
+        assertEquals(15, reassigned["INT"])
+        assertEquals(state.creation.rolledScores.sorted(), reassigned.values.sorted())
+
+        state.finishCreateWithRequiredProficiencies()
+        val character = assertNotNull(state.selectedCharacter)
+        assertEquals(8, character.abilities["STR"])
+        assertEquals(15, character.abilities["INT"])
+    }
+
+    @Test
+    fun classChangesOnlyReassignUntouchedRolledScores() {
+        val state = DndAppState(FakeStore())
+        state.beginCreate()
+        state.creation.statMethod = StatMethod.Rolled
+        state.creation.rolledScores += listOf(15, 14, 13, 12, 10, 8)
+        state.creationAbilityBreakdowns()
+
+        state.selectCreationClass("Wizard")
+        assertEquals(15, state.creationAbilityBreakdowns().single { it.ability == "INT" }.baseScore)
+        assertFalse(state.creation.rolledAssignmentEdited)
+
+        assertTrue(state.swapCreationRolledScores("INT", "CHA"))
+        assertEquals(10, state.creationAbilityBreakdowns().single { it.ability == "INT" }.baseScore)
+        assertEquals(15, state.creationAbilityBreakdowns().single { it.ability == "CHA" }.baseScore)
+
+        state.selectCreationClass("Fighter")
+        assertEquals(10, state.creationAbilityBreakdowns().single { it.ability == "INT" }.baseScore)
+        assertEquals(15, state.creationAbilityBreakdowns().single { it.ability == "CHA" }.baseScore)
+        assertTrue(state.creation.rolledAssignmentEdited)
+    }
+
+    @Test
+    fun rerollAndCreationResetClearManualRolledAssignments() {
+        val state = DndAppState(FakeStore())
+        state.beginCreate()
+        state.creation.statMethod = StatMethod.Rolled
+        state.creation.rolledScores += listOf(15, 15, 13, 12, 10, 8)
+
+        assertTrue(state.swapCreationRolledScores("STR", "CON"))
+        assertTrue(state.creation.rolledAssignmentEdited)
+        assertEquals(state.creation.rolledScores.sorted(), state.creation.rolledAbilityAssignments.values.sorted())
+
+        state.rollCreationAbilityScores()
+        assertFalse(state.creation.rolledAssignmentEdited)
+        assertEquals(6, state.creation.rolledAbilityAssignments.size)
+        assertEquals(state.creation.rolledScores.sorted(), state.creation.rolledAbilityAssignments.values.sorted())
+
+        state.selectCreationRuleset(Ruleset.Pf2eRemaster)
+        assertTrue(state.creation.rolledScores.isEmpty())
+        assertTrue(state.creation.rolledAbilityAssignments.isEmpty())
+        assertFalse(state.creation.rolledAssignmentEdited)
+
+        state.beginCreate()
+        assertTrue(state.creation.rolledScores.isEmpty())
+        assertTrue(state.creation.rolledAbilityAssignments.isEmpty())
+        assertFalse(state.creation.rolledAssignmentEdited)
+    }
+
+    @Test
     fun ancestryBonusIsAppliedAfterEveryScoreEntryMethod() {
         val state = DndAppState(FakeStore())
         state.beginCreate()

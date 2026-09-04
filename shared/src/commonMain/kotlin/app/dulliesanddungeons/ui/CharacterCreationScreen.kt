@@ -476,6 +476,12 @@ private fun SelectionHeading(label: String, selection: String) {
 @Composable
 private fun LevelAndStatsStep(state: DndAppState) {
     val draft = state.creation
+    var selectedRolledAbility by remember(draft.statMethod, draft.rolledScores.toList()) { mutableStateOf<String?>(null) }
+    LaunchedEffect(draft.statMethod) {
+        if (draft.statMethod == StatMethod.Rolled && draft.rolledScores.isEmpty()) {
+            state.rollCreationAbilityScores()
+        }
+    }
     val methods = if (draft.ruleset == Ruleset.Pf2eRemaster) {
         listOf(StatMethod.StandardArray, StatMethod.Manual)
     } else {
@@ -532,20 +538,31 @@ private fun LevelAndStatsStep(state: DndAppState) {
         when (draft.statMethod) {
             StatMethod.Rolled -> {
                 OutlinedButton(
-                    onClick = state::rollCreationAbilityScores,
+                    onClick = {
+                        selectedRolledAbility = null
+                        state.rollCreationAbilityScores()
+                    },
                     modifier = Modifier.fillMaxWidth().height(50.dp),
                 ) {
                     Icon(Icons.Rounded.Casino, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
                     Text(if (draft.rolledScores.isEmpty()) state.t("Roll the six scores", "Sechs Werte würfeln") else state.t("Reroll all six", "Alle sechs neu würfeln"))
                 }
-                if (draft.rolledScores.isNotEmpty()) NumberChipPreview(draft.rolledScores)
+                if (draft.rolledScores.isNotEmpty()) {
+                    RolledAbilityAssignmentCard(
+                        state = state,
+                        selectedAbility = selectedRolledAbility,
+                        onAbilitySelected = { selectedRolledAbility = it },
+                    )
+                }
             }
             StatMethod.StandardArray -> NumberChipPreview(if (draft.ruleset == Ruleset.Pf2eRemaster) listOf(18, 16, 14, 12, 10, 8) else listOf(15, 14, 13, 12, 10, 8))
             StatMethod.PointBuy -> NumberChipPreview(listOf(15, 15, 14, 10, 8, 8))
             StatMethod.Manual -> Unit
         }
-        AbilityBreakdownList(state, editable = draft.statMethod == StatMethod.Manual)
+        if (draft.statMethod != StatMethod.Rolled) {
+            AbilityBreakdownList(state, editable = draft.statMethod == StatMethod.Manual)
+        }
 
         Text(state.t("Hit Points", "Trefferpunkte"), style = MaterialTheme.typography.titleMedium)
         if (draft.ruleset == Ruleset.Pf2eRemaster) {
@@ -618,6 +635,117 @@ private fun NumberChipPreview(scores: List<Int>) {
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun RolledAbilityAssignmentCard(
+    state: DndAppState,
+    selectedAbility: String?,
+    onAbilitySelected: (String?) -> Unit,
+) {
+    val breakdowns = state.creationAbilityBreakdowns()
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
+    ) {
+        Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(state.t("Assigned scores", "Verteilte Werte"), style = MaterialTheme.typography.titleSmall)
+            if (selectedAbility != null) {
+                Text(
+                    state.t("Select another score to swap.", "Wähle einen zweiten Wert zum Tauschen."),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+            breakdowns.forEach { breakdown ->
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    val abilityInfo = state.creationAbilityInfo(breakdown.ability)
+                    TextButton(
+                        onClick = { state.showInfo(abilityInfo.title, abilityInfo.body) },
+                        modifier = Modifier.width(48.dp).height(48.dp).semantics {
+                            contentDescription = state.t("Explain ${abilityInfo.title}", "${abilityInfo.title} erklären")
+                        },
+                        contentPadding = PaddingValues(0.dp),
+                    ) {
+                        Text(breakdown.ability, fontWeight = FontWeight.Bold)
+                    }
+                    FlowRow(
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        val isSelected = selectedAbility == breakdown.ability
+                        val scoreDescription = when {
+                            isSelected -> state.t(
+                                "${breakdown.ability} assigned score ${breakdown.baseScore}, selected. Tap again to cancel.",
+                                "${breakdown.ability}, verteilter Wert ${breakdown.baseScore}, ausgewählt. Zum Abbrechen erneut tippen.",
+                            )
+                            selectedAbility != null -> state.t(
+                                "${breakdown.ability} assigned score ${breakdown.baseScore}. Tap to swap with $selectedAbility.",
+                                "${breakdown.ability}, verteilter Wert ${breakdown.baseScore}. Zum Tauschen mit $selectedAbility tippen.",
+                            )
+                            else -> state.t(
+                                "${breakdown.ability} assigned score ${breakdown.baseScore}. Tap to select for swapping.",
+                                "${breakdown.ability}, verteilter Wert ${breakdown.baseScore}. Zum Tauschen auswählen.",
+                            )
+                        }
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = {
+                                when {
+                                    selectedAbility == null -> onAbilitySelected(breakdown.ability)
+                                    isSelected -> onAbilitySelected(null)
+                                    else -> {
+                                        state.swapCreationRolledScores(selectedAbility, breakdown.ability)
+                                        onAbilitySelected(null)
+                                    }
+                                }
+                            },
+                            label = { Text(breakdown.baseScore.toString(), fontWeight = FontWeight.Bold) },
+                            modifier = Modifier.height(48.dp).semantics(mergeDescendants = true) {
+                                contentDescription = scoreDescription
+                                selected = isSelected
+                            },
+                        )
+                        AssistChip(
+                            onClick = {
+                                val info = state.creationModifierInfo(breakdown.ability)
+                                state.showInfo(info.title, info.body)
+                            },
+                            label = { Text("Mod. ${creationSigned(breakdown.modifier)}") },
+                            modifier = Modifier.height(48.dp).semantics(mergeDescendants = true) {
+                                contentDescription = state.t(
+                                    "${breakdown.ability} modifier ${creationSigned(breakdown.modifier)}. Tap for details.",
+                                    "${breakdown.ability}, Modifikator ${creationSigned(breakdown.modifier)}. Für Details tippen.",
+                                )
+                            },
+                            colors = AssistChipDefaults.assistChipColors(labelColor = MaterialTheme.colorScheme.primary),
+                        )
+                        if (breakdown.ancestrySource != null && breakdown.finalScore != breakdown.baseScore) {
+                            AssistChip(
+                                onClick = {
+                                    state.creationAncestryInfo(breakdown.ability)?.let { info -> state.showInfo(info.title, info.body) }
+                                },
+                                label = { Text(state.t("Total ${breakdown.finalScore}", "Gesamt ${breakdown.finalScore}")) },
+                                modifier = Modifier.height(48.dp).semantics(mergeDescendants = true) {
+                                    contentDescription = state.t(
+                                        "${breakdown.ability} total ${breakdown.finalScore}. Tap for ancestry details.",
+                                        "${breakdown.ability}, Gesamtwert ${breakdown.finalScore}. Für Abstammungsdetails tippen.",
+                                    )
+                                },
+                                colors = AssistChipDefaults.assistChipColors(
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                    labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                ),
+                            )
+                        }
+                    }
+                }
             }
         }
     }

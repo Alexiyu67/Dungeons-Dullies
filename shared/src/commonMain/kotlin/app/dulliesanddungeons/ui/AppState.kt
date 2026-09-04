@@ -918,6 +918,8 @@ class CreationDraft {
     var portraitSourceBytes by mutableStateOf<ByteArray?>(null)
     var portraitCrop by mutableStateOf<PortraitCrop?>(null)
     val rolledScores = mutableStateListOf<Int>()
+    val rolledAbilityAssignments = mutableStateMapOf<String, Int>()
+    var rolledAssignmentEdited by mutableStateOf(false)
     val manualAbilities = mutableStateMapOf(
         "STR" to 10, "DEX" to 10, "CON" to 10, "INT" to 10, "WIS" to 10, "CHA" to 10,
     )
@@ -959,6 +961,8 @@ class CreationDraft {
         portraitSourceBytes = null
         portraitCrop = null
         rolledScores.clear()
+        rolledAbilityAssignments.clear()
+        rolledAssignmentEdited = false
         manualAbilities.keys.toList().forEach { manualAbilities[it] = 10 }
     }
 }
@@ -1979,6 +1983,23 @@ class DndAppState(
                 RollRequest("Ability", DiceExpression(count = 4, sides = 6, keepHighest = 3))
             ).total
         }
+        assignRolledScoresForCurrentClass()
+    }
+
+    fun swapCreationRolledScores(firstAbility: String, secondAbility: String): Boolean {
+        if (
+            creation.statMethod != StatMethod.Rolled ||
+            firstAbility !in creationAbilityOrder ||
+            secondAbility !in creationAbilityOrder ||
+            firstAbility == secondAbility
+        ) return false
+        ensureRolledAbilityAssignments()
+        val firstScore = creation.rolledAbilityAssignments[firstAbility] ?: return false
+        val secondScore = creation.rolledAbilityAssignments[secondAbility] ?: return false
+        creation.rolledAbilityAssignments[firstAbility] = secondScore
+        creation.rolledAbilityAssignments[secondAbility] = firstScore
+        creation.rolledAssignmentEdited = true
+        return true
     }
 
     fun setCreationLevel(level: Int) {
@@ -2007,6 +2028,8 @@ class DndAppState(
         creation.statMethod = if (ruleset == Ruleset.Pf2eRemaster) StatMethod.StandardArray else StatMethod.Rolled
         creation.hpMethod = HpMethod.Fixed
         creation.rolledScores.clear()
+        creation.rolledAbilityAssignments.clear()
+        creation.rolledAssignmentEdited = false
         creation.rolledHpGains.clear()
         creation.selectedFeatIds.clear()
         creation.selectedSpellIds.clear()
@@ -2029,6 +2052,13 @@ class DndAppState(
         creation.subclassName = ""
         creation.subclassAdvisory = null
         creation.rolledHpGains.clear()
+        if (
+            creation.statMethod == StatMethod.Rolled &&
+            creation.rolledScores.size == creationAbilityOrder.size &&
+            !creation.rolledAssignmentEdited
+        ) {
+            assignRolledScoresForCurrentClass()
+        }
         creation.classSkillIds.clear()
         creation.featSkillIds.clear()
         creation.skillRankChoices.clear()
@@ -6282,19 +6312,43 @@ class DndAppState(
 
     private fun baseAbilityScoresForDraft(): LinkedHashMap<String, Int> {
         if (creation.statMethod == StatMethod.Manual) return LinkedHashMap(creation.manualAbilities)
-        val scores = when (creation.statMethod) {
-            StatMethod.Rolled -> creation.rolledScores.takeIf { it.size == 6 } ?: run {
-                rollCreationAbilityScores()
-                creation.rolledScores
+        if (creation.statMethod == StatMethod.Rolled) {
+            ensureRolledAbilityAssignments()
+            return linkedMapOf<String, Int>().apply {
+                creationAbilityOrder.forEach { ability ->
+                    put(ability, creation.rolledAbilityAssignments.getValue(ability))
+                }
             }
+        }
+        val scores = when (creation.statMethod) {
             StatMethod.StandardArray -> if (creation.ruleset == Ruleset.Pf2eRemaster) listOf(18, 16, 14, 12, 10, 8) else listOf(15, 14, 13, 12, 10, 8)
             StatMethod.PointBuy -> listOf(15, 15, 14, 10, 8, 8)
+            StatMethod.Rolled -> error("handled above")
             StatMethod.Manual -> error("handled above")
         }.sortedDescending()
         val priority = abilityPriorityForClass(creation.className)
         return linkedMapOf<String, Int>().apply {
             priority.forEachIndexed { index, ability -> put(ability, scores[index]) }
         }
+    }
+
+    private fun ensureRolledAbilityAssignments() {
+        if (creation.rolledScores.size != creationAbilityOrder.size) rollCreationAbilityScores()
+        val assignmentsAreComplete =
+            creation.rolledAbilityAssignments.keys.toSet() == creationAbilityOrder.toSet() &&
+                creation.rolledAbilityAssignments.values.toList().sorted() == creation.rolledScores.sorted()
+        if (!assignmentsAreComplete) assignRolledScoresForCurrentClass()
+    }
+
+    private fun assignRolledScoresForCurrentClass() {
+        creation.rolledAbilityAssignments.clear()
+        if (creation.rolledScores.size == creationAbilityOrder.size) {
+            val scores = creation.rolledScores.sortedDescending()
+            abilityPriorityForClass(creation.className).forEachIndexed { index, ability ->
+                creation.rolledAbilityAssignments[ability] = scores[index]
+            }
+        }
+        creation.rolledAssignmentEdited = false
     }
 
     private fun abilityPriorityForClass(className: String): List<String> = when (className) {
