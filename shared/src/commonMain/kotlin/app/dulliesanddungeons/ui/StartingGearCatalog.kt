@@ -10,11 +10,19 @@ data class StartingGearPackageUi(
     val goldOnly: Boolean = false,
 ) {
     fun summary(): String = if (goldOnly) "$goldPieces GP" else buildList {
-        addAll(weaponIds.map(::gearDisplayName))
+        addAll(weaponIds.withQuantities().map { (id, quantity) ->
+            gearDisplayName(id) + if (quantity > 1) " ×$quantity" else ""
+        })
         armorId?.let { add(gearDisplayName(it)) }
-        addAll(equipmentIds.map(::gearDisplayName))
+        addAll(groupedGearDisplayNames(equipmentIds))
         if (goldPieces > 0) add("$goldPieces GP")
     }.joinToString(", ")
+}
+
+internal fun List<String>.withQuantities(): List<Pair<String, Int>> {
+    val counts = linkedMapOf<String, Int>()
+    forEach { id -> counts[id] = (counts[id] ?: 0) + 1 }
+    return counts.map { it.key to it.value }
 }
 
 internal fun startingGearPackages(ruleset: Ruleset, className: String): List<StartingGearPackageUi> {
@@ -67,3 +75,11 @@ internal fun startingGearPackages(ruleset: Ruleset, className: String): List<Sta
 private fun gearDisplayName(id: String): String = id.split('-').joinToString(" ") { part ->
     part.replaceFirstChar { it.uppercase() }
 }
+
+private fun groupedGearDisplayNames(ids: List<String>): List<String> = ids
+    .groupingBy { it }
+    .eachCount()
+    .map { (id, quantity) ->
+        val name = gearDisplayName(id)
+        if (quantity == 1) name else "$name ×$quantity"
+    }

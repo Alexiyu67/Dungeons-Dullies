@@ -468,6 +468,8 @@ data class WeaponRecord(
     val useCase: String = "",
     val classification: WeaponClassification = WeaponClassification(),
     val combatContributions: List<CombatContribution> = emptyList(),
+    /** Interchangeable copies share one attack profile (for example, a bundle of javelins). */
+    val quantity: Int = 1,
 )
 
 @Serializable

@@ -50,8 +50,23 @@ internal fun DndAppState.completeRequiredCreationGear() {
     check(creationGearSelectionValid())
 }
 
+internal fun DndAppState.completeRequiredCreationSpells() {
+    val selection = creationSpellSelection() ?: return
+    val selectedIds = selection.selected.mapTo(mutableSetOf()) { it.id }
+    selection.options.filter { it.level == 0 }
+        .filterNot { it.id in selectedIds }
+        .take(selection.cantripLimit - selection.selected.count { it.level == 0 })
+        .forEach { toggleCreationSpell(it.id) }
+    selection.options.filter { it.level > 0 }
+        .filterNot { it.id in selectedIds }
+        .take(selection.leveledSpellLimit - selection.selected.count { it.level > 0 })
+        .forEach { toggleCreationSpell(it.id) }
+    check(creationSpellSelectionValid())
+}
+
 internal fun DndAppState.finishCreateWithRequiredProficiencies() {
     completeRequiredCreationProficiencies()
+    completeRequiredCreationSpells()
     completeRequiredCreationGear()
     finishCreate()
 }

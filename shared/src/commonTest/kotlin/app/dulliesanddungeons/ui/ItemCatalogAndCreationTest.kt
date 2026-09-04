@@ -166,6 +166,29 @@ class ItemCatalogAndCreationTest {
     }
 
     @Test
+    fun repeatedThrownWeaponsUseOneAdjustableStackAndPersist() {
+        val state = DndAppState(ItemTestStore())
+        state.beginCreate()
+        state.creation.name = "Javelin Tester"
+        state.creation.className = "Fighter"
+        state.creation.ruleset = Ruleset.Fifth2024
+
+        val packageA = state.creationGearPackages().single { it.id == "fighter-a" }
+        assertTrue("Javelin ×8" in packageA.summary())
+        state.selectCreationGearPackage(packageA.id)
+
+        val javelin = state.creation.startingWeapons.single { it.definitionId == "javelin" }
+        assertEquals(8, javelin.quantity)
+        assertEquals(3, state.creation.startingWeapons.size)
+
+        state.updateCreationWeaponQuantity(javelin.id, 6)
+        assertEquals(6, state.creation.startingWeapons.single { it.id == javelin.id }.quantity)
+        state.finishCreateWithRequiredProficiencies()
+
+        assertEquals(6, state.selectedCharacter!!.weapons.single { it.definitionId == "javelin" }.quantity)
+    }
+
+    @Test
     fun currencyCatalogSearchesNamesAliasesAndRulesetDenominations() {
         val catalog = builtInKnownItemCatalog()
 

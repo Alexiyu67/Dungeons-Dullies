@@ -1,5 +1,8 @@
 package app.dulliesanddungeons.ui
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,11 +12,13 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -31,7 +36,11 @@ import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Remove
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -49,16 +58,28 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -66,6 +87,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
 internal enum class CreationStep(
@@ -92,9 +115,15 @@ internal fun CharacterCreationScreen(
     val draft = state.creation
     val currentStep = CreationStep.entries[draft.step.coerceIn(0, LAST_CREATION_STEP)]
     val contentState = rememberLazyListState()
+    val spellSelection = if (currentStep == CreationStep.Details) state.creationSpellSelection() else null
+    var spellPickerOpen by remember { mutableStateOf(false) }
+    var spellSectionVisible by remember { mutableStateOf(false) }
+    var contentViewport by remember { mutableStateOf<Rect?>(null) }
     val navigateToStep: (CreationStep) -> Unit = { step -> draft.step = step.ordinal }
     LaunchedEffect(draft.step) {
         contentState.scrollToItem(0)
+        spellSectionVisible = false
+        if (currentStep != CreationStep.Details) spellPickerOpen = false
     }
     Column(Modifier.fillMaxSize()) {
         Row(
@@ -126,21 +155,54 @@ internal fun CharacterCreationScreen(
             onStepSelected = navigateToStep,
         )
 
-        LazyColumn(
-            modifier = Modifier.weight(1f).fillMaxWidth(),
-            state = contentState,
-            contentPadding = PaddingValues(20.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp),
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .onGloballyPositioned { contentViewport = it.boundsInWindow() },
         ) {
-            item {
-                when (currentStep) {
-                    CreationStep.Rules -> RulesetStep(state)
-                    CreationStep.Identity -> IdentityStep(state, onPickPortrait, onEditPortrait)
-                    CreationStep.Build -> BuildStep(state)
-                    CreationStep.LevelAndStats -> LevelAndStatsStep(state)
-                    CreationStep.Details -> DetailsStep(state)
-                    CreationStep.Gear -> GearStep(state)
-                    CreationStep.Review -> ReviewStep(state, onEditPortrait)
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                state = contentState,
+                contentPadding = PaddingValues(
+                    start = 20.dp,
+                    top = 20.dp,
+                    end = 20.dp,
+                    bottom = if (spellSelection?.options?.isNotEmpty() == true) 92.dp else 20.dp,
+                ),
+                verticalArrangement = Arrangement.spacedBy(18.dp),
+            ) {
+                item {
+                    when (currentStep) {
+                        CreationStep.Rules -> RulesetStep(state)
+                        CreationStep.Identity -> IdentityStep(state, onPickPortrait, onEditPortrait)
+                        CreationStep.Build -> BuildStep(state)
+                        CreationStep.LevelAndStats -> LevelAndStatsStep(state)
+                        CreationStep.Details -> DetailsStep(
+                            state = state,
+                            spellSelection = spellSelection,
+                            viewport = contentViewport,
+                            onSpellSectionVisibilityChanged = { spellSectionVisible = it },
+                        )
+                        CreationStep.Gear -> GearStep(state)
+                        CreationStep.Review -> ReviewStep(state, onEditPortrait)
+                    }
+                }
+            }
+
+            if (spellSelection?.options?.isNotEmpty() == true && spellSectionVisible) {
+                Button(
+                    onClick = { spellPickerOpen = true },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(horizontal = 20.dp, vertical = 12.dp)
+                        .height(52.dp)
+                        .widthIn(min = 184.dp),
+                    shape = RoundedCornerShape(18.dp),
+                ) {
+                    Icon(Icons.Rounded.Add, contentDescription = null)
+                    Spacer(Modifier.width(7.dp))
+                    Text(state.t("Add spells", "Zauber hinzufügen"))
                 }
             }
         }
@@ -169,7 +231,8 @@ internal fun CharacterCreationScreen(
                     },
                     enabled = currentStep == CreationStep.Review ||
                         (currentStep != CreationStep.Identity || draft.name.isNotBlank()) &&
-                        (currentStep != CreationStep.Details || state.creationProficiencySelectionValid()) &&
+                        (currentStep != CreationStep.Details ||
+                            state.creationProficiencySelectionValid() && state.creationSpellSelectionValid()) &&
                         (currentStep != CreationStep.Gear || state.creationGearSelectionValid()),
                     modifier = Modifier.weight(1f).height(52.dp),
                     shape = RoundedCornerShape(16.dp),
@@ -180,6 +243,14 @@ internal fun CharacterCreationScreen(
                 }
             }
         }
+    }
+
+    if (spellPickerOpen && spellSelection != null) {
+        CreationSpellPicker(
+            state = state,
+            selection = spellSelection,
+            onDismiss = { spellPickerOpen = false },
+        )
     }
 }
 
@@ -835,18 +906,31 @@ private fun AbilityBreakdownList(state: DndAppState, editable: Boolean) {
 private fun creationSigned(value: Int): String = if (value >= 0) "+$value" else value.toString()
 
 @Composable
-private fun DetailsStep(state: DndAppState) {
+private fun DetailsStep(
+    state: DndAppState,
+    spellSelection: CreationSpellSelectionUi?,
+    viewport: Rect?,
+    onSpellSectionVisibilityChanged: (Boolean) -> Unit,
+) {
     val draft = state.creation
     val preview = state.creationPreview()
     val featLevels = if (draft.className == "Fighter") listOf(4, 6, 8, 12, 14, 16, 19) else listOf(4, 8, 12, 16, 19)
     val featChoices = featLevels.count { it <= draft.level }
     val featOptions = state.creationFeatOptions().sortedForPicker(state.language, FeatOptionUi::name, FeatOptionUi::id)
-    val spellOptions = state.creationSpellOptions().sortedForPicker(state.language, SpellUi::name, SpellUi::id)
-    val backgrounds = state.creationBackgroundOptions()
+    val backgrounds = state.creationBackgroundOptions().sortedForPicker(state.language, { it.name(state.language) }, BackgroundDefinitionUi::id)
     val background = state.selectedCreationBackground()
     val rankSkillOptions = state.creationRankSkillOptions()
+    val filteredBackgrounds = filterCreationBackgrounds(backgrounds, draft.classSkillIds.toSet(), draft.backgroundId)
     var languageText by remember(draft.ruleset) { mutableStateOf(draft.languages.joinToString(", ")) }
+    var backgroundListOpen by remember(draft.ruleset, draft.className) { mutableStateOf(false) }
+    var classSkillLimitPulse by remember(draft.ruleset, draft.className) { mutableIntStateOf(0) }
     val suggestedLanguages = languageSuggestions(languageText, state.creationLanguageOptions())
+    LaunchedEffect(spellSelection) {
+        if (spellSelection == null) onSpellSectionVisibilityChanged(false)
+    }
+    DisposableEffect(Unit) {
+        onDispose { onSpellSectionVisibilityChanged(false) }
+    }
     Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
         StepIntro(state.t("We did the rules work", "Wir haben die Regelarbeit erledigt"), state.t("Here is the recommended foundation. Every value will have a tappable explanation on your sheet.", "Hier ist die empfohlene Grundlage. Jeder Wert erhält auf deinem Bogen eine antippbare Erklärung."))
         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)), shape = RoundedCornerShape(20.dp)) {
@@ -863,68 +947,79 @@ private fun DetailsStep(state: DndAppState) {
                 Text(advisory, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
             }
         }
-        Text(state.t("Background", "Hintergrund"), style = MaterialTheme.typography.titleMedium)
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(backgrounds, key = { it.id }) { option ->
-                FilterChip(
-                    selected = draft.backgroundId == option.id,
-                    onClick = { state.selectCreationBackground(option.id) },
-                    label = { Text(option.name(state.language)) },
-                )
-            }
-        }
-        background?.let { selected ->
-            val grantNames = selected.allGrantedSkillIds.mapNotNull { id ->
-                rankSkillOptions.firstOrNull { it.id == id }?.name
-            }
-            if (grantNames.isNotEmpty()) {
-                Text(
-                    state.t("Grants: ${grantNames.joinToString()}", "Gewährt: ${grantNames.joinToString()}"),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (selected.customSkillCount > 0) {
-                Text(
-                    state.t(
-                        "Background skills · ${draft.backgroundSkillIds.size}/${selected.customSkillCount}",
-                        "Hintergrundfertigkeiten · ${draft.backgroundSkillIds.size}/${selected.customSkillCount}",
-                    ),
-                    style = MaterialTheme.typography.titleSmall,
-                )
-                rankSkillOptions.forEach { skill ->
-                    CreationSkillChoiceCard(
-                        state = state,
-                        skill = skill,
-                        selected = skill.id in draft.backgroundSkillIds,
-                        onClick = { state.toggleCreationBackgroundSkill(skill.id) },
-                    )
-                }
-            }
-        }
         val classDefinition = ProficiencyCatalog.classDefinition(draft.ruleset, draft.className)
-        val fixedClassSkillNames = classDefinition.fixedSkillIds.mapNotNull { id ->
-            rankSkillOptions.firstOrNull { it.id == id }?.name
-        }
-        if (fixedClassSkillNames.isNotEmpty()) {
+        val classSkillCount = state.creationClassSkillCount()
+        PulsingSelectionCount(
+            text = state.t(
+                "Class skills · ${draft.classSkillIds.size}/$classSkillCount",
+                "Klassenfertigkeiten · ${draft.classSkillIds.size}/$classSkillCount",
+            ),
+            pulseSignal = classSkillLimitPulse,
+        )
+        classDefinition.requiredOneOfSkillGroups.forEach { group ->
+            val names = group.mapNotNull { id -> rankSkillOptions.firstOrNull { it.id == id }?.name }
             Text(
-                state.t("Class grants: ${fixedClassSkillNames.joinToString()}", "Klasse gewährt: ${fixedClassSkillNames.joinToString()}"),
+                state.t("Include one of: ", "Wähle mindestens eine davon: ") + names.joinToString(" / "),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        val classSkillCount = state.creationClassSkillCount()
-        Text(
-            state.t("Class skills · ${draft.classSkillIds.size}/$classSkillCount", "Klassenfertigkeiten · ${draft.classSkillIds.size}/$classSkillCount"),
-            style = MaterialTheme.typography.titleMedium,
-        )
-        state.creationClassSkillOptions().forEach { skill ->
+        classDefinition.fixedSkillIds.mapNotNull { id -> rankSkillOptions.firstOrNull { it.id == id } }.forEach { skill ->
             CreationSkillChoiceCard(
                 state = state,
                 skill = skill,
-                selected = skill.id in draft.classSkillIds,
-                onClick = { state.toggleCreationClassSkill(skill.id) },
+                selected = true,
+                description = creationSkillDescription(state, skill.id),
+                onClick = { showCreationSkillInfo(state, skill) },
             )
+        }
+        state.creationClassSkillOptions().forEach { skill ->
+            val selected = skill.id in draft.classSkillIds
+            CreationSkillChoiceCard(
+                state = state,
+                skill = skill,
+                selected = selected,
+                description = creationSkillDescription(state, skill.id),
+                onClick = {
+                    if (shouldPulseClassSkillLimit(selected, draft.classSkillIds.size, classSkillCount)) {
+                        classSkillLimitPulse += 1
+                    } else {
+                        state.toggleCreationClassSkill(skill.id)
+                    }
+                },
+            )
+        }
+        BackgroundSelector(
+            state = state,
+            selected = background,
+            options = filteredBackgrounds,
+            rankSkillOptions = rankSkillOptions,
+            expanded = backgroundListOpen,
+            onExpandedChange = { backgroundListOpen = it },
+            onSelected = {
+                state.selectCreationBackground(it)
+                backgroundListOpen = false
+            },
+        )
+        background?.takeIf { it.customSkillCount > 0 }?.let { selected ->
+            Text(
+                state.t(
+                    "Background skills · ${draft.backgroundSkillIds.size}/${selected.customSkillCount}",
+                    "Hintergrundfertigkeiten · ${draft.backgroundSkillIds.size}/${selected.customSkillCount}",
+                ),
+                style = MaterialTheme.typography.titleSmall,
+            )
+            rankSkillOptions
+                .filterNot { it.id in draft.classSkillIds || it.id in classDefinition.fixedSkillIds }
+                .forEach { skill ->
+                    CreationSkillChoiceCard(
+                        state = state,
+                        skill = skill,
+                        selected = skill.id in draft.backgroundSkillIds,
+                        description = creationSkillDescription(state, skill.id),
+                        onClick = { state.toggleCreationBackgroundSkill(skill.id) },
+                    )
+                }
         }
         if (state.creationSkillIncreaseCount() > 0) {
             Text(
@@ -1026,28 +1121,579 @@ private fun DetailsStep(state: DndAppState) {
                 )
             }
         }
-        if (spellOptions.isNotEmpty()) {
-            Text(state.t("Approved private spells", "Freigegebene private Zauber"), style = MaterialTheme.typography.titleMedium)
-            spellOptions.forEach { spell ->
-                FilterChip(
-                    selected = spell.id.removePrefix("private-") in draft.selectedSpellIds,
-                    onClick = {
-                        val entryId = spell.id.removePrefix("private-")
-                        if (entryId in draft.selectedSpellIds) draft.selectedSpellIds.remove(entryId) else draft.selectedSpellIds += entryId
-                    },
-                    label = {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(spell.name)
-                            CostChipRow(state, spell.activationCost.toCostTokens())
-                        }
-                    },
-                )
-            }
+        spellSelection?.let { selection ->
+            CreationSpellSelectionSection(
+                state = state,
+                selection = selection,
+                viewport = viewport,
+                onVisibilityChanged = onSpellSectionVisibilityChanged,
+            )
         }
         ExplanationCard(
             state.t("Nothing gets silently removed", "Nichts wird unbemerkt entfernt"),
             state.t("If an earlier choice changes, we show everything that needs review before saving.", "Wenn sich eine frühere Wahl ändert, zeigen wir vor dem Speichern alles, was geprüft werden muss."),
         )
+    }
+}
+
+internal fun groupCreationSpells(spells: List<SpellUi>): List<Pair<Int, List<SpellUi>>> = spells
+    .distinctBy { it.id }
+    .groupBy { it.level }
+    .toSortedMap()
+    .map { (level, entries) -> level to entries.sortedWith(compareBy<SpellUi> { it.name.lowercase() }.thenBy { it.id }) }
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun CreationSpellSelectionSection(
+    state: DndAppState,
+    selection: CreationSpellSelectionUi,
+    viewport: Rect?,
+    onVisibilityChanged: (Boolean) -> Unit,
+) {
+    val selectedSpells = (selection.fixed + selection.selected).distinctBy(SpellUi::id)
+    val fixedIds = selection.fixed.mapTo(hashSetOf(), SpellUi::id)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .onGloballyPositioned { coordinates ->
+                val section = coordinates.boundsInWindow()
+                val visible = viewport?.let { section.bottom > it.top && section.top < it.bottom } == true
+                onVisibilityChanged(visible)
+            },
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(state.t("Spells", "Zauber"), modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
+            Text(
+                selectedSpells.size.toString(),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            if (selection.cantripLimit > 0) {
+                SpellCountChip(
+                    state.t("Cantrips", "Zaubertricks"),
+                    selection.selected.count { it.level == 0 },
+                    selection.cantripLimit,
+                )
+            }
+            if (selection.leveledSpellLimit > 0) {
+                SpellCountChip(
+                    selection.leveledLabel,
+                    selection.selected.count { it.level > 0 },
+                    selection.leveledSpellLimit,
+                )
+            }
+            selection.preparedLimit?.let { limit ->
+                SpellLabelChip(state.t("Prepare $limit", "$limit vorbereiten"))
+            }
+        }
+        if (selectedSpells.isEmpty()) {
+            Text(
+                state.t("No spells selected yet.", "Noch keine Zauber ausgewählt."),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            groupCreationSpells(selectedSpells).forEach { (level, spells) ->
+                Text(spellLevelLabel(state, level), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                spells.forEach { spell ->
+                    SelectedCreationSpellCard(
+                        state = state,
+                        spell = spell,
+                        fixed = spell.id in fixedIds,
+                        onConfirmedRemove = { state.removeCreationSpell(spell.id) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpellCountChip(label: String, selected: Int, limit: Int) {
+    SpellLabelChip("$label $selected/$limit")
+}
+
+@Composable
+private fun SpellLabelChip(text: String) {
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+    ) {
+        Text(text, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), style = MaterialTheme.typography.labelMedium)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SelectedCreationSpellCard(
+    state: DndAppState,
+    spell: SpellUi,
+    fixed: Boolean,
+    onConfirmedRemove: () -> Unit,
+) {
+    var confirmationOpen by remember(spell.id) { mutableStateOf(false) }
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { target ->
+            if (target == SwipeToDismissBoxValue.StartToEnd && !fixed) confirmationOpen = true
+            false
+        },
+    )
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = !fixed,
+        enableDismissFromEndToStart = false,
+        backgroundContent = {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.errorContainer,
+            ) {
+                Row(
+                    Modifier.fillMaxSize().padding(horizontal = 18.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Icon(Icons.Rounded.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                    Text(state.t("Remove", "Entfernen"), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
+                }
+            }
+        },
+    ) {
+        SpellSummaryCard(
+            state = state,
+            spell = spell,
+            fixed = fixed,
+            modifier = Modifier.semantics {
+                if (!fixed) {
+                    customActions = listOf(
+                        CustomAccessibilityAction(state.t("Remove ${spell.name}", "${spell.name} entfernen")) {
+                            confirmationOpen = true
+                            true
+                        },
+                    )
+                }
+            },
+        )
+    }
+    if (confirmationOpen) {
+        AlertDialog(
+            onDismissRequest = { confirmationOpen = false },
+            icon = { Icon(Icons.Rounded.Delete, contentDescription = null) },
+            title = { Text(state.t("Remove ${spell.name}?", "${spell.name} entfernen?")) },
+            text = { Text(state.t("This removes the spell from this character.", "Dieser Zauber wird von diesem Charakter entfernt.")) },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmationOpen = false
+                    onConfirmedRemove()
+                }) { Text(state.t("Remove", "Entfernen")) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmationOpen = false }) { Text(state.t("Cancel", "Abbrechen")) }
+            },
+        )
+    }
+}
+
+@Composable
+private fun SpellSummaryCard(
+    state: DndAppState,
+    spell: SpellUi,
+    fixed: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    OutlinedCard(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+        Row(
+            Modifier.fillMaxWidth().padding(start = 14.dp, end = 4.dp, top = 11.dp, bottom = 11.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(spell.name, style = MaterialTheme.typography.titleSmall)
+                    if (fixed) {
+                        Text(
+                            state.t("Granted", "Gewährt"),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
+                Text(
+                    "${spellLevelLabel(state, spell.level)} · ${state.t("Range", "Reichweite")}: ${spellRangeLabel(state, spell)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    state.t("Damage / utility", "Schaden / Nutzen") + ": " + spellShortEffect(state, spell),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            IconButton(onClick = { showCreationSpellInfo(state, spell) }) {
+                Icon(Icons.Rounded.Info, contentDescription = state.t("About ${spell.name}", "Info zu ${spell.name}"))
+            }
+        }
+    }
+}
+
+@Composable
+private fun CreationSpellPicker(
+    state: DndAppState,
+    selection: CreationSpellSelectionUi,
+    onDismiss: () -> Unit,
+) {
+    var search by remember { mutableStateOf("") }
+    val selectedIds = selection.selected.mapTo(hashSetOf(), SpellUi::id)
+    val filtered = remember(search, selection.options) {
+        val needle = search.trim()
+        selection.options.filter { spell ->
+            needle.isBlank() || spell.name.contains(needle, true) || spell.summary.contains(needle, true) ||
+                spell.rulesText.effect.contains(needle, true) || spell.level.toString() == needle
+        }
+    }
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier.fillMaxWidth().fillMaxHeight(.9f),
+            shape = RoundedCornerShape(24.dp),
+        ) {
+            Column(Modifier.fillMaxSize()) {
+                Surface(shadowElevation = 5.dp, tonalElevation = 2.dp) {
+                    Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text(state.t("Add spells", "Zauber hinzufügen"), modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
+                            TextButton(onClick = onDismiss) { Text(state.t("Done", "Fertig")) }
+                        }
+                        OutlinedTextField(
+                            value = search,
+                            onValueChange = { search = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
+                            label = { Text(state.t("Search spells", "Zauber suchen")) },
+                            singleLine = true,
+                            shape = RoundedCornerShape(16.dp),
+                        )
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            if (selection.cantripLimit > 0) {
+                                Text(
+                                    state.t("Cantrips", "Zaubertricks") + " ${selection.selected.count { it.level == 0 }}/${selection.cantripLimit}",
+                                    style = MaterialTheme.typography.labelMedium,
+                                )
+                            }
+                            if (selection.leveledSpellLimit > 0) {
+                                Text(
+                                    "${selection.leveledLabel} ${selection.selected.count { it.level > 0 }}/${selection.leveledSpellLimit}",
+                                    style = MaterialTheme.typography.labelMedium,
+                                )
+                            }
+                        }
+                    }
+                }
+                LazyColumn(
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(9.dp),
+                ) {
+                    if (filtered.isEmpty()) {
+                        item {
+                            Text(
+                                state.t("No matching spells.", "Keine passenden Zauber."),
+                                modifier = Modifier.padding(vertical = 20.dp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    groupCreationSpells(filtered).forEach { (level, spells) ->
+                        item(key = "level-$level") {
+                            Text(
+                                spellLevelLabel(state, level),
+                                modifier = Modifier.padding(top = 6.dp),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                        items(spells, key = SpellUi::id) { spell ->
+                            SpellPickerOptionCard(
+                                state = state,
+                                spell = spell,
+                                selected = spell.id in selectedIds,
+                                onToggle = { state.toggleCreationSpell(spell.id) },
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpellPickerOptionCard(
+    state: DndAppState,
+    spell: SpellUi,
+    selected: Boolean,
+    onToggle: () -> Unit,
+) {
+    OutlinedCard(
+        onClick = onToggle,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.outlinedCardColors(
+            containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = .5f) else MaterialTheme.colorScheme.surface,
+        ),
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Checkbox(checked = selected, onCheckedChange = null)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(spell.name, style = MaterialTheme.typography.titleSmall)
+                Text(
+                    state.t("Range", "Reichweite") + ": ${spellRangeLabel(state, spell)} · " + spellShortEffect(state, spell),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            IconButton(onClick = { showCreationSpellInfo(state, spell) }) {
+                Icon(Icons.Rounded.Info, contentDescription = state.t("About ${spell.name}", "Info zu ${spell.name}"))
+            }
+        }
+    }
+}
+
+private fun spellLevelLabel(state: DndAppState, level: Int): String = if (level == 0) {
+    state.t("Cantrips", "Zaubertricks")
+} else if (state.creation.ruleset == Ruleset.Pf2eRemaster) {
+    state.t("Rank $level", "Rang $level")
+} else {
+    state.t("Level $level", "Grad $level")
+}
+
+private fun spellRangeLabel(state: DndAppState, spell: SpellUi): String {
+    spell.rulesText.range.takeIf(String::isNotBlank)?.let { return it }
+    val range = Regex("(?i)\\b(self|touch|\\d+\\s*(?:ft|feet|foot|m|meter))\\b").find(spell.summary)?.value
+    return range ?: state.t("Range not listed", "Reichweite nicht angegeben")
+}
+
+private fun spellShortEffect(state: DndAppState, spell: SpellUi): String {
+    val effect = spell.castPreviews[spell.level.coerceAtLeast(1)]
+        ?: spell.summary.takeIf(String::isNotBlank)
+        ?: spell.rulesText.effect.takeIf(String::isNotBlank)
+        ?: state.t("Utility spell", "Nutzzauber")
+    val firstLine = effect.lineSequence().firstOrNull { it.isNotBlank() }?.trim().orEmpty()
+    val firstSentence = firstLine.substringBefore(". ").trim()
+    return firstSentence.take(180).ifBlank { state.t("Utility spell", "Nutzzauber") }
+}
+
+private fun showCreationSpellInfo(state: DndAppState, spell: SpellUi) {
+    val body = buildList {
+        add("${spellLevelLabel(state, spell.level)} · ${state.t("Range", "Reichweite")}: ${spellRangeLabel(state, spell)}")
+        add(state.t("Damage / utility", "Schaden / Nutzen") + ": " + spellShortEffect(state, spell))
+        spell.rulesText.duration.takeIf(String::isNotBlank)?.let { add(state.t("Duration: $it", "Dauer: $it")) }
+    }.joinToString("\n\n")
+    state.showInfo(spell.name, body, spell.activationCost.toCostTokens())
+}
+
+internal fun shouldPulseClassSkillLimit(
+    alreadySelected: Boolean,
+    selectedCount: Int,
+    selectionLimit: Int,
+): Boolean = !alreadySelected && selectedCount >= selectionLimit
+
+internal fun filterCreationBackgrounds(
+    backgrounds: List<BackgroundDefinitionUi>,
+    selectedClassSkillIds: Set<String>,
+    selectedBackgroundId: String?,
+): List<BackgroundDefinitionUi> = backgrounds.filter { background ->
+    background.id == selectedBackgroundId || background.allGrantedSkillIds.none { it in selectedClassSkillIds }
+}
+
+@Composable
+private fun PulsingSelectionCount(text: String, pulseSignal: Int) {
+    var pulsing by remember { mutableStateOf(false) }
+    LaunchedEffect(pulseSignal) {
+        if (pulseSignal == 0) return@LaunchedEffect
+        pulsing = true
+        delay(170)
+        pulsing = false
+    }
+    val color by animateColorAsState(
+        targetValue = if (pulsing) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+        animationSpec = tween(130),
+    )
+    val scale by animateFloatAsState(
+        targetValue = if (pulsing) 1.1f else 1f,
+        animationSpec = tween(130),
+    )
+    Text(
+        text,
+        modifier = Modifier.graphicsLayer {
+            scaleX = scale
+            scaleY = scale
+        },
+        style = MaterialTheme.typography.titleMedium,
+        color = color,
+    )
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun BackgroundSelector(
+    state: DndAppState,
+    selected: BackgroundDefinitionUi?,
+    options: List<BackgroundDefinitionUi>,
+    rankSkillOptions: List<CreationSkillOptionUi>,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
+    onSelected: (String) -> Unit,
+) {
+    Text(state.t("Background", "Hintergrund"), style = MaterialTheme.typography.titleMedium)
+    OutlinedCard(
+        onClick = { onExpandedChange(!expanded) },
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.outlinedCardColors(
+            containerColor = if (selected == null) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.primaryContainer.copy(alpha = .35f),
+        ),
+    ) {
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(
+                selected?.name(state.language) ?: state.t("Choose a background", "Hintergrund wählen"),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            selected?.let { background ->
+                BackgroundSkillChips(
+                    state = state,
+                    background = background,
+                    rankSkillOptions = rankSkillOptions,
+                    additionalSkillIds = state.creation.backgroundSkillIds.toSet(),
+                )
+            }
+            Text(
+                if (expanded) state.t("Close list", "Liste schließen") else state.t("Open background list", "Hintergrundliste öffnen"),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+    }
+    if (expanded) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .45f)),
+        ) {
+            Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (options.isEmpty()) {
+                    Text(
+                        state.t("No background fits the selected class skills.", "Kein Hintergrund passt zu den gewählten Klassenfertigkeiten."),
+                        modifier = Modifier.padding(6.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+                options.forEach { option ->
+                    OutlinedCard(
+                        onClick = { onSelected(option.id) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(15.dp),
+                        colors = CardDefaults.outlinedCardColors(
+                            containerColor = if (selected?.id == option.id) MaterialTheme.colorScheme.primaryContainer.copy(alpha = .5f) else MaterialTheme.colorScheme.surface,
+                        ),
+                    ) {
+                        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Text(option.name(state.language), modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
+                                if (selected?.id == option.id) {
+                                    Icon(Icons.Rounded.Check, contentDescription = state.t("Selected", "Ausgewählt"), tint = MaterialTheme.colorScheme.primary)
+                                }
+                            }
+                            BackgroundSkillChips(state, option, rankSkillOptions)
+                            if (option.customSkillCount > 0) {
+                                Text(
+                                    state.t("Choose ${option.customSkillCount} skills", "${option.customSkillCount} Fertigkeiten wählen"),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun BackgroundSkillChips(
+    state: DndAppState,
+    background: BackgroundDefinitionUi,
+    rankSkillOptions: List<CreationSkillOptionUi>,
+    additionalSkillIds: Set<String> = emptySet(),
+) {
+    val skillIds = background.allGrantedSkillIds + additionalSkillIds
+    if (skillIds.isEmpty()) return
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+        skillIds.forEach { skillId ->
+            val known = rankSkillOptions.firstOrNull { it.id == skillId }
+            val definition = ProficiencyCatalog.skill(state.creation.ruleset, skillId, background.id)
+            val name = known?.name ?: definition?.name(state.language) ?: skillId.substringAfterLast(':')
+            AssistChip(
+                onClick = {
+                    state.showInfo(
+                        name,
+                        buildString {
+                            append(definition?.ability ?: known?.ability.orEmpty())
+                            append("\n\n")
+                            append(creationSkillDescription(state, skillId))
+                        },
+                    )
+                },
+                label = { Text(name) },
+                leadingIcon = { Icon(Icons.Rounded.Info, contentDescription = null, modifier = Modifier.size(16.dp)) },
+            )
+        }
+    }
+}
+
+private fun showCreationSkillInfo(state: DndAppState, skill: CreationSkillOptionUi) {
+    state.showInfo(skill.name, "${skill.ability}\n\n${creationSkillDescription(state, skill.id)}")
+}
+
+internal fun creationSkillDescription(state: DndAppState, skillId: String): String = when (skillId.substringAfter("skill:")) {
+    "acrobatics" -> state.t("Balance, tumble, and stay on your feet.", "Balancieren, abrollen und auf den Beinen bleiben.")
+    "animal-handling" -> state.t("Calm, guide, or understand an animal.", "Tiere beruhigen, führen oder verstehen.")
+    "arcana" -> state.t("Recall lore about magic, spells, and planes.", "Wissen über Magie, Zauber und Ebenen abrufen.")
+    "athletics" -> state.t("Climb, jump, swim, grapple, or shove.", "Klettern, springen, schwimmen, ringen oder stoßen.")
+    "crafting" -> state.t("Create, repair, and identify crafted objects.", "Gegenstände herstellen, reparieren und identifizieren.")
+    "deception" -> state.t("Mislead someone through words or disguise.", "Andere durch Worte oder Verkleidung täuschen.")
+    "diplomacy", "persuasion" -> state.t("Influence others through reason and goodwill.", "Andere durch Vernunft und guten Willen beeinflussen.")
+    "history" -> state.t("Recall people, places, events, and cultures of the past.", "Personen, Orte, Ereignisse und Kulturen der Vergangenheit kennen.")
+    "insight" -> state.t("Read motives, emotions, and hidden intent.", "Motive, Gefühle und verborgene Absichten erkennen.")
+    "intimidation" -> state.t("Pressure someone with threats or presence.", "Andere durch Drohungen oder Auftreten unter Druck setzen.")
+    "investigation" -> state.t("Find clues and reason out how they connect.", "Hinweise finden und ihre Zusammenhänge erschließen.")
+    "medicine" -> state.t("Assess injuries, stabilize, and provide treatment.", "Verletzungen beurteilen, stabilisieren und behandeln.")
+    "nature" -> state.t("Recall lore about terrain, plants, animals, and weather.", "Wissen über Gelände, Pflanzen, Tiere und Wetter abrufen.")
+    "occultism" -> state.t("Recall lore about occult magic and strange creatures.", "Wissen über okkulte Magie und fremdartige Wesen abrufen.")
+    "perception" -> state.t("Notice creatures, objects, and subtle changes.", "Wesen, Gegenstände und feine Veränderungen bemerken.")
+    "performance" -> state.t("Entertain or impress through a practiced art.", "Durch eine geübte Kunst unterhalten oder beeindrucken.")
+    "religion" -> state.t("Recall lore about faiths, deities, and divine magic.", "Wissen über Glauben, Gottheiten und göttliche Magie abrufen.")
+    "sleight-of-hand", "thievery" -> state.t("Handle small objects unnoticed and defeat simple mechanisms.", "Kleine Gegenstände unbemerkt handhaben und Mechanismen überwinden.")
+    "society" -> state.t("Recall customs, institutions, and local history.", "Bräuche, Institutionen und lokale Geschichte kennen.")
+    "stealth" -> state.t("Hide and move without being noticed.", "Verbergen und unbemerkt bewegen.")
+    "survival" -> state.t("Navigate, track, forage, and endure the wilds.", "Navigieren, Spuren lesen, Nahrung finden und die Wildnis überstehen.")
+    else -> if (skillId.startsWith("skill:lore:")) {
+        state.t("Recall specialized knowledge about this subject.", "Spezialwissen zu diesem Thema abrufen.")
+    } else {
+        state.t("Apply this skill when its training is relevant.", "Diese Fertigkeit einsetzen, wenn ihre Übung relevant ist.")
     }
 }
 
@@ -1057,6 +1703,7 @@ private fun CreationSkillChoiceCard(
     skill: CreationSkillOptionUi,
     selected: Boolean,
     rankControl: Boolean = false,
+    description: String? = null,
     onClick: () -> Unit,
 ) {
     OutlinedCard(
@@ -1076,6 +1723,9 @@ private fun CreationSkillChoiceCard(
             Column(Modifier.weight(1f)) {
                 Text(skill.name, style = MaterialTheme.typography.titleSmall)
                 Text(skill.ability, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                description?.let {
+                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
             skill.rank?.let { rank ->
                 Text(rank.displayName(state.language), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
@@ -1123,10 +1773,21 @@ private fun GearStep(state: DndAppState) {
         if (draft.startingWeapons.isNotEmpty() || draft.startingEquipment.isNotEmpty()) {
             Text(state.t("Selected items", "Ausgewählte Gegenstände"), style = MaterialTheme.typography.titleSmall)
             draft.startingWeapons.forEach { weapon ->
-                CreationGearRow(weapon.name, onRemove = { state.removeCreationWeapon(weapon.id) })
+                CreationGearRow(
+                    state = state,
+                    name = weapon.name,
+                    quantity = weapon.quantity,
+                    onQuantityChange = { state.updateCreationWeaponQuantity(weapon.id, it) },
+                    onRemove = { state.removeCreationWeapon(weapon.id) },
+                )
             }
             draft.startingEquipment.forEach { item ->
-                CreationGearRow(item.name, onRemove = { state.removeCreationEquipment(item.id) })
+                CreationGearRow(
+                    state = state,
+                    name = item.name,
+                    quantity = item.quantity,
+                    onRemove = { state.removeCreationEquipment(item.id) },
+                )
             }
             if (draft.startingGoldPieces > 0) {
                 Text("${draft.startingGoldPieces} GP", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
@@ -1136,11 +1797,30 @@ private fun GearStep(state: DndAppState) {
 }
 
 @Composable
-private fun CreationGearRow(name: String, onRemove: () -> Unit) {
+private fun CreationGearRow(
+    state: DndAppState,
+    name: String,
+    quantity: Int,
+    onQuantityChange: ((Int) -> Unit)? = null,
+    onRemove: () -> Unit,
+) {
     Surface(shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .55f)) {
         Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 4.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-            IconButton(onClick = onRemove) { Icon(Icons.Rounded.Close, contentDescription = null) }
+            if (onQuantityChange != null) {
+                IconButton(onClick = { onQuantityChange(quantity - 1) }, enabled = quantity > 1) {
+                    Icon(Icons.Rounded.Remove, contentDescription = state.t("Decrease $name quantity", "Anzahl $name verringern"))
+                }
+                Text("×$quantity", style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center)
+                IconButton(onClick = { onQuantityChange(quantity + 1) }) {
+                    Icon(Icons.Rounded.Add, contentDescription = state.t("Increase $name quantity", "Anzahl $name erhöhen"))
+                }
+            } else if (quantity > 1) {
+                Text("×$quantity", style = MaterialTheme.typography.labelLarge)
+            }
+            IconButton(onClick = onRemove) {
+                Icon(Icons.Rounded.Close, contentDescription = state.t("Remove $name", "$name entfernen"))
+            }
         }
     }
 }

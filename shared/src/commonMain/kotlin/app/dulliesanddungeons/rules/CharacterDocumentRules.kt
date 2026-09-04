@@ -51,6 +51,9 @@ object CharacterDocumentValidator {
         duplicateIds(document.sheet.weapons.map { it.id }).forEach {
             add(ValidationIssue("weapon.duplicate", "Weapon record ID $it is duplicated", "sheet.weapons"))
         }
+        if (document.sheet.weapons.any { it.quantity !in 1..999 }) {
+            add(ValidationIssue("weapon.quantity", "Weapon quantities must be between 1 and 999", "sheet.weapons"))
+        }
         duplicateIds(document.sheet.spells.map { it.id }).forEach {
             add(ValidationIssue("spell.duplicate", "Spell record ID $it is duplicated", "sheet.spells"))
         }

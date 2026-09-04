@@ -2470,7 +2470,7 @@ private fun WeaponRow(state: DndAppState, character: CharacterUi, weapon: Weapon
             }
             Spacer(Modifier.width(11.dp))
             Column(Modifier.weight(1f)) {
-                Text(weapon.name, style = MaterialTheme.typography.titleSmall)
+                Text(weapon.name + if (weapon.quantity > 1) " ×${weapon.quantity}" else "", style = MaterialTheme.typography.titleSmall)
                 Text("${signed(weapon.attackBonus)} · ${weapon.damage} ${weapon.damageType}", style = MaterialTheme.typography.bodyMedium)
                 val detail = listOf("${weapon.reachFeet} ft", weapon.range, weapon.mastery, weapon.properties).filter { it.isNotBlank() }.joinToString(" · ")
                 if (detail.isNotBlank()) Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)

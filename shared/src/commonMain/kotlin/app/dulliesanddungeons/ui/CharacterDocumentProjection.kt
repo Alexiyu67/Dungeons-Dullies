@@ -716,6 +716,7 @@ private fun WeaponUi.toDomain(): WeaponRecord {
         useCase = useCase,
         classification = resolvedClassification(),
         combatContributions = combatContributions,
+        quantity = quantity,
     )
 }
 
@@ -751,6 +752,7 @@ private fun WeaponRecord.toUi(build: CharacterBuild, proficiency: Int): WeaponUi
     useCase = useCase,
     classification = classification,
     combatContributions = combatContributions,
+    quantity = quantity,
 )
 }
 

@@ -229,6 +229,39 @@ class ProficiencyFlowTest {
             assertTrue(backgrounds.all { it.id.startsWith("background:") && it.englishName.isNotBlank() && it.germanName.isNotBlank() })
         }
     }
+
+    @Test
+    fun classSkillListsFollowTheSelectedFifthEdition() {
+        val fighter2014 = ProficiencyCatalog.classDefinition(Ruleset.Fifth2014, "Fighter")
+        val fighter2024 = ProficiencyCatalog.classDefinition(Ruleset.Fifth2024, "Fighter")
+        val rogue2014 = ProficiencyCatalog.classDefinition(Ruleset.Fifth2014, "Rogue")
+        val rogue2024 = ProficiencyCatalog.classDefinition(Ruleset.Fifth2024, "Rogue")
+        val wizard2024 = ProficiencyCatalog.classDefinition(Ruleset.Fifth2024, "Wizard")
+
+        assertFalse("skill:persuasion" in fighter2014.classSkillIds)
+        assertTrue("skill:persuasion" in fighter2024.classSkillIds)
+        assertTrue("skill:performance" in rogue2014.classSkillIds)
+        assertFalse("skill:performance" in rogue2024.classSkillIds)
+        assertTrue("skill:nature" in wizard2024.classSkillIds)
+    }
+
+    @Test
+    fun pf2eFighterMustIncludeAcrobaticsOrAthleticsWithoutForcingEitherOne() {
+        val state = DndAppState(ProficiencyStore())
+        state.beginCreate()
+        state.selectCreationRuleset(Ruleset.Pf2eRemaster)
+        state.selectCreationBackground("background:scholar")
+        val required = setOf("skill:acrobatics", "skill:athletics")
+        state.creationClassSkillOptions()
+            .filterNot { it.id in required }
+            .take(state.creationClassSkillCount())
+            .forEach { state.toggleCreationClassSkill(it.id) }
+
+        assertFalse(state.creationProficiencySelectionValid())
+        state.toggleCreationClassSkill(state.creation.classSkillIds.first())
+        state.toggleCreationClassSkill("skill:acrobatics")
+        assertTrue(state.creationProficiencySelectionValid())
+    }
 }
 
 private class ProficiencyStore(private var stored: String? = null) : LocalStateStore {

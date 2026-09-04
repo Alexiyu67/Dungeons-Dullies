@@ -26,6 +26,132 @@ class PrivateContentTest {
     }
 
     @Test
+    fun importedSummaryKeepsAuthoredTextAndReplacesOnlyGenericFeaturePlaceholders() {
+        val mechanics = PrivateMechanicsUi(
+            unlockLevel = 1,
+            actionCost = ActionCost(bonusActions = 1),
+            resource = PrivateResourceMechanicsUi(3, Recovery.LONG_REST),
+        )
+        val placeholder = PrivateContentEntryUi(
+            id = "feature-inspiration",
+            kind = "feature",
+            name = "Inspiration",
+            summary = "Inspiration feature unlocked at class level 1.",
+            mechanics = mechanics,
+        ).toPrivateEntry("private.test", "1.0.0")
+        val authored = PrivateContentEntryUi(
+            id = "feature-authored",
+            kind = "feature",
+            name = "Authored",
+            summary = "Grant an ally a die they can add to one eligible roll.",
+            mechanics = mechanics,
+        ).toPrivateEntry("private.test", "1.0.0")
+        val blankClass = PrivateContentEntryUi(
+            id = "class-blank",
+            kind = "class",
+            name = "Blank",
+        ).toPrivateEntry("private.test", "1.0.0")
+
+        assertEquals(
+            "Activation: Bonus Action. Tracks 3 uses; Long Rest recovery. " +
+                "Effect details were not supplied by the imported content pack.",
+            placeholder.summary,
+        )
+        assertEquals("Grant an ally a die they can add to one eligible roll.", authored.summary)
+        assertEquals(ActionCost(bonusActions = 1), placeholder.mechanics.actionCost)
+        assertEquals("", blankClass.summary)
+    }
+
+    @Test
+    fun automaticImportedFeaturesMatchOnlyTheirExplicitOwnerAndKeepActivationMetadata() {
+        val state = DndAppState()
+        val source = "private.handbook"
+        val version = "1.0.0"
+        fun imported(
+            id: String,
+            kind: String,
+            name: String,
+            summary: String = "",
+            mechanics: PrivateMechanicsUi = PrivateMechanicsUi(),
+        ) = PrivateEntryUi(
+            id = id,
+            kind = kind,
+            name = name,
+            summary = summary,
+            mechanics = mechanics,
+            sourcePackId = source,
+            sourcePackVersion = version,
+        )
+
+        state.addPrivateEntry(imported("class-fighter", "class", "Fighter"))
+        state.addPrivateEntry(imported("class-bard", "class", "Bard"))
+        state.addPrivateEntry(imported(
+            id = "feature-bardic-inspiration",
+            kind = "feature",
+            name = "Bardic Inspiration",
+            summary = "Bardic Inspiration feature unlocked at class level 1.",
+            mechanics = PrivateMechanicsUi(
+                parentClassId = "class-bard",
+                unlockLevel = 1,
+                grantAutomatically = true,
+            ),
+        ))
+        state.addPrivateEntry(imported(
+            id = "feature-fighter-focus",
+            kind = "feature",
+            name = "Fighter Focus",
+            summary = "Fighter Focus feature unlocked at class level 1.",
+            mechanics = PrivateMechanicsUi(
+                parentClassId = "class-fighter",
+                unlockLevel = 1,
+                actionCost = ActionCost(bonusActions = 1),
+                resource = PrivateResourceMechanicsUi(2, Recovery.SHORT_REST),
+                grantAutomatically = true,
+            ),
+        ))
+        state.addPrivateEntry(imported(
+            id = "feature-orphaned",
+            kind = "feature",
+            name = "Orphaned Feature",
+            mechanics = PrivateMechanicsUi(unlockLevel = 1, grantAutomatically = true),
+        ))
+        state.addPrivateEntry(imported(
+            id = "feat-counter-signal",
+            kind = "feat",
+            name = "Counter Signal",
+            summary = "Signal an ally when danger appears.",
+            mechanics = PrivateMechanicsUi(
+                actionCost = ActionCost(reactions = 1),
+                resource = PrivateResourceMechanicsUi(1, Recovery.LONG_REST),
+            ),
+        ))
+
+        state.beginCreate()
+        state.creation.name = "Explicit Owner"
+        state.selectCreationClass("Fighter")
+        state.creation.selectedFeatIds += "feat-counter-signal"
+        state.finishCreateWithRequiredProficiencies()
+
+        val created = state.selectedCharacter!!
+        assertFalse(created.features.any { it.name == "Bardic Inspiration" })
+        assertFalse(created.features.any { it.name == "Orphaned Feature" })
+        val fighterFeature = created.features.single { it.name == "Fighter Focus" }
+        assertEquals(ActionCost(bonusActions = 1), fighterFeature.actionCost)
+        assertEquals(2, fighterFeature.remaining)
+        assertEquals(Recovery.SHORT_REST, fighterFeature.recovery)
+        assertEquals(
+            "Activation: Bonus Action. Tracks 2 uses; Short Rest recovery. " +
+                "Effect details were not supplied by the imported content pack.",
+            fighterFeature.summary,
+        )
+        val selectedFeat = created.features.single { it.name == "Counter Signal" }
+        assertEquals(ActionCost(reactions = 1), selectedFeat.actionCost)
+        assertEquals(1, selectedFeat.remaining)
+        assertEquals(Recovery.LONG_REST, selectedFeat.recovery)
+        assertEquals("Signal an ally when danger appears.", selectedFeat.summary)
+    }
+
+    @Test
     fun unknownDocumentFieldsAreRejected() {
         assertFailsWith<Exception> {
             decodePrivateContent(
