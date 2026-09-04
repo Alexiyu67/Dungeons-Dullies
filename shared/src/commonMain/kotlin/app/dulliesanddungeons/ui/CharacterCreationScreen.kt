@@ -88,6 +88,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import app.dulliesanddungeons.domain.CurrencyPurse
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
@@ -920,9 +921,9 @@ private fun DetailsStep(
     val backgrounds = state.creationBackgroundOptions().sortedForPicker(state.language, { it.name(state.language) }, BackgroundDefinitionUi::id)
     val background = state.selectedCreationBackground()
     val rankSkillOptions = state.creationRankSkillOptions()
-    val filteredBackgrounds = filterCreationBackgrounds(backgrounds, draft.classSkillIds.toSet(), draft.backgroundId)
     var languageText by remember(draft.ruleset) { mutableStateOf(draft.languages.joinToString(", ")) }
     var backgroundListOpen by remember(draft.ruleset, draft.className) { mutableStateOf(false) }
+    var featListOpen by remember(draft.ruleset, draft.className, draft.level) { mutableStateOf(false) }
     var classSkillLimitPulse by remember(draft.ruleset, draft.className) { mutableIntStateOf(0) }
     val suggestedLanguages = languageSuggestions(languageText, state.creationLanguageOptions())
     LaunchedEffect(spellSelection) {
@@ -992,7 +993,7 @@ private fun DetailsStep(
         BackgroundSelector(
             state = state,
             selected = background,
-            options = filteredBackgrounds,
+            options = backgrounds,
             rankSkillOptions = rankSkillOptions,
             expanded = backgroundListOpen,
             onExpandedChange = { backgroundListOpen = it },
@@ -1077,18 +1078,22 @@ private fun DetailsStep(
         }
         if (draft.ruleset != Ruleset.Pf2eRemaster && featChoices > 0) {
             Text(state.t("Feat choices · ${draft.selectedFeatIds.size}/$featChoices", "Talentwahlen · ${draft.selectedFeatIds.size}/$featChoices"), style = MaterialTheme.typography.titleMedium)
-            featOptions.forEach { feat ->
+            OutlinedCard(onClick = { featListOpen = true }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+                Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Rounded.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(10.dp))
+                    Text(state.t("Search and choose feats", "Talente suchen und wählen"), modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
+                    Icon(Icons.Rounded.ChevronRight, contentDescription = null)
+                }
+            }
+            featOptions.filter { it.id in draft.selectedFeatIds }.forEach { feat ->
                 FeatSelectionCard(
                     state = state,
                     feat = feat,
-                    selected = feat.id in draft.selectedFeatIds,
+                    selected = true,
                     onClick = {
-                        if (feat.id in draft.selectedFeatIds) {
-                            draft.selectedFeatIds.remove(feat.id)
-                            if (feat.id == "skilled") draft.featSkillIds.clear()
-                        } else if (draft.selectedFeatIds.size < featChoices) {
-                            draft.selectedFeatIds += feat.id
-                        }
+                        draft.selectedFeatIds.remove(feat.id)
+                        if (feat.id == "skilled") draft.featSkillIds.clear()
                     },
                 )
             }
@@ -1112,12 +1117,20 @@ private fun DetailsStep(
         }
         if (draft.ruleset == Ruleset.Pf2eRemaster && featOptions.isNotEmpty()) {
             Text(state.t("Approved private feats", "Freigegebene private Talente"), style = MaterialTheme.typography.titleMedium)
-            featOptions.forEach { feat ->
+            OutlinedCard(onClick = { featListOpen = true }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+                Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Rounded.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(10.dp))
+                    Text(state.t("Search and choose feats", "Talente suchen und wählen"), modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
+                    Icon(Icons.Rounded.ChevronRight, contentDescription = null)
+                }
+            }
+            featOptions.filter { it.id in draft.selectedFeatIds }.forEach { feat ->
                 FeatSelectionCard(
                     state = state,
                     feat = feat,
-                    selected = feat.id in draft.selectedFeatIds,
-                    onClick = { if (feat.id in draft.selectedFeatIds) draft.selectedFeatIds.remove(feat.id) else draft.selectedFeatIds += feat.id },
+                    selected = true,
+                    onClick = { draft.selectedFeatIds.remove(feat.id) },
                 )
             }
         }
@@ -1132,6 +1145,24 @@ private fun DetailsStep(
         ExplanationCard(
             state.t("Nothing gets silently removed", "Nichts wird unbemerkt entfernt"),
             state.t("If an earlier choice changes, we show everything that needs review before saving.", "Wenn sich eine frühere Wahl ändert, zeigen wir vor dem Speichern alles, was geprüft werden muss."),
+        )
+    }
+    if (featListOpen) {
+        FeatPickerDialog(
+            state = state,
+            options = featOptions,
+            selectedIds = draft.selectedFeatIds.toSet(),
+            selectionLimit = featChoices.takeIf { draft.ruleset != Ruleset.Pf2eRemaster },
+            singleSelection = false,
+            onToggle = { feat ->
+                if (feat.id in draft.selectedFeatIds) {
+                    draft.selectedFeatIds.remove(feat.id)
+                    if (feat.id == "skilled") draft.featSkillIds.clear()
+                } else if (draft.ruleset == Ruleset.Pf2eRemaster || draft.selectedFeatIds.size < featChoices) {
+                    draft.selectedFeatIds += feat.id
+                }
+            },
+            onDismiss = { featListOpen = false },
         )
     }
 }
@@ -1511,10 +1542,18 @@ internal fun shouldPulseClassSkillLimit(
 
 internal fun filterCreationBackgrounds(
     backgrounds: List<BackgroundDefinitionUi>,
-    selectedClassSkillIds: Set<String>,
-    selectedBackgroundId: String?,
+    query: String,
+    language: UiLanguage,
+    ruleset: Ruleset,
 ): List<BackgroundDefinitionUi> = backgrounds.filter { background ->
-    background.id == selectedBackgroundId || background.allGrantedSkillIds.none { it in selectedClassSkillIds }
+    val needle = query.trim()
+    needle.isBlank() || buildList {
+        add(background.name(language))
+        add(background.id)
+        background.allGrantedSkillIds.forEach { skillId ->
+            add(ProficiencyCatalog.skill(ruleset, skillId, background.id)?.name(language) ?: skillId.substringAfterLast(':'))
+        }
+    }.any { it.contains(needle, ignoreCase = true) }
 }
 
 @Composable
@@ -1565,63 +1604,117 @@ private fun BackgroundSelector(
             containerColor = if (selected == null) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.primaryContainer.copy(alpha = .35f),
         ),
     ) {
-        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(
-                selected?.name(state.language) ?: state.t("Choose a background", "Hintergrund wählen"),
-                style = MaterialTheme.typography.titleMedium,
-            )
-            selected?.let { background ->
-                BackgroundSkillChips(
-                    state = state,
-                    background = background,
-                    rankSkillOptions = rankSkillOptions,
-                    additionalSkillIds = state.creation.backgroundSkillIds.toSet(),
+        Row(
+            Modifier.fillMaxWidth().padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    selected?.name(state.language) ?: state.t("Choose a background", "Hintergrund wählen"),
+                    style = MaterialTheme.typography.titleMedium,
                 )
+                selected?.let { background ->
+                    BackgroundSkillChips(
+                        state = state,
+                        background = background,
+                        rankSkillOptions = rankSkillOptions,
+                        additionalSkillIds = state.creation.backgroundSkillIds.toSet(),
+                    )
+                }
             }
-            Text(
-                if (expanded) state.t("Close list", "Liste schließen") else state.t("Open background list", "Hintergrundliste öffnen"),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
+            Icon(
+                Icons.Rounded.Search,
+                contentDescription = state.t("Search backgrounds", "Hintergründe durchsuchen"),
+                tint = MaterialTheme.colorScheme.primary,
             )
         }
     }
     if (expanded) {
+        BackgroundPickerDialog(
+            state = state,
+            selected = selected,
+            options = options,
+            rankSkillOptions = rankSkillOptions,
+            onDismiss = { onExpandedChange(false) },
+            onSelected = onSelected,
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun BackgroundPickerDialog(
+    state: DndAppState,
+    selected: BackgroundDefinitionUi?,
+    options: List<BackgroundDefinitionUi>,
+    rankSkillOptions: List<CreationSkillOptionUi>,
+    onDismiss: () -> Unit,
+    onSelected: (String) -> Unit,
+) {
+    var search by remember { mutableStateOf("") }
+    val filtered = remember(search, options, state.language, state.creation.ruleset) {
+        filterCreationBackgrounds(options, search, state.language, state.creation.ruleset)
+    }
+    Dialog(onDismissRequest = onDismiss) {
         Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .45f)),
+            modifier = Modifier.fillMaxWidth().fillMaxHeight(.9f),
+            shape = RoundedCornerShape(24.dp),
         ) {
-            Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                if (options.isEmpty()) {
-                    Text(
-                        state.t("No background fits the selected class skills.", "Kein Hintergrund passt zu den gewählten Klassenfertigkeiten."),
-                        modifier = Modifier.padding(6.dp),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
+            Column(Modifier.fillMaxSize()) {
+                Surface(shadowElevation = 5.dp, tonalElevation = 2.dp) {
+                    Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text(state.t("Choose background", "Hintergrund wählen"), modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
+                            TextButton(onClick = onDismiss) { Text(state.t("Close", "Schließen")) }
+                        }
+                        OutlinedTextField(
+                            value = search,
+                            onValueChange = { search = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
+                            label = { Text(state.t("Search backgrounds", "Hintergründe suchen")) },
+                            singleLine = true,
+                            shape = RoundedCornerShape(16.dp),
+                        )
+                    }
                 }
-                options.forEach { option ->
-                    OutlinedCard(
-                        onClick = { onSelected(option.id) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(15.dp),
-                        colors = CardDefaults.outlinedCardColors(
-                            containerColor = if (selected?.id == option.id) MaterialTheme.colorScheme.primaryContainer.copy(alpha = .5f) else MaterialTheme.colorScheme.surface,
-                        ),
-                    ) {
-                        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                Text(option.name(state.language), modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
-                                if (selected?.id == option.id) {
-                                    Icon(Icons.Rounded.Check, contentDescription = state.t("Selected", "Ausgewählt"), tint = MaterialTheme.colorScheme.primary)
+                LazyColumn(
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(9.dp),
+                ) {
+                    if (filtered.isEmpty()) item {
+                        Text(
+                            state.t("No matching backgrounds.", "Keine passenden Hintergründe."),
+                            modifier = Modifier.padding(vertical = 20.dp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    items(filtered, key = BackgroundDefinitionUi::id) { option ->
+                        OutlinedCard(
+                            onClick = { onSelected(option.id) },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(15.dp),
+                            colors = CardDefaults.outlinedCardColors(
+                                containerColor = if (selected?.id == option.id) MaterialTheme.colorScheme.primaryContainer.copy(alpha = .5f) else MaterialTheme.colorScheme.surface,
+                            ),
+                        ) {
+                            Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                    Text(option.name(state.language), modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
+                                    if (selected?.id == option.id) {
+                                        Icon(Icons.Rounded.Check, contentDescription = state.t("Selected", "Ausgewählt"), tint = MaterialTheme.colorScheme.primary)
+                                    }
                                 }
-                            }
-                            BackgroundSkillChips(state, option, rankSkillOptions)
-                            if (option.customSkillCount > 0) {
-                                Text(
-                                    state.t("Choose ${option.customSkillCount} skills", "${option.customSkillCount} Fertigkeiten wählen"),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
+                                BackgroundSkillChips(state, option, rankSkillOptions)
+                                if (option.customSkillCount > 0) {
+                                    Text(
+                                        state.t("Choose ${option.customSkillCount} skills", "${option.customSkillCount} Fertigkeiten wählen"),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
                             }
                         }
                     }
@@ -1759,6 +1852,12 @@ private fun GearStep(state: DndAppState) {
                 }
             }
         }
+        Text(state.t("Starting coins", "Startmünzen"), style = MaterialTheme.typography.titleSmall)
+        CurrencyOverview(
+            state = state,
+            ruleset = draft.ruleset,
+            currency = CurrencyPurse(gold = draft.startingGoldPieces),
+        )
         EditableReviewRow(
             state = state,
             label = state.t("Starting armor", "Startrüstung"),
@@ -1788,9 +1887,6 @@ private fun GearStep(state: DndAppState) {
                     quantity = item.quantity,
                     onRemove = { state.removeCreationEquipment(item.id) },
                 )
-            }
-            if (draft.startingGoldPieces > 0) {
-                Text("${draft.startingGoldPieces} GP", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             }
         }
     }
@@ -1926,6 +2022,9 @@ private fun FeatSelectionCard(
             Checkbox(checked = selected, onCheckedChange = null)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(feat.name, style = MaterialTheme.typography.titleSmall)
+                feat.category?.takeIf(String::isNotBlank)?.let { category ->
+                    Text(category, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                }
                 feat.recommendedReason?.let { reason ->
                     Text(
                         state.t("Recommended · $reason", "Empfohlen · $reason"),
@@ -1937,16 +2036,7 @@ private fun FeatSelectionCard(
                 }
             }
             IconButton(
-                onClick = {
-                    val body = buildString {
-                        append(feat.summary.ifBlank { state.t("No additional details supplied.", "Keine weiteren Details angegeben.") })
-                        feat.recommendedReason?.let { reason ->
-                            append("\n\n")
-                            append(state.t("Why it may fit: $reason", "Warum es passen könnte: $reason"))
-                        }
-                    }
-                    state.showInfo(feat.name, body)
-                },
+                onClick = { showFeatInfo(state, feat) },
             ) {
                 Icon(Icons.Rounded.Info, contentDescription = state.t("Explain ${feat.name}", "${feat.name} erklären"))
             }

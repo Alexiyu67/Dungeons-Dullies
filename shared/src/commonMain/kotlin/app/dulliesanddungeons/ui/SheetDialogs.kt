@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -27,6 +28,7 @@ import androidx.compose.material.icons.rounded.Casino
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
@@ -41,6 +43,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -50,15 +53,22 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -585,6 +595,7 @@ internal fun PrivateContentDialog(
     var formula by remember { mutableStateOf("") }
     var combatContributions by remember { mutableStateOf(emptyList<app.dulliesanddungeons.domain.CombatContribution>()) }
     var expandedPackId by remember { mutableStateOf<String?>(null) }
+    var discardAllOpen by remember { mutableStateOf(false) }
     val kinds = listOf("Class", "Subclass", "Species", "Background", "Feat", "Feature", "Spell", "Creature", "Language", "Item", "Weapon", "Condition", "Action", "Resource", "Rule")
     AlertDialog(
         onDismissRequest = { state.privateContentOpen = false },
@@ -608,61 +619,33 @@ internal fun PrivateContentDialog(
                 if (state.pendingImports.isNotEmpty()) {
                     Text(state.t("REVIEW IMPORTS", "IMPORTE PRÜFEN"), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                     state.pendingImports.forEach { pending ->
-                        val expanded = expandedPackId == pending.packId
-                        val missing = state.missingPrivateRequirements(pending.packId)
-                        val counts = pending.candidates.groupingBy { it.kind.lowercase() }.eachCount().entries
-                            .sortedBy { it.key }.joinToString(" · ") { "${it.value} ${it.key}" }
-                        Card(shape = RoundedCornerShape(15.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-                            Surface(onClick = { expandedPackId = if (expanded) null else pending.packId }, color = androidx.compose.ui.graphics.Color.Transparent) {
-                                Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Rounded.FileOpen, contentDescription = null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
-                                    Spacer(Modifier.width(9.dp))
-                                    Column(Modifier.weight(1f)) {
-                                        Text("${pending.packId} · ${pending.version}", style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                        Text(
-                                            pending.error ?: if (missing.isNotEmpty()) state.t("Requires ${missing.joinToString { "${it.id} ${it.version}" }}", "Benötigt ${missing.joinToString { "${it.id} ${it.version}" }}") else counts,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = if (pending.error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-                                            maxLines = 2,
-                                            overflow = TextOverflow.Ellipsis,
-                                        )
-                                    }
-                                    Icon(if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, contentDescription = if (expanded) state.t("Hide candidates", "Kandidaten einklappen") else state.t("Show candidates", "Kandidaten anzeigen"))
-                                }
-                            }
-                            if (expanded) {
-                                HorizontalDivider()
-                                Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    if (pending.candidates.isEmpty() && pending.error == null) {
-                                        Text(state.t("No entries found.", "Keine Einträge gefunden."), style = MaterialTheme.typography.bodySmall)
-                                    }
-                                    pending.candidates.take(30).forEach { candidate ->
-                                        Row(verticalAlignment = Alignment.Top) {
-                                            Icon(Icons.Rounded.Check, contentDescription = null, Modifier.size(17.dp), tint = MaterialTheme.colorScheme.primary)
-                                            Spacer(Modifier.width(7.dp))
-                                            Column(Modifier.weight(1f)) {
-                                                Text(candidate.name, style = MaterialTheme.typography.labelLarge)
-                                                Text(candidate.kind, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                                if (candidate.summary.isNotBlank()) Text(candidate.summary, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                                            }
-                                        }
-                                    }
-                                    if (pending.candidates.size > 30) Text(
-                                        state.t("and ${pending.candidates.size - 30} more", "und ${pending.candidates.size - 30} weitere"),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        OutlinedButton(onClick = { state.discardPendingImport(pending.packId) }, modifier = Modifier.weight(1f)) { Text(state.t("Discard", "Verwerfen")) }
-                                        Button(
-                                            onClick = { state.approvePendingImport(pending.packId) },
-                                            enabled = pending.error == null && pending.candidates.isNotEmpty() && missing.isEmpty(),
-                                            modifier = Modifier.weight(1f),
-                                        ) { Text(state.t("Install", "Installieren")) }
-                                    }
-                                }
-                            }
+                        key(pending.packId) {
+                            PendingImportCard(
+                                state = state,
+                                pending = pending,
+                                expanded = expandedPackId == pending.packId,
+                                onToggle = {
+                                    expandedPackId = if (expandedPackId == pending.packId) null else pending.packId
+                                },
+                                onDiscard = {
+                                    if (expandedPackId == pending.packId) expandedPackId = null
+                                    state.discardPendingImport(pending.packId)
+                                },
+                            )
                         }
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = { discardAllOpen = true }, modifier = Modifier.weight(1f)) {
+                            Text(state.t("Discard", "Verwerfen"))
+                        }
+                        Button(
+                            onClick = {
+                                state.approveAllPendingImports()
+                                if (state.pendingImports.none { it.packId == expandedPackId }) expandedPackId = null
+                            },
+                            enabled = state.hasInstallablePendingImports(),
+                            modifier = Modifier.weight(1f),
+                        ) { Text(state.t("Install", "Installieren")) }
                     }
                 }
                 HorizontalDivider()
@@ -700,6 +683,130 @@ internal fun PrivateContentDialog(
         },
         confirmButton = { TextButton(onClick = { state.privateContentOpen = false }) { Text(state.t("Done", "Fertig")) } },
     )
+    if (discardAllOpen) {
+        AlertDialog(
+            onDismissRequest = { discardAllOpen = false },
+            icon = { Icon(Icons.Rounded.Delete, contentDescription = null) },
+            title = { Text(state.t("Discard all imports?", "Alle Importe verwerfen?")) },
+            text = {
+                Text(
+                    state.t(
+                        "Remove all ${state.pendingImports.size} files from review?",
+                        "Alle ${state.pendingImports.size} Dateien aus der Prüfung entfernen?",
+                    ),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    discardAllOpen = false
+                    expandedPackId = null
+                    state.discardAllPendingImports()
+                }) { Text(state.t("Discard", "Verwerfen")) }
+            },
+            dismissButton = {
+                TextButton(onClick = { discardAllOpen = false }) { Text(state.t("Cancel", "Abbrechen")) }
+            },
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PendingImportCard(
+    state: DndAppState,
+    pending: PendingImportUi,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    onDiscard: () -> Unit,
+) {
+    val missing = state.missingPrivateRequirements(pending.packId)
+    val counts = pending.candidates.groupingBy { it.kind.lowercase() }.eachCount().entries
+        .sortedBy { it.key }.joinToString(" · ") { "${it.value} ${it.key}" }
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { target ->
+            if (target == SwipeToDismissBoxValue.EndToStart) {
+                onDiscard()
+                true
+            } else false
+        },
+    )
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = false,
+        enableDismissFromEndToStart = true,
+        backgroundContent = {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                shape = RoundedCornerShape(15.dp),
+                color = MaterialTheme.colorScheme.errorContainer,
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Rounded.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                    Spacer(Modifier.width(7.dp))
+                    Text(state.t("Discard", "Verwerfen"), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
+                }
+            }
+        },
+    ) {
+        Card(
+            modifier = Modifier.fillMaxWidth().semantics {
+                customActions = listOf(
+                    CustomAccessibilityAction(state.t("Discard ${pending.packId}", "${pending.packId} verwerfen")) {
+                        onDiscard()
+                        true
+                    },
+                )
+            },
+            shape = RoundedCornerShape(15.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        ) {
+            Surface(onClick = onToggle, color = androidx.compose.ui.graphics.Color.Transparent) {
+                Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Rounded.FileOpen, contentDescription = null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(9.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("${pending.packId} · ${pending.version}", style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(
+                            pending.error ?: if (missing.isNotEmpty()) state.t("Requires ${missing.joinToString { "${it.id} ${it.version}" }}", "Benötigt ${missing.joinToString { "${it.id} ${it.version}" }}") else counts,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (pending.error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    Icon(if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, contentDescription = if (expanded) state.t("Hide candidates", "Kandidaten einklappen") else state.t("Show candidates", "Kandidaten anzeigen"))
+                }
+            }
+            if (expanded) {
+                HorizontalDivider()
+                Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (pending.candidates.isEmpty() && pending.error == null) {
+                        Text(state.t("No entries found.", "Keine Einträge gefunden."), style = MaterialTheme.typography.bodySmall)
+                    }
+                    pending.candidates.take(30).forEach { candidate ->
+                        Row(verticalAlignment = Alignment.Top) {
+                            Icon(Icons.Rounded.Check, contentDescription = null, Modifier.size(17.dp), tint = MaterialTheme.colorScheme.primary)
+                            Spacer(Modifier.width(7.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(candidate.name, style = MaterialTheme.typography.labelLarge)
+                                Text(candidate.kind, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                if (candidate.summary.isNotBlank()) Text(candidate.summary, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            }
+                        }
+                    }
+                    if (pending.candidates.size > 30) Text(
+                        state.t("and ${pending.candidates.size - 30} more", "und ${pending.candidates.size - 30} weitere"),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
 }
 
 private fun addArmorFromDialog(state: DndAppState, armor: EquipmentUi, wear: Boolean, attune: Boolean) {

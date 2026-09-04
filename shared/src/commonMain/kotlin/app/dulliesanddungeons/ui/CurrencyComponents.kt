@@ -34,6 +34,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.dulliesanddungeons.domain.CoinDenomination
+import app.dulliesanddungeons.domain.CurrencyPurse
 
 internal val CoinDenomination.shortCode: String
     get() = when (this) {
@@ -98,30 +99,52 @@ internal fun currencyKnownItems(): List<KnownItemUi> = CoinDenomination.entries.
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun CurrencyOverview(state: DndAppState, character: CharacterUi) {
+    CurrencyOverview(
+        state = state,
+        ruleset = character.ruleset,
+        currency = character.currency,
+        onAdjust = state::openCurrencyAdjustment,
+    )
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+internal fun CurrencyOverview(
+    state: DndAppState,
+    ruleset: Ruleset,
+    currency: CurrencyPurse,
+    onAdjust: ((CoinDenomination) -> Unit)? = null,
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        coinDenominations(character.ruleset).forEach { denomination ->
+        coinDenominations(ruleset).forEach { denomination ->
             val name = denomination.localizedName(state.language)
-            val balance = character.currency.balance(denomination)
+            val balance = currency.balance(denomination)
             val adjustLabel = state.t("Adjust $name", "$name anpassen")
-            Card(
-                modifier = Modifier
-                    .weight(1f)
+            val interactionModifier = if (onAdjust == null) {
+                Modifier.semantics { contentDescription = "$name, $balance ${denomination.shortCode}" }
+            } else {
+                Modifier
                     .combinedClickable(
-                        onClick = { state.openCurrencyAdjustment(denomination) },
-                        onLongClick = { state.openCurrencyAdjustment(denomination) },
+                        onClick = { onAdjust(denomination) },
+                        onLongClick = { onAdjust(denomination) },
                     )
                     .semantics {
                         contentDescription = "$name, $balance ${denomination.shortCode}"
                         customActions = listOf(
                             CustomAccessibilityAction(adjustLabel) {
-                                state.openCurrencyAdjustment(denomination)
+                                onAdjust(denomination)
                                 true
                             },
                         )
-                    },
+                    }
+            }
+            Card(
+                modifier = Modifier
+                    .weight(1f)
+                    .then(interactionModifier),
                 shape = RoundedCornerShape(14.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
             ) {

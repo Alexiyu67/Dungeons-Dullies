@@ -16,6 +16,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Casino
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -277,23 +279,25 @@ private fun SimpleHpMethodCard(state: DndAppState, draft: LevelUpDraft, method: 
 
 @Composable
 private fun FeatStep(state: DndAppState, draft: LevelUpDraft) {
+    var featListOpen by remember(draft.toLevel) { mutableStateOf(false) }
+    val featOptions = state.levelUpFeatOptions().sortedForPicker(state.language, FeatOptionUi::name, FeatOptionUi::id)
+    val selectedFeat = featOptions.firstOrNull { it.id == draft.selectedFeatId }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(state.t("Feat or improvement", "Talent oder Verbesserung"), style = MaterialTheme.typography.titleMedium)
         if (!state.levelUpFeatAvailable(draft)) {
             Text(state.t("This level has no feat choice.", "Diese Stufe enthält keine Talentwahl."))
         } else {
-            state.levelUpFeatOptions().sortedForPicker(state.language, FeatOptionUi::name, FeatOptionUi::id).forEach { feat ->
-                OutlinedCard(onClick = { state.selectLevelUpFeat(feat.id) }, modifier = Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(feat.name, style = MaterialTheme.typography.titleSmall)
-                            RadioButton(selected = draft.selectedFeatId == feat.id, onClick = { state.selectLevelUpFeat(feat.id) })
-                        }
-                        Text(feat.summary, style = MaterialTheme.typography.bodyMedium)
-                        feat.recommendedReason?.let {
-                            Text(state.t("Recommended · $it", "Empfohlen · $it"), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+            OutlinedCard(onClick = { featListOpen = true }, modifier = Modifier.fillMaxWidth()) {
+                Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Rounded.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(10.dp))
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(selectedFeat?.name ?: state.t("Search and choose a feat", "Talent suchen und wählen"), style = MaterialTheme.typography.titleSmall)
+                        selectedFeat?.category?.takeIf(String::isNotBlank)?.let { category ->
+                            Text(category, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                         }
                     }
+                    Icon(Icons.Rounded.ChevronRight, contentDescription = null)
                 }
             }
             if (draft.selectedFeatId == "ability-score-improvement") {
@@ -313,6 +317,20 @@ private fun FeatStep(state: DndAppState, draft: LevelUpDraft) {
                 }
             }
         }
+    }
+    if (featListOpen) {
+        FeatPickerDialog(
+            state = state,
+            options = featOptions,
+            selectedIds = setOfNotNull(draft.selectedFeatId),
+            selectionLimit = 1,
+            singleSelection = true,
+            onToggle = { feat ->
+                state.selectLevelUpFeat(feat.id)
+                featListOpen = false
+            },
+            onDismiss = { featListOpen = false },
+        )
     }
 }
 

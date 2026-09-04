@@ -51,6 +51,12 @@ class PrivateContentTest {
             kind = "class",
             name = "Blank",
         ).toPrivateEntry("private.test", "1.0.0")
+        val genericFeat = PrivateContentEntryUi(
+            id = "feat-generic",
+            kind = "feat",
+            name = "Generic Feat",
+            summary = "General feat. Apply prerequisites and conditional benefits at the table.",
+        ).toPrivateEntry("private.test", "1.0.0")
 
         assertEquals(
             "Activation: Bonus Action. Tracks 3 uses; Long Rest recovery. " +
@@ -60,6 +66,7 @@ class PrivateContentTest {
         assertEquals("Grant an ally a die they can add to one eligible roll.", authored.summary)
         assertEquals(ActionCost(bonusActions = 1), placeholder.mechanics.actionCost)
         assertEquals("", blankClass.summary)
+        assertEquals("Effect details were not supplied by the imported content pack.", genericFeat.summary)
     }
 
     @Test
@@ -184,6 +191,64 @@ class PrivateContentTest {
         assertTrue(state.approvePendingImport("private.parent"))
         assertTrue(state.approvePendingImport("private.child"))
         assertEquals(setOf("private.parent", "private.child"), state.installedPrivatePacks.mapTo(mutableSetOf()) { it.id })
+    }
+
+    @Test
+    fun installingAllResolvesDependencyOrderAndLeavesInvalidFilesPending() {
+        val state = DndAppState()
+        state.registerPendingImport(
+            PendingImportUi(
+                packId = "private.child",
+                version = "1.0.0",
+                requires = listOf(PrivateContentRequirementUi("private.parent", "1.0.0")),
+                sourcePath = "child.dndpack",
+                candidates = listOf(PrivateEntryUi("feat-child", "feat", "Child", sourcePackId = "private.child", sourcePackVersion = "1.0.0")),
+            ),
+        )
+        state.registerPendingImport(
+            PendingImportUi(
+                packId = "private.invalid",
+                version = "1.0.0",
+                sourcePath = "invalid.dndpack",
+                error = "Invalid manifest",
+            ),
+        )
+        state.registerPendingImport(
+            PendingImportUi(
+                packId = "private.parent",
+                version = "1.0.0",
+                sourcePath = "parent.dndpack",
+                candidates = listOf(PrivateEntryUi("feat-parent", "feat", "Parent", sourcePackId = "private.parent", sourcePackVersion = "1.0.0")),
+            ),
+        )
+
+        assertTrue(state.hasInstallablePendingImports())
+        assertEquals(2, state.approveAllPendingImports())
+        assertEquals(setOf("private.parent", "private.child"), state.installedPrivatePacks.mapTo(mutableSetOf()) { it.id })
+        assertEquals(listOf("private.invalid"), state.pendingImports.map { it.packId })
+        assertFalse(state.hasInstallablePendingImports())
+
+        state.discardAllPendingImports()
+        assertTrue(state.pendingImports.isEmpty())
+    }
+
+    @Test
+    fun importedFeatCategoryIsSearchableWithoutFakeRecommendation() {
+        val state = DndAppState()
+        state.addPrivateEntry(
+            PrivateEntryUi(
+                id = "feat-chef",
+                kind = "feat",
+                name = "Chef",
+                summary = "Prepare restorative food during a rest.",
+                aliases = listOf("Origin", "Cooking"),
+            ),
+        )
+
+        val feat = state.approvedPrivateFeatOptions().single { it.id == "feat-chef" }
+        assertEquals("Origin", feat.category)
+        assertEquals(listOf("Origin", "Cooking"), feat.searchTerms)
+        assertEquals(null, feat.recommendedReason)
     }
 
     @Test

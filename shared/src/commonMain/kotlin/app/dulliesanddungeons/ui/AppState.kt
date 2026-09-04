@@ -131,6 +131,8 @@ data class FeatOptionUi(
     val name: String,
     val summary: String,
     val recommendedReason: String? = null,
+    val category: String? = null,
+    val searchTerms: List<String> = emptyList(),
 )
 
 data class CreationPreviewUi(
@@ -2454,7 +2456,13 @@ class DndAppState(
         "feat",
         character?.ruleset ?: creation.ruleset,
     ).map { entry ->
-        FeatOptionUi(entry.id, entry.name, entry.privateContentSummary(), t("Approved private content", "Freigegebener privater Inhalt"))
+        FeatOptionUi(
+            id = entry.id,
+            name = entry.name,
+            summary = entry.privateContentSummary(),
+            category = entry.aliases.firstOrNull(),
+            searchTerms = entry.aliases,
+        )
     }
 
     /** Legacy catalog accessor retained for local-content management and tests. */
@@ -5725,20 +5733,51 @@ class DndAppState(
         return installedPrivatePacks.filter { it.id in packIds }
     }
 
+    private fun installPendingImport(pending: PendingImportUi): Boolean {
+        if (pending.error != null || pending.candidates.isEmpty() || missingPrivateRequirements(pending.packId).isNotEmpty()) return false
+        privateEntries.removeAll { it.sourcePackId == pending.packId }
+        privateEntries += pending.candidates
+        installedPrivatePacks.removeAll { it.id == pending.packId }
+        installedPrivatePacks += InstalledPrivatePackUi(pending.packId, pending.version, pending.requires)
+        pendingImports.remove(pending)
+        return true
+    }
+
     fun approvePendingImport(packId: String): Boolean {
         val pending = pendingImports.firstOrNull { it.packId == packId } ?: return false
-        if (pending.error != null || pending.candidates.isEmpty() || missingPrivateRequirements(packId).isNotEmpty()) return false
-        privateEntries.removeAll { it.sourcePackId == packId }
-        privateEntries += pending.candidates
-        installedPrivatePacks.removeAll { it.id == packId }
-        installedPrivatePacks += InstalledPrivatePackUi(packId, pending.version, pending.requires)
-        pendingImports.remove(pending)
+        if (!installPendingImport(pending)) return false
         persist()
         return true
     }
 
+    fun hasInstallablePendingImports(): Boolean = pendingImports.any { pending ->
+        pending.error == null && pending.candidates.isNotEmpty() && missingPrivateRequirements(pending.packId).isEmpty()
+    }
+
+    fun approveAllPendingImports(): Int {
+        var installed = 0
+        var madeProgress: Boolean
+        do {
+            madeProgress = false
+            pendingImports.toList().forEach { pending ->
+                if (installPendingImport(pending)) {
+                    installed += 1
+                    madeProgress = true
+                }
+            }
+        } while (madeProgress)
+        if (installed > 0) persist()
+        return installed
+    }
+
     fun discardPendingImport(packId: String) {
         pendingImports.removeAll { it.packId == packId }
+        persist()
+    }
+
+    fun discardAllPendingImports() {
+        if (pendingImports.isEmpty()) return
+        pendingImports.clear()
         persist()
     }
 

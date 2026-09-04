@@ -68,7 +68,7 @@ private fun resolvedPrivateContentSummary(
     mechanics: PrivateMechanicsUi,
 ): String {
     val supplied = summary.trim()
-    if (supplied.isNotEmpty() && !GENERIC_FEATURE_SUMMARY.matches(supplied)) return supplied
+    if (supplied.isNotEmpty() && !GENERIC_FEATURE_SUMMARY.matches(supplied) && !GENERIC_FEAT_SUMMARY.matches(supplied)) return supplied
     if (kind.trim().lowercase() !in SUMMARY_FALLBACK_KINDS) return supplied
 
     val facts = buildList {
@@ -252,6 +252,10 @@ private val PRIVATE_ID = Regex("^[a-z0-9][a-z0-9._-]{1,79}$")
 private val PRIVATE_VERSION = Regex("^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[a-z0-9.-]+)?$")
 private val GENERIC_FEATURE_SUMMARY = Regex(
     "^(?:.+?\\s+)?feature\\s+(?:unlocked|gained)\\s+at\\s+class\\s+level\\s+\\d+\\.?$",
+    RegexOption.IGNORE_CASE,
+)
+private val GENERIC_FEAT_SUMMARY = Regex(
+    "^(?:General|Origin|Fighting Style|Epic Boon) feat\\. Apply prerequisites and conditional benefits at the table\\.$",
     RegexOption.IGNORE_CASE,
 )
 private val SUMMARY_FALLBACK_KINDS = setOf(

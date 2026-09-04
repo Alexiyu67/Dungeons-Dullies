@@ -14,7 +14,7 @@ class CharacterCreationUiLogicTest {
     }
 
     @Test
-    fun backgroundsConflictingWithClassSkillsAreFilteredButCurrentSelectionStaysVisible() {
+    fun backgroundsCanBeSearchedByNameOrGrantedSkill() {
         val soldier = BackgroundDefinitionUi(
             id = "background:soldier",
             englishName = "Soldier",
@@ -29,13 +29,25 @@ class CharacterCreationUiLogicTest {
         )
 
         assertEquals(
-            listOf("background:sage"),
-            filterCreationBackgrounds(listOf(soldier, sage), setOf("skill:athletics"), null).map { it.id },
+            listOf("background:soldier"),
+            filterCreationBackgrounds(listOf(soldier, sage), "sold", UiLanguage.English, Ruleset.Fifth2024).map { it.id },
         )
         assertEquals(
-            listOf("background:soldier", "background:sage"),
-            filterCreationBackgrounds(listOf(soldier, sage), setOf("skill:athletics"), soldier.id).map { it.id },
+            listOf("background:sage"),
+            filterCreationBackgrounds(listOf(soldier, sage), "Arcana", UiLanguage.English, Ruleset.Fifth2024).map { it.id },
         )
+        assertEquals(2, filterCreationBackgrounds(listOf(soldier, sage), "", UiLanguage.English, Ruleset.Fifth2024).size)
+    }
+
+    @Test
+    fun featsCanBeSearchedByCategoryAndAliases() {
+        val options = listOf(
+            FeatOptionUi("alert", "Alert", "Act quickly."),
+            FeatOptionUi("chef", "Chef", "Prepare food.", category = "Origin", searchTerms = listOf("cooking")),
+        )
+
+        assertEquals(listOf("chef"), filterFeatOptions(options, "origin").map { it.id })
+        assertEquals(listOf("chef"), filterFeatOptions(options, "cooking").map { it.id })
     }
 
     @Test
